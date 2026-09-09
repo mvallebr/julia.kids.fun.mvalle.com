@@ -18,7 +18,23 @@ const BRAND_NAME = 'Julia';
 const escapeHtml = (value) => value.replace(/[&<>"']/g, (character) => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
 }[character]));
+const launcherParams = new URLSearchParams(window.location.search);
+const launcherConfig = launcherParams.get('from') === 'launcher'
+  ? {
+      name: launcherParams.get('name') || '',
+      country: launcherParams.get('country') || '',
+      language: launcherParams.get('language') || '',
+    }
+  : null;
 let preferences = applyPreferences(loadPreferences());
+if (launcherConfig) {
+  preferences = applyPreferences(savePreferences({
+    ...preferences,
+    name: launcherConfig.name || preferences.name,
+    country: launcherConfig.country || preferences.country,
+    language: launcherConfig.language || preferences.language,
+  }));
+}
 let progress = loadProgress();
 let language = preferences.language;
 let childName = preferences.name;
@@ -66,26 +82,6 @@ const childNameInput = $('childNameInput');
 const introNameLabel = $('introNameLabel');
 const btnHome = $('btnHome');
 const btnSpin = $('btnSpin');
-const menuToggle = $('menuToggle');
-const settingsBackdrop = $('settingsBackdrop');
-const settingsClose = $('settingsClose');
-const themeSelect = $('themeSelect');
-const helpButton = $('helpButton');
-const helpBackdrop = $('helpBackdrop');
-const helpClose = $('helpClose');
-const helpTitle = $('helpTitle');
-const helpIntro = $('helpIntro');
-const helpExploreTitle = $('helpExploreTitle');
-const helpExploreText = $('helpExploreText');
-const helpControlsTitle = $('helpControlsTitle');
-const helpControlsText = $('helpControlsText');
-const helpStickersTitle = $('helpStickersTitle');
-const helpStickersText = $('helpStickersText');
-const helpBadgesTitle = $('helpBadgesTitle');
-const helpBadgesText = $('helpBadgesText');
-const helpRankingTitle = $('helpRankingTitle');
-const helpRankingText = $('helpRankingText');
-const themeStatus = $('themeStatus');
 const cardLabel = $('cardLabel');
 
 // ── Paleta por continente (pastel, alegre, contraste com o espaço) ──────────
@@ -752,7 +748,6 @@ function updateTheme() {
   applyPreferences(preferences);
   document.body.dataset.theme = active;
   world.backgroundColor(SPACE_COLOR);
-  themeStatus.textContent = text(language, 'themeStatus', { theme: text(language, themeLabelKey(active)) });
 }
 function updateIntroCopy() {
   const hasName = Boolean(childName);
@@ -775,34 +770,12 @@ function updateInterface() {
   btnHome.textContent = text(language, 'home');
   btnHome.title = text(language, 'homeTitle');
   btnSpin.title = text(language, 'spinTitle');
-  menuToggle.setAttribute('aria-label', text(language, 'settings'));
-  settingsClose.setAttribute('aria-label', text(language, 'close'));
   cardClose.title = text(language, 'close');
   placeModalClose.title = text(language, 'close');
   updateSpinButton();
   cardLabel.textContent = text(language, 'sheet');
   cardSpeak.textContent = text(language, 'speak');
   speakStop.textContent = text(language, 'stop');
-  $('settingsTitle').textContent = text(language, 'settings');
-  $('languageTitle').textContent = text(language, 'language');
-  $('themeTitle').textContent = text(language, 'theme');
-  $('themeHelp').textContent = text(language, 'themeHelp');
-  $('accentTitle').textContent = text(language, 'accent');
-  $('settingsNote').textContent = text(language, 'saved');
-  helpButton.textContent = text(language, 'helpButton');
-  helpTitle.textContent = text(language, 'helpTitle');
-  helpClose.setAttribute('aria-label', text(language, 'helpClose'));
-  helpIntro.textContent = text(language, 'helpIntro');
-  helpExploreTitle.textContent = text(language, 'helpExploreTitle');
-  helpExploreText.textContent = text(language, 'helpExploreText');
-  helpControlsTitle.textContent = text(language, 'helpControlsTitle');
-  helpControlsText.textContent = text(language, 'helpControlsText');
-  helpStickersTitle.textContent = text(language, 'helpStickersTitle');
-  helpStickersText.textContent = text(language, 'helpStickersText');
-  helpBadgesTitle.textContent = text(language, 'helpBadgesTitle');
-  helpBadgesText.textContent = text(language, 'helpBadgesText');
-  helpRankingTitle.textContent = text(language, 'helpRankingTitle');
-  helpRankingText.textContent = text(language, 'helpRankingText');
   updateIntroCopy();
   introNameLabel.textContent = text(language, 'nameLabel');
   childNameInput.placeholder = text(language, 'namePlaceholder');
@@ -820,11 +793,6 @@ function updateInterface() {
     button.classList.toggle('selected', selected);
     button.setAttribute('aria-pressed', String(selected));
   }
-  for (const option of themeSelect.options) option.textContent = text(language, option.dataset.key);
-  for (const button of document.querySelectorAll('[data-accent]')) {
-    button.classList.toggle('selected', button.dataset.accent === preferences.accent);
-  }
-  themeSelect.value = preferences.theme;
   updateTheme();
   if (current && !card.classList.contains('hidden')) pinCard(current);
   renderProgressUI();
@@ -837,22 +805,6 @@ function setPreferences(changes) {
   updateInterface();
 }
 
-function openSettings() {
-  settingsBackdrop.classList.remove('hidden');
-  menuToggle.setAttribute('aria-expanded', 'true');
-}
-function closeSettings() {
-  settingsBackdrop.classList.add('hidden');
-  menuToggle.setAttribute('aria-expanded', 'false');
-}
-function openHelp() {
-  closeSettings();
-  helpBackdrop.classList.remove('hidden');
-  window.setTimeout(() => helpClose.focus(), 0);
-}
-function closeHelp() {
-  helpBackdrop.classList.add('hidden');
-}
 rankingToggle.addEventListener('click', () => {
   rankingPanel.classList.toggle('collapsed');
   renderProgressUI();
@@ -862,36 +814,46 @@ switchPlayer.addEventListener('click', () => {
   childNameInput.focus();
   childNameInput.select();
 });
-menuToggle.addEventListener('click', () => (settingsBackdrop.classList.contains('hidden') ? openSettings() : closeSettings()));
-settingsClose.addEventListener('click', closeSettings);
-helpButton.addEventListener('click', openHelp);
-helpClose.addEventListener('click', closeHelp);
-helpBackdrop.addEventListener('click', (event) => {
-  if (event.target === helpBackdrop) closeHelp();
-});
-settingsBackdrop.addEventListener('click', (event) => {
-  if (event.target === settingsBackdrop) closeSettings();
-});
 window.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') {
-    closeSettings();
-    closeHelp();
-    closePlaceModal();
-  }
+  if (event.key === 'Escape') closePlaceModal();
 });
 for (const button of document.querySelectorAll('[data-language]')) {
   button.addEventListener('click', () => setPreferences({ language: button.dataset.language }));
-}
-themeSelect.addEventListener('change', () => setPreferences({ theme: themeSelect.value }));
-for (const button of document.querySelectorAll('[data-accent]')) {
-  button.addEventListener('click', () => setPreferences({ accent: button.dataset.accent }));
 }
 setInterval(() => {
   if (preferences.theme === 'auto') updateTheme();
 }, 60000);
 
+function countryCenter(feature) {
+  const points = [];
+  const collect = (value) => {
+    if (!Array.isArray(value)) return;
+    if (typeof value[0] === 'number' && typeof value[1] === 'number') {
+      points.push({ lat: value[1], lng: value[0] });
+      return;
+    }
+    value.forEach(collect);
+  };
+  collect(feature?.geometry?.coordinates);
+  if (!points.length) return null;
+  return points.reduce((center, point) => ({
+    lat: center.lat + point.lat / points.length,
+    lng: center.lng + point.lng / points.length,
+  }), { lat: 0, lng: 0 });
+}
+
+function enterFromLauncher() {
+  if (!launcherConfig || !childName) return;
+  intro.classList.add('hidden');
+  const feature = EARTH.features.find((candidate) => candidate.properties.i === preferences.country);
+  const center = countryCenter(feature);
+  if (center) world.pointOfView({ ...center, altitude: 2.2 }, 1200);
+  startSpin();
+}
+
 // ── Título / introdução ──────────────────────────────────────────────────────
 updateInterface();
+enterFromLauncher();
 
 childNameInput.addEventListener('input', () => {
   childName = childNameInput.value.trim().replace(/\s+/g, ' ');

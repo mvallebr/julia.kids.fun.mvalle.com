@@ -2,6 +2,7 @@ const STORAGE_KEY = 'mundo-da-julia.preferences.v1';
 
 export const DEFAULT_PREFERENCES = Object.freeze({
   name: '',
+  country: '',
   language: 'pt',
   theme: 'auto',
   accent: 'gold',
@@ -15,15 +16,21 @@ function valid(value, allowed, fallback) {
   return allowed.has(value) ? value : fallback;
 }
 
+function normalizeCountry(value) {
+  return typeof value === 'string' ? value.trim().slice(0, 16) : DEFAULT_PREFERENCES.country;
+}
+
 function normalizeName(value) {
   if (typeof value !== 'string') return DEFAULT_PREFERENCES.name;
   return value.trim().replace(/\s+/g, ' ').slice(0, 32);
 }
 
+
 export function normalizePreferences(value = {}) {
   const source = value && typeof value === 'object' ? value : {};
   return {
     name: normalizeName(source.name),
+    country: normalizeCountry(source.country),
     language: valid(source.language, LANGUAGES, DEFAULT_PREFERENCES.language),
     theme: valid(source.theme, THEMES, DEFAULT_PREFERENCES.theme),
     accent: valid(source.accent, ACCENTS, DEFAULT_PREFERENCES.accent),
