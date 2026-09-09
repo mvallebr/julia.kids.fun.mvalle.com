@@ -1,11 +1,18 @@
 # Julia's World 🌍
 
-An interactive 3D world atlas (globe.gl + three.js) where Julia can explore
-countries, cities and her projects.
+A collection of interactive apps made for Julia, served on GitHub Pages at
+**<https://julia.kids.fun.mvalle.com>**.
 
-**Live at:** <https://julia.kids.fun.mvalle.com>
+The repository root mirrors `~/Documents/Projetos_Julia/` — each subfolder is
+an app.
 
-## Structure
+## Apps
+
+- **[`julia_world/`](/julia_world/)** — an interactive 3D world atlas
+  (globe.gl + three.js) where Julia can explore countries, cities and her
+  projects.
+
+## Development (julia_world)
 
 - `index.html` — single page (HTML + CSS + JS, no framework)
 - `src/` — app source code (bundled with esbuild)
@@ -14,9 +21,8 @@ countries, cities and her projects.
 - `fonts/` — self-hosted fonts (Fredoka, Luckiest Guy)
 - `tools/` — build scripts and source data (fun facts, places, cities)
 
-## Development
-
 ```sh
+cd julia_world
 npm install
 npm run build      # regenerates data/earth-data.js and lib/app.bundle.js
 npx serve .        # or just open index.html directly
@@ -24,8 +30,10 @@ npx serve .        # or just open index.html directly
 
 ## Deploy
 
-GitHub Pages serves the `main` branch from the repository root (no CI — the
-bundle is committed). Pushing to `main` updates the site.
+GitHub Pages serves the `main` branch from the repository root (no CI —
+bundles are committed). Pushing to `main` updates the site.
 
 - Custom domain: the `CNAME` file at the repository root.
 - DNS: CNAME record managed in the `human_cdk` repo (`HumanDnsStack`).
+- The `index.html` at the root is a temporary placeholder hub; it will be
+  replaced by the real landing page once the apps folder is finalized.
