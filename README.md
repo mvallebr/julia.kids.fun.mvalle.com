@@ -35,5 +35,5 @@ bundles are committed). Pushing to `main` updates the site.
 
 - Custom domain: the `CNAME` file at the repository root.
 - DNS: CNAME record managed in the `human_cdk` repo (`HumanDnsStack`).
-- The `index.html` at the root is a temporary placeholder hub; it will be
-  replaced by the real landing page once the apps folder is finalized.
+- The `index.html` at the root is the app launcher menu — add a new entry
+  there when creating an app.

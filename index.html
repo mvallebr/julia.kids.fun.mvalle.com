@@ -3,443 +3,119 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Projetos Julia</title>
+  <title>Aventuras da Julia 🌍</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🌍</text></svg>">
   <link rel="stylesheet" href="julia_world/fonts/fonts.css">
   <style>
-    :root { --ink:#2a3150; --gold:#ffd166; }
-    * { box-sizing:border-box; }
-    html, body { height:100%; }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
     body {
-      margin:0; overflow:hidden; font-family:'Fredoka','Segoe UI',system-ui,sans-serif; color:#fff;
+      margin: 0;
+      display: flex; align-items: center; justify-content: center; padding: 24px;
+      font-family: 'Fredoka', 'Segoe UI', system-ui, sans-serif; color: #fff;
       background:
-        radial-gradient(1100px 700px at 75% -10%, rgba(120,84,220,.18), transparent 60%),
-        radial-gradient(900px 600px at 8% 108%, rgba(43,110,190,.16), transparent 55%),
-        radial-gradient(700px 500px at 100% 100%, rgba(90,40,140,.14), transparent 60%),
-        linear-gradient(180deg,#01030b 0%,#020617 55%,#000208 100%);
+        radial-gradient(1200px 800px at 70% -5%, rgba(124, 86, 230, .5), transparent 60%),
+        radial-gradient(1000px 700px at 10% 105%, rgba(72, 40, 155, .45), transparent 55%),
+        linear-gradient(160deg, #32215c 0%, #221644 52%, #150d2e 100%);
     }
-    [hidden] { display:none !important; }
-    body[data-theme="day"] {
-      background:
-        radial-gradient(900px 600px at 78% -12%, rgba(80,180,220,.2), transparent 62%),
-        radial-gradient(850px 600px at 8% 108%, rgba(255,190,90,.12), transparent 60%),
-        linear-gradient(180deg,#02050e 0%,#06172a 52%,#01040a 100%);
+    #stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+    #stars span {
+      position: absolute; border-radius: 50%; background: #fff;
+      box-shadow: 0 0 7px rgba(255,255,255,.8); opacity: .7;
     }
-    body[data-theme="sunset"] {
-      background:
-        radial-gradient(800px 580px at 75% -8%, rgba(255,150,70,.2), transparent 62%),
-        radial-gradient(800px 650px at 5% 105%, rgba(180,75,150,.2), transparent 60%),
-        linear-gradient(180deg,#07030d 0%,#15091e 52%,#020207 100%);
+    .card {
+      position: relative; z-index: 1;
+      width: min(460px, 94vw); padding: 40px 34px 30px; text-align: center;
+      border: 1px solid rgba(255,255,255,.16); border-radius: 34px;
+      background: rgba(43, 30, 84, .68); backdrop-filter: blur(10px);
+      box-shadow: 0 24px 70px rgba(0,0,0,.42);
     }
-    body[data-theme="night"] {
-      background:
-        radial-gradient(1100px 700px at 75% -10%, rgba(120,84,220,.24), transparent 60%),
-        radial-gradient(900px 600px at 8% 108%, rgba(43,110,190,.2), transparent 55%),
-        linear-gradient(180deg,#01020a 0%,#020617 55%,#000108 100%);
+    .wave {
+      display: inline-block; font-size: 48px; line-height: 1;
+      filter: drop-shadow(0 6px 8px rgba(0,0,0,.25));
+      animation: wave 1.9s ease-in-out infinite; transform-origin: 72% 78%;
     }
-    :root[data-accent="mint"] { --gold:#64dfc8; }
-    :root[data-accent="pink"] { --gold:#ff9fbd; }
-    :root[data-accent="blue"] { --gold:#70b7ff; }
-    :root[data-accent="gold"] { --gold:#ffd166; }
-
-    #menuToggle {
-      position:fixed; top:16px; right:16px; z-index:50; width:48px; height:48px;
-      border:1px solid rgba(255,255,255,.3); border-radius:16px; color:#fff;
-      background:rgba(20,26,66,.78); backdrop-filter:blur(8px); font-size:25px;
-      line-height:1; cursor:pointer; box-shadow:0 8px 20px rgba(0,0,0,.25);
-      transition:transform .15s, background .2s;
+    @keyframes wave {
+      0%, 100% { transform: rotate(0deg); }
+      20% { transform: rotate(16deg); }
+      45% { transform: rotate(-8deg); }
+      70% { transform: rotate(12deg); }
     }
-    #menuToggle:hover { transform:scale(1.06); background:rgba(60,70,150,.9); }
-    #settingsBackdrop {
-      position:fixed; inset:0; z-index:60; background:rgba(6,8,30,.48);
-      backdrop-filter:blur(2px); transition:opacity .25s, visibility .25s;
+    h1 {
+      margin: 12px 0 10px;
+      font-family: 'Luckiest Guy', 'Fredoka', sans-serif; font-weight: 400;
+      font-size: clamp(36px, 7vw, 46px); letter-spacing: .02em; color: #ffd166;
+      text-shadow: 0 3px 0 rgba(120, 60, 0, .35), 0 8px 22px rgba(0,0,0,.35);
     }
-    #settingsBackdrop.hidden { opacity:0; visibility:hidden; pointer-events:none; }
-    #settingsPanel {
-      position:absolute; top:0; right:0; width:min(390px,92vw); height:100%; padding:22px 20px;
-      color:#293354; background:#fffaf0; box-shadow:-14px 0 40px rgba(0,0,0,.35);
-      overflow-y:auto; transform:translateX(0); transition:transform .25s;
+    .tagline { margin: 0 auto; max-width: 340px; color: #e9e2ff; font-size: 15.5px; font-weight: 500; line-height: 1.5; }
+    .apps { display: flex; flex-direction: column; gap: 13px; margin-top: 28px; }
+    .app {
+      display: flex; align-items: center; gap: 12px; width: 100%;
+      padding: 15px 22px; border: 0; border-radius: 999px;
+      font: 700 17px 'Fredoka', 'Segoe UI', sans-serif; color: #fff;
+      text-decoration: none; text-align: left;
+      transition: transform .15s, filter .2s, background .2s;
     }
-    #settingsBackdrop.hidden #settingsPanel { transform:translateX(100%); }
-    .settings-head { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:18px; }
-    .settings-head h2 { margin:0; color:#1f2c66; font-size:24px; }
-    #settingsClose, #helpClose, #aboutClose {
-      width:34px; height:34px; border:0; border-radius:50%; color:#666;
-      background:rgba(0,0,0,.07); font-size:16px; cursor:pointer;
+    .app .emoji { font-size: 23px; }
+    .app .arrow { margin-left: auto; font-size: 18px; opacity: .95; }
+    .app-live {
+      background: linear-gradient(135deg, #ff9a3d, #ff5e7e);
+      box-shadow: 0 10px 26px rgba(255, 94, 126, .38);
     }
-    .setting { padding:15px 0; border-top:2px solid #f4e7c6; }
-    .setting label, .setting-title { display:block; margin-bottom:9px; color:#33406b; font-size:15px; font-weight:700; }
-    .setting-help { margin:-3px 0 10px; color:#77809a; font-size:12.5px; line-height:1.35; }
-    .field-input, #countrySelect, #themeSelect {
-      width:100%; padding:10px 12px; border:2px solid #f0e1bd; border-radius:12px;
-      color:#344064; background:#fff; font:600 14px inherit; outline:none;
+    .app-live:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .app-soon {
+      background: rgba(255,255,255,.08); color: rgba(255,255,255,.68);
+      border: 2px dashed rgba(255,255,255,.28); cursor: default;
     }
-    .field-input:focus, #countrySelect:focus, #themeSelect:focus { border-color:#5f8dff; box-shadow:0 0 0 3px rgba(95,141,255,.16); }
-    .language-options { display:grid; grid-template-columns:1fr; gap:7px; }
-    .language-option {
-      display:flex; align-items:center; gap:10px; width:100%; padding:10px 12px;
-      border:2px solid #f0e1bd; border-radius:14px; color:#344064; background:#fff;
-      font:600 14px inherit; text-align:left; cursor:pointer;
+    .soon-badge {
+      margin-left: auto; padding: 4px 10px; border-radius: 999px;
+      background: rgba(255,255,255,.16); color: #fff;
+      font-size: 10.5px; font-weight: 700; letter-spacing: .08em;
     }
-    .language-option.selected { border-color:#5f8dff; background:#edf2ff; box-shadow:0 0 0 2px rgba(95,141,255,.16); }
-    .language-option .language-flag { font-size:23px; }
-    .app-option {
-      display:flex; align-items:center; gap:10px; width:100%; padding:11px 12px;
-      border:2px solid #9baeff; border-radius:14px; color:#344064; background:#edf2ff;
-      font:700 14px inherit; text-align:left; cursor:pointer;
-    }
-    .app-option:hover { border-color:#526fff; background:#e1e8ff; }
-    .app-option span:first-child { font-size:23px; }
-    .launch-button {
-      width:100%; margin-top:10px; padding:13px 16px; border:0; border-radius:14px;
-      color:#fff; background:linear-gradient(135deg,#526fff,#8a5bdb); font:800 15px inherit; cursor:pointer;
-      box-shadow:0 8px 18px rgba(82,111,255,.25);
-    }
-    .launch-button:hover { filter:brightness(1.07); transform:translateY(-1px); }
-    #themeStatus { margin:10px 0 0; color:#77809a; font-size:12px; }
-    .accent-options { display:flex; gap:10px; }
-    .accent-option { width:38px; height:38px; border:3px solid transparent; border-radius:50%; cursor:pointer; box-shadow:0 2px 8px rgba(0,0,0,.18); }
-    .accent-option.selected { border-color:#27345f; box-shadow:0 0 0 3px #fff,0 0 0 5px #27345f; }
-    .accent-gold { background:#ffd166; } .accent-mint { background:#64dfc8; }
-    .accent-pink { background:#ff9fbd; } .accent-blue { background:#70b7ff; }
-    .settings-note { margin-top:18px; padding:12px 13px; border-radius:14px; background:#fff0ca; color:#6b5627; font-size:12.5px; line-height:1.4; }
-    #helpButton, #aboutButton {
-      display:flex; align-items:center; justify-content:center; width:100%; margin:0 0 2px;
-      padding:11px 12px; border:2px solid #d7dffb; border-radius:13px; color:#344064;
-      background:#edf2ff; font:700 14px inherit; cursor:pointer;
-    }
-    #aboutButton { margin-top:8px; }
-    #helpButton:hover, #aboutButton:hover { border-color:#839cff; background:#e1e8ff; }
-    #helpBackdrop, #aboutBackdrop {
-      position:fixed; inset:0; z-index:70; display:flex; align-items:center; justify-content:center;
-      padding:16px; background:rgba(6,8,30,.58); backdrop-filter:blur(3px); transition:opacity .2s, visibility .2s;
-    }
-    #helpBackdrop.hidden, #aboutBackdrop.hidden { opacity:0; visibility:hidden; pointer-events:none; }
-    #helpPanel, #aboutPanel {
-      width:min(560px,100%); max-height:min(760px,calc(100vh - 32px)); overflow-y:auto;
-      padding:22px 22px 24px; color:#293354; background:#fffaf0; border:2px solid rgba(255,255,255,.8);
-      border-radius:22px; box-shadow:0 20px 50px rgba(0,0,0,.4);
-    }
-    .help-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:8px; }
-    .help-head h2 { margin:0; color:#1f2c66; font-size:24px; }
-    .help-intro { margin:0 0 16px; color:#65708e; font-size:13px; line-height:1.45; }
-    .help-section { padding:13px 0 2px; border-top:2px solid #f4e7c6; }
-    .help-section h3 { margin:0 0 6px; color:#33406b; font-size:15px; }
-    .help-section p { margin:0 0 10px; color:#596580; font-size:13px; line-height:1.5; }
-
-    header { position:fixed; top:14px; left:18px; z-index:10; pointer-events:none; user-select:none; }
-    #appTitle { margin:0; color:#fff; font-family:'Luckiest Guy','Fredoka',sans-serif; font-size:clamp(28px,4vw,43px); font-weight:400; letter-spacing:.02em; text-shadow:0 4px 12px rgba(0,0,0,.45); }
-    #subtitle { margin-top:3px; color:#bfc9ee; font-size:13px; font-weight:600; }
-    #hubIntro { position:fixed; inset:0; z-index:5; display:flex; align-items:center; justify-content:center; padding:24px; }
-    .intro-card {
-      width:min(530px,92vw); padding:30px 28px; border:1px solid rgba(255,255,255,.18); border-radius:26px;
-      background:rgba(255,255,255,.07); box-shadow:0 20px 60px rgba(0,0,0,.3); backdrop-filter:blur(12px); text-align:center;
-    }
-    .intro-card .wave { display:block; font-size:42px; filter:drop-shadow(0 5px 5px rgba(0,0,0,.22)); }
-    .intro-card h2 { margin:10px 0 6px; color:#fff; font-family:'Luckiest Guy','Fredoka',sans-serif; font-size:34px; font-weight:400; letter-spacing:.02em; }
-    .intro-card p { margin:6px auto 0; max-width:420px; color:#e9e4ff; font-size:15.5px; line-height:1.5; font-weight:500; }
-    .intro-card .menu-hint { display:inline-block; margin-top:22px; padding:12px 18px; border:1px solid rgba(255,255,255,.26); border-radius:999px; color:#fff; background:rgba(255,255,255,.1); font:700 14px inherit; cursor:pointer; }
-    .intro-card .menu-hint:hover { background:rgba(255,255,255,.18); transform:translateY(-2px); }
-    #stars { position:fixed; inset:0; z-index:1; pointer-events:none; }
-    #stars span { position:absolute; border-radius:50%; background:#fff; box-shadow:0 0 7px rgba(255,255,255,.8); opacity:.7; }
-    @media (max-width:640px) { #settingsPanel { width:min(360px,94vw); } .intro-card { padding:25px 20px; } }
+    .made { margin: 24px 0 0; color: rgba(255,255,255,.55); font-size: 12.5px; font-weight: 500; }
+    @media (prefers-reduced-motion: reduce) { .wave { animation: none; } .app-live:hover { transform: none; } }
+    @media (max-width: 480px) { .card { padding: 32px 20px 24px; } }
   </style>
 </head>
 <body>
   <div id="stars" aria-hidden="true"></div>
-  <header>
-    <h1 id="appTitle">Projetos Julia</h1>
-    <div id="subtitle">🌎 apps para explorar, aprender e criar juntos</div>
-  </header>
-  <button id="menuToggle" aria-label="Abrir configurações" aria-expanded="false">☰</button>
-
-  <main id="hubIntro">
-    <div class="intro-card">
-      <span class="wave">👋</span>
-      <h2 id="hubTitle">Escolha uma aventura</h2>
-      <p id="hubText">Abra o menu para escolher seu nome, país, idioma e o app que você quer explorar.</p>
-      <button id="openMenu" class="menu-hint" type="button">☰ Abrir menu</button>
-    </div>
+  <main class="card">
+    <span class="wave" aria-hidden="true">👋</span>
+    <h1>OLÁ, JULIA!</h1>
+    <p class="tagline">Escolha uma aventura para começar:</p>
+    <nav class="apps" aria-label="Aventuras">
+      <a class="app app-live" href="julia_world/">
+        <span class="emoji" aria-hidden="true">🌍</span>
+        <span>Julia's World</span>
+        <span class="arrow" aria-hidden="true">🚀</span>
+      </a>
+      <button class="app app-soon" type="button" disabled>
+        <span class="emoji" aria-hidden="true">🔢</span>
+        <span>Aventuras de Matemática</span>
+        <span class="soon-badge">EM BREVE</span>
+      </button>
+      <button class="app app-soon" type="button" disabled>
+        <span class="emoji" aria-hidden="true">💬</span>
+        <span>Aventuras de Inglês</span>
+        <span class="soon-badge">EM BREVE</span>
+      </button>
+    </nav>
+    <p class="made">feito com 💛 pela Julia e pelo papai</p>
   </main>
-
-  <div id="settingsBackdrop" class="hidden">
-    <aside id="settingsPanel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
-      <div class="settings-head">
-        <h2 id="settingsTitle">⚙️ Configurações</h2>
-        <button id="settingsClose" aria-label="Fechar">✕</button>
-      </div>
-      <button id="helpButton" type="button">❓ Help</button>
-      <button id="aboutButton" type="button">ℹ️ About</button>
-
-      <section class="setting">
-        <label for="nameInput" id="nameLabel">Seu nome</label>
-        <input id="nameInput" class="field-input" type="text" maxlength="32" autocomplete="name" placeholder="Escreva seu nome">
-      </section>
-      <section class="setting">
-        <label for="countrySelect" id="countryLabel">Seu país</label>
-        <select id="countrySelect"><option value="">Escolha seu país</option></select>
-      </section>
-      <section class="setting">
-        <div class="setting-title" id="languageTitle">🌐 Idioma</div>
-        <div class="language-options">
-          <button class="language-option" data-language="pt" type="button"><span class="language-flag">🇧🇷</span><span>Português</span></button>
-          <button class="language-option" data-language="en" type="button"><span class="language-flag">🇺🇸</span><span>English</span></button>
-          <button class="language-option" data-language="es" type="button"><span class="language-flag">🇪🇸</span><span>Español</span></button>
-        </div>
-      </section>
-      <section class="setting">
-        <div class="setting-title" id="appChoiceTitle">🚀 App</div>
-        <button id="worldApp" class="app-option" type="button"><span>🌍</span><span>Julia's World</span></button>
-        <button id="launchButton" class="launch-button" type="button">Entrar no Julia's World 🚀</button>
-        <p id="hubStatus" class="setting-help" role="status" aria-live="polite"></p>
-      </section>
-      <section class="setting">
-        <label for="themeSelect" id="themeTitle">🎨 Cores do ambiente</label>
-        <p class="setting-help" id="themeHelp">Automático muda o céu conforme a hora do computador.</p>
-        <select id="themeSelect">
-          <option value="auto" data-key="themeAuto"></option>
-          <option value="day" data-key="themeDay"></option>
-          <option value="sunset" data-key="themeSunset"></option>
-          <option value="night" data-key="themeNight"></option>
-        </select>
-        <p id="themeStatus"></p>
-      </section>
-      <section class="setting">
-        <div class="setting-title" id="accentTitle">✨ Cor do destaque</div>
-        <div class="accent-options">
-          <button class="accent-option accent-gold" data-accent="gold" aria-label="Dourado" type="button"></button>
-          <button class="accent-option accent-mint" data-accent="mint" aria-label="Menta" type="button"></button>
-          <button class="accent-option accent-pink" data-accent="pink" aria-label="Rosa" type="button"></button>
-          <button class="accent-option accent-blue" data-accent="blue" aria-label="Azul" type="button"></button>
-        </div>
-      </section>
-      <p class="settings-note" id="settingsNote">💾 Suas escolhas ficam salvas neste computador.</p>
-    </aside>
-  </div>
-
-  <div id="helpBackdrop" class="hidden">
-    <aside id="helpPanel" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
-      <div class="help-head"><h2 id="helpTitle">❓ Como usar o atlas</h2><button id="helpClose" aria-label="Fechar ajuda">✕</button></div>
-      <p class="help-intro" id="helpIntro"></p>
-      <section class="help-section"><h3 id="helpExploreTitle"></h3><p id="helpExploreText"></p></section>
-      <section class="help-section"><h3 id="helpControlsTitle"></h3><p id="helpControlsText"></p></section>
-      <section class="help-section"><h3 id="helpStickersTitle"></h3><p id="helpStickersText"></p></section>
-      <section class="help-section"><h3 id="helpBadgesTitle"></h3><p id="helpBadgesText"></p></section>
-      <section class="help-section"><h3 id="helpRankingTitle"></h3><p id="helpRankingText"></p></section>
-    </aside>
-  </div>
-
-  <div id="aboutBackdrop" class="hidden">
-    <aside id="aboutPanel" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
-      <div class="help-head"><h2 id="aboutTitle">ℹ️ Sobre este projeto</h2><button id="aboutClose" aria-label="Fechar About">✕</button></div>
-      <p class="help-intro" id="aboutIntro"></p>
-      <section class="help-section"><h3 id="aboutStoryTitle"></h3><p id="aboutStoryText"></p></section>
-      <section class="help-section"><h3 id="aboutCreatorsTitle"></h3><p id="aboutCreatorsText"></p></section>
-      <section class="help-section"><h3 id="aboutAITitle"></h3><p id="aboutAIText"></p></section>
-    </aside>
-  </div>
-
-  <script src="julia_world/data/earth-data.js"></script>
   <script>
-    const LANG_META = { pt:{locale:'pt-BR'}, en:{locale:'en-US'}, es:{locale:'es-ES'} };
-    const TEXT = {
-      pt: {
-        settings:'⚙️ Configurações', close:'Fechar', language:'🌐 Idioma', theme:'🎨 Cores do ambiente', themeHelp:'Automático muda o céu conforme a hora do computador.', accent:'✨ Cor do destaque', saved:'💾 Suas escolhas ficam salvas neste computador.', themeStatus:'Agora: {theme}.', themeAuto:'⏰ Automático por hora', themeDay:'☀️ Dia ensolarado', themeSunset:'🌇 Pôr do sol', themeNight:'🌙 Noite espacial',
-        helpButton:'❓ Help', helpTitle:'❓ Como usar o atlas', helpClose:'Fechar ajuda', helpIntro:'Descubra como explorar o mundo, colecionar stickers e conquistar badges.', helpExploreTitle:'🌍 Explorar o mundo', helpExploreText:'Arraste o globo para girar, use a roda do mouse para chegar mais perto e clique em um país para abrir sua ficha.', helpControlsTitle:'🖱️ Controles rápidos', helpControlsText:'Use Início para voltar à visão inicial, Girar para deixar o planeta rodando e o menu ☰ para abrir as configurações e esta ajuda.', helpStickersTitle:'🎟️ Stickers', helpStickersText:'Cada lugar aberto dá 1 sticker com link para a Wikipedia. Ao visitar 10 lugares, você ganha +5 stickers; ao chegar a 50, ganha +20 adicionais, além do bônus anterior.', helpBadgesTitle:'🏅 Badges', helpBadgesText:'Complete todos os países de um continente para ganhar seu badge. Também existem badges por 5, 25 e 75 lugares, além do Super explorador ao visitar todos os países.', helpRankingTitle:'🏆 Ranking', helpRankingText:'Você ganha 3 pontos por lugar e 100 pontos por badge. Trocar explorador permite registrar várias pessoas; os perfis ficam salvos neste computador.',
-        aboutButton:'ℹ️ About', aboutTitle:'ℹ️ Sobre este projeto', aboutClose:'Fechar About', aboutIntro:'Julia’s World é um projeto feito pela Julia com o pai, Marcelo.', aboutStoryTitle:'💛 Uma ideia para fazer juntos', aboutStoryText:'Nós dois queríamos uma atividade para fazer juntos. Por isso, escolhemos criar apps com inteligência artificial e transformar essa ideia em um mundo para explorar.', aboutCreatorsTitle:'👩‍💻👨‍💻 Julia e Marcelo', aboutCreatorsText:'Este app é resultado do trabalho conjunto dos dois.', aboutAITitle:'✨ Criando com IA', aboutAIText:'A inteligência artificial foi usada como uma ferramenta de criação para ajudar a transformar as ideias deles em apps.',
-      },
-      en: {
-        settings:'⚙️ Settings', close:'Close', language:'🌐 Language', theme:'🎨 Environment colors', themeHelp:'Automatic changes the sky according to your computer time.', accent:'✨ Highlight color', saved:'💾 Your choices are saved on this computer.', themeStatus:'Now: {theme}.', themeAuto:'⏰ Automatic by time', themeDay:'☀️ Sunny day', themeSunset:'🌇 Sunset', themeNight:'🌙 Space night',
-        helpButton:'❓ Help', helpTitle:'❓ How to use the atlas', helpClose:'Close help', helpIntro:'Learn how to explore the world, collect stickers and earn badges.', helpExploreTitle:'🌍 Explore the world', helpExploreText:'Drag the globe to spin it, use the mouse wheel to zoom and click a country to open its card.', helpControlsTitle:'🖱️ Quick controls', helpControlsText:'Use Home to return to the starting view, Spin to keep the planet moving and the ☰ menu to open settings and this help.', helpStickersTitle:'🎟️ Stickers', helpStickersText:'Each place you open gives you 1 sticker with a Wikipedia link. At 10 places you get +5 stickers; at 50 you get +20 more, in addition to the earlier bonus.', helpBadgesTitle:'🏅 Badges', helpBadgesText:'Complete every country in a continent to earn its badge. There are also badges for 5, 25 and 75 places, plus Super Explorer for visiting every country.', helpRankingTitle:'🏆 Leaderboard', helpRankingText:'You get 3 points per place and 100 points per badge. Switch explorer to record several people; profiles are saved on this computer.',
-        aboutButton:'ℹ️ About', aboutTitle:'ℹ️ About this project', aboutClose:'Close About', aboutIntro:'Julia’s World is a project made by Julia and her father, Marcelo.', aboutStoryTitle:'💛 An activity to do together', aboutStoryText:'They wanted an activity they could do together, so they chose to create apps with artificial intelligence and turn that idea into a world to explore.', aboutCreatorsTitle:'👩‍💻👨‍💻 Julia and Marcelo', aboutCreatorsText:'This app is the result of their work together.', aboutAITitle:'✨ Creating with AI', aboutAIText:'Artificial intelligence was used as a creative tool to help turn their ideas into apps.',
-      },
-      es: {
-        settings:'⚙️ Configuración', close:'Cerrar', language:'🌐 Idioma', theme:'🎨 Colores del ambiente', themeHelp:'Automático cambia el cielo según la hora de tu computadora.', accent:'✨ Color destacado', saved:'💾 Tus elecciones quedan guardadas en esta computadora.', themeStatus:'Ahora: {theme}.', themeAuto:'⏰ Automático por hora', themeDay:'☀️ Día soleado', themeSunset:'🌇 Atardecer', themeNight:'🌙 Noche espacial',
-        helpButton:'❓ Ayuda', helpTitle:'❓ Cómo usar el atlas', helpClose:'Cerrar ayuda', helpIntro:'Descubre cómo explorar el mundo, coleccionar stickers y ganar badges.', helpExploreTitle:'🌍 Explorar el mundo', helpExploreText:'Arrastra el globo para girarlo, usa la rueda del mouse para acercarte y haz clic en un país para abrir su ficha.', helpControlsTitle:'🖱️ Controles rápidos', helpControlsText:'Usa Inicio para volver a la vista inicial, Girar para mantener el planeta en movimiento y el menú ☰ para abrir la configuración y esta ayuda.', helpStickersTitle:'🎟️ Stickers', helpStickersText:'Cada lugar que abras te da 1 sticker con enlace a Wikipedia. Al visitar 10 lugares ganas +5 stickers; al llegar a 50 ganas +20 adicionales, además del bono anterior.', helpBadgesTitle:'🏅 Badges', helpBadgesText:'Completa todos los países de un continente para ganar su badge. También hay badges por 5, 25 y 75 lugares, además del Super explorador al visitar todos los países.', helpRankingTitle:'🏆 Ranking', helpRankingText:'Ganas 3 puntos por lugar y 100 puntos por badge. Cambiar de explorador permite registrar varias personas; los perfiles se guardan en este computador.',
-        aboutButton:'ℹ️ About', aboutTitle:'ℹ️ Sobre este proyecto', aboutClose:'Cerrar About', aboutIntro:'Julia’s World es un proyecto hecho por Julia y su padre, Marcelo.', aboutStoryTitle:'💛 Una actividad para hacer juntos', aboutStoryText:'Querían una actividad para hacer juntos, así que eligieron crear apps con inteligencia artificial y convertir esa idea en un mundo para explorar.', aboutCreatorsTitle:'👩‍💻👨‍💻 Julia y Marcelo', aboutCreatorsText:'Esta app es el resultado del trabajo conjunto de los dos.', aboutAITitle:'✨ Creando con IA', aboutAIText:'La inteligencia artificial se usó como una herramienta creativa para ayudar a convertir sus ideas en apps.',
-      },
-    };
-    function text(language, key, vars = {}) {
-      let value = TEXT[language]?.[key] || TEXT.pt[key] || key;
-      for (const [name, replacement] of Object.entries(vars)) value = value.replaceAll(`{${name}}`, replacement);
-      return value;
+    const layer = document.getElementById('stars');
+    const fragment = document.createDocumentFragment();
+    for (let index = 0; index < 110; index += 1) {
+      const star = document.createElement('span');
+      const size = Math.random() * 2.4 + .7;
+      star.style.width = `${size}px`;
+      star.style.height = `${size}px`;
+      star.style.left = `${Math.random() * 100}%`;
+      star.style.top = `${Math.random() * 100}%`;
+      star.style.opacity = `${Math.random() * .65 + .25}`;
+      fragment.appendChild(star);
     }
-    const PREF_KEY = 'mundo-da-julia.preferences.v1';
-    const DEFAULT_PREFERENCES = { name:'', country:'', language:'pt', theme:'auto', accent:'gold' };
-    function normalizePreferences(value = {}) {
-      const source = value && typeof value === 'object' ? value : {};
-      return {
-        name: typeof source.name === 'string' ? source.name.trim().replace(/\s+/g, ' ').slice(0, 32) : '',
-        country: typeof source.country === 'string' ? source.country.trim().slice(0, 16) : '',
-        language: ['pt','en','es'].includes(source.language) ? source.language : 'pt',
-        theme: ['auto','day','sunset','night'].includes(source.theme) ? source.theme : 'auto',
-        accent: ['gold','mint','pink','blue'].includes(source.accent) ? source.accent : 'gold',
-      };
-    }
-    function loadPreferences() {
-      try { return normalizePreferences(JSON.parse(localStorage.getItem(PREF_KEY) || 'null') || DEFAULT_PREFERENCES); }
-      catch { return { ...DEFAULT_PREFERENCES }; }
-    }
-    function savePreferences(value) {
-      const normalized = normalizePreferences(value);
-      try { localStorage.setItem(PREF_KEY, JSON.stringify(normalized)); } catch {}
-      return normalized;
-    }
-    function themeFor(value, hour = new Date().getHours()) {
-      if (value.theme !== 'auto') return value.theme;
-      if (hour >= 6 && hour < 16) return 'day';
-      if (hour >= 16 && hour < 20) return 'sunset';
-      return 'night';
-    }
-    function applyPreferences(value) {
-      const normalized = normalizePreferences(value);
-      document.documentElement.lang = LANG_META[normalized.language]?.locale || 'pt-BR';
-      document.documentElement.dataset.accent = normalized.accent;
-      document.body.dataset.theme = themeFor(normalized);
-      return normalized;
-    }
-
-    const $ = (id) => document.getElementById(id);
-    const EARTH = window.__EARTH__ || { features: [] };
-    const HUB_COPY = {
-      pt: { subtitle:'🌎 apps para explorar, aprender e criar juntos', title:'Escolha uma aventura', text:'Abra o menu para escolher seu nome, país, idioma e o app que você quer explorar.', open:'☰ Abrir menu', name:'Seu nome', namePlaceholder:'Escreva seu nome', country:'Seu país', countryPlaceholder:'Escolha seu país', app:'🚀 App', launch:'Entrar no Julia\'s World 🚀', invalidName:'Digite seu nome para continuar.', invalidCountry:'Escolha seu país para continuar.' },
-      en: { subtitle:'🌎 apps to explore, learn and create together', title:'Choose an adventure', text:'Open the menu to choose your name, country, language and the app you want to explore.', open:'☰ Open menu', name:'Your name', namePlaceholder:'Type your name', country:'Your country', countryPlaceholder:'Choose your country', app:'🚀 App', launch:'Enter Julia\'s World 🚀', invalidName:'Type your name to continue.', invalidCountry:'Choose your country to continue.' },
-      es: { subtitle:'🌎 apps para explorar, aprender y crear juntos', title:'Elige una aventura', text:'Abre el menú para elegir tu nombre, país, idioma y la app que quieres explorar.', open:'☰ Abrir menú', name:'Tu nombre', namePlaceholder:'Escribe tu nombre', country:'Tu país', countryPlaceholder:'Elige tu país', app:'🚀 App', launch:'Entrar en Julia\'s World 🚀', invalidName:'Escribe tu nombre para continuar.', invalidCountry:'Elige tu país para continuar.' },
-    };
-    let preferences = applyPreferences(loadPreferences());
-    let language = preferences.language;
-    let selectedCountry = preferences.country || '';
-    const countries = [...new Map(EARTH.features
-      .filter((feature) => feature.properties?.i && feature.properties?.n && feature.properties?.c !== 'Oceanos')
-      .map((feature) => [feature.properties.i, feature])).values()];
-
-    const countryLabel = (feature) => feature.properties.nm?.[language] || feature.properties.n;
-    function populateCountries() {
-      const current = selectedCountry;
-      const select = $('countrySelect');
-      select.replaceChildren();
-      const placeholder = document.createElement('option');
-      placeholder.value = '';
-      placeholder.textContent = HUB_COPY[language].countryPlaceholder;
-      select.appendChild(placeholder);
-      countries.slice().sort((a, b) => countryLabel(a).localeCompare(countryLabel(b), language)).forEach((feature) => {
-        const option = document.createElement('option');
-        option.value = feature.properties.i;
-        option.textContent = countryLabel(feature);
-        option.selected = feature.properties.i === current;
-        select.appendChild(option);
-      });
-      selectedCountry = select.value;
-    }
-    function updateTheme() {
-      applyPreferences(preferences);
-      document.body.dataset.theme = themeFor(preferences);
-      $('themeStatus').textContent = text(language, 'themeStatus', { theme: text(language, ({ auto:'themeAuto', day:'themeDay', sunset:'themeSunset', night:'themeNight' })[themeFor(preferences)] || 'themeAuto') });
-    }
-    function updateInterface() {
-      const copy = HUB_COPY[language];
-      document.documentElement.lang = LANG_META[language]?.locale || 'pt-BR';
-      $('subtitle').textContent = copy.subtitle;
-      $('hubTitle').textContent = copy.title;
-      $('hubText').textContent = copy.text;
-      $('openMenu').textContent = copy.open;
-      $('nameLabel').textContent = copy.name;
-      $('nameInput').placeholder = copy.namePlaceholder;
-      $('countryLabel').textContent = copy.country;
-      $('appChoiceTitle').textContent = copy.app;
-      $('launchButton').textContent = copy.launch;
-      $('settingsTitle').textContent = text(language, 'settings');
-      $('settingsClose').setAttribute('aria-label', text(language, 'close'));
-      $('languageTitle').textContent = text(language, 'language');
-      $('themeTitle').textContent = text(language, 'theme');
-      $('themeHelp').textContent = text(language, 'themeHelp');
-      $('accentTitle').textContent = text(language, 'accent');
-      $('settingsNote').textContent = text(language, 'saved');
-      $('helpButton').textContent = text(language, 'helpButton');
-      $('helpTitle').textContent = text(language, 'helpTitle');
-      $('helpClose').setAttribute('aria-label', text(language, 'helpClose'));
-      $('helpIntro').textContent = text(language, 'helpIntro');
-      $('helpExploreTitle').textContent = text(language, 'helpExploreTitle');
-      $('helpExploreText').textContent = text(language, 'helpExploreText');
-      $('helpControlsTitle').textContent = text(language, 'helpControlsTitle');
-      $('helpControlsText').textContent = text(language, 'helpControlsText');
-      $('helpStickersTitle').textContent = text(language, 'helpStickersTitle');
-      $('helpStickersText').textContent = text(language, 'helpStickersText');
-      $('helpBadgesTitle').textContent = text(language, 'helpBadgesTitle');
-      $('helpBadgesText').textContent = text(language, 'helpBadgesText');
-      $('helpRankingTitle').textContent = text(language, 'helpRankingTitle');
-      $('helpRankingText').textContent = text(language, 'helpRankingText');
-      $('aboutButton').textContent = text(language, 'aboutButton');
-      $('aboutTitle').textContent = text(language, 'aboutTitle');
-      $('aboutClose').setAttribute('aria-label', text(language, 'aboutClose'));
-      $('aboutIntro').textContent = text(language, 'aboutIntro');
-      $('aboutStoryTitle').textContent = text(language, 'aboutStoryTitle');
-      $('aboutStoryText').textContent = text(language, 'aboutStoryText');
-      $('aboutCreatorsTitle').textContent = text(language, 'aboutCreatorsTitle');
-      $('aboutCreatorsText').textContent = text(language, 'aboutCreatorsText');
-      $('aboutAITitle').textContent = text(language, 'aboutAITitle');
-      $('aboutAIText').textContent = text(language, 'aboutAIText');
-      $('nameInput').value = preferences.name;
-      $('themeSelect').value = preferences.theme;
-      for (const option of $('themeSelect').options) option.textContent = text(language, option.dataset.key);
-      for (const button of document.querySelectorAll('[data-language]')) {
-        const selected = button.dataset.language === language;
-        button.classList.toggle('selected', selected);
-        button.setAttribute('aria-pressed', String(selected));
-      }
-      for (const button of document.querySelectorAll('[data-accent]')) button.classList.toggle('selected', button.dataset.accent === preferences.accent);
-      populateCountries();
-      updateTheme();
-    }
-    function openSettings() { $('settingsBackdrop').classList.remove('hidden'); $('menuToggle').setAttribute('aria-expanded', 'true'); }
-    function closeSettings() { $('settingsBackdrop').classList.add('hidden'); $('menuToggle').setAttribute('aria-expanded', 'false'); }
-    function openHelp() { closeSettings(); $('helpBackdrop').classList.remove('hidden'); $('helpClose').focus(); }
-    function closeHelp() { $('helpBackdrop').classList.add('hidden'); }
-    function openAbout() { closeSettings(); $('aboutBackdrop').classList.remove('hidden'); $('aboutClose').focus(); }
-    function closeAbout() { $('aboutBackdrop').classList.add('hidden'); }
-    function launchWorld() {
-      const name = $('nameInput').value.trim().replace(/\s+/g, ' ');
-      const country = $('countrySelect').value;
-      const copy = HUB_COPY[language];
-      if (!name) { $('hubStatus').textContent = copy.invalidName; openSettings(); $('nameInput').focus(); return; }
-      if (!country) { $('hubStatus').textContent = copy.invalidCountry; openSettings(); $('countrySelect').focus(); return; }
-      preferences = savePreferences({ ...preferences, name, country, language });
-      const query = new URLSearchParams({ from:'launcher', name, country, language, app:'julia-world' });
-      window.location.href = `./julia_world/index.html?${query}`;
-    }
-    function makeStars() {
-      const layer = $('stars');
-      const fragment = document.createDocumentFragment();
-      for (let index = 0; index < 120; index += 1) {
-        const star = document.createElement('span');
-        const size = Math.random() * 2.4 + .7;
-        star.style.width = `${size}px`; star.style.height = `${size}px`;
-        star.style.left = `${Math.random() * 100}%`; star.style.top = `${Math.random() * 100}%`;
-        star.style.opacity = `${Math.random() * .65 + .25}`;
-        fragment.appendChild(star);
-      }
-      layer.appendChild(fragment);
-    }
-
-    $('menuToggle').addEventListener('click', () => ($('settingsBackdrop').classList.contains('hidden') ? openSettings() : closeSettings()));
-    $('openMenu').addEventListener('click', openSettings);
-    $('settingsClose').addEventListener('click', closeSettings);
-    $('helpButton').addEventListener('click', openHelp);
-    $('helpClose').addEventListener('click', closeHelp);
-    $('helpBackdrop').addEventListener('click', (event) => { if (event.target === $('helpBackdrop')) closeHelp(); });
-    $('aboutButton').addEventListener('click', openAbout);
-    $('aboutClose').addEventListener('click', closeAbout);
-    $('aboutBackdrop').addEventListener('click', (event) => { if (event.target === $('aboutBackdrop')) closeAbout(); });
-    $('launchButton').addEventListener('click', launchWorld);
-    $('worldApp').addEventListener('click', launchWorld);
-    $('countrySelect').addEventListener('change', (event) => { selectedCountry = event.target.value; });
-    $('themeSelect').addEventListener('change', (event) => { preferences = savePreferences({ ...preferences, theme:event.target.value }); updateTheme(); });
-    for (const button of document.querySelectorAll('[data-language]')) button.addEventListener('click', () => { language = button.dataset.language; preferences = savePreferences({ ...preferences, name:$('nameInput').value, country:$('countrySelect').value || selectedCountry, language }); selectedCountry = preferences.country; updateInterface(); });
-    for (const button of document.querySelectorAll('[data-accent]')) button.addEventListener('click', () => { preferences = savePreferences({ ...preferences, accent:button.dataset.accent }); updateInterface(); });
-    window.addEventListener('keydown', (event) => { if (event.key === 'Escape') { closeSettings(); closeHelp(); closeAbout(); } });
-
-    makeStars();
-    updateInterface();
+    layer.appendChild(fragment);
   </script>
 </body>
 </html>
