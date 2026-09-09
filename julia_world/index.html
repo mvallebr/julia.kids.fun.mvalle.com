@@ -507,6 +507,73 @@
     padding: 14px 18px; font-size: 15px;
     box-shadow: 0 10px 26px rgba(0,0,0,.3);
   }
+  /* ── Menu ☰ / Configurações ── */
+  #menuToggle {
+    position: fixed; top: 16px; right: 16px; z-index: 50;
+    width: 48px; height: 48px;
+    border: 1px solid rgba(255,255,255,.3); border-radius: 16px;
+    color: #fff; background: rgba(20,26,66,.78);
+    backdrop-filter: blur(8px);
+    font-size: 25px; line-height: 1; cursor: pointer;
+    box-shadow: 0 8px 20px rgba(0,0,0,.25);
+    transition: transform .15s, background .2s;
+  }
+  #menuToggle:hover { transform: scale(1.06); background: rgba(60,70,150,.9); }
+  #settingsBackdrop, #helpBackdrop, #aboutBackdrop {
+    position: fixed; inset: 0; z-index: 60; background: rgba(6,8,30,.48);
+    backdrop-filter: blur(2px); transition: opacity .25s, visibility .25s;
+  }
+  #settingsBackdrop.hidden, #helpBackdrop.hidden, #aboutBackdrop.hidden { opacity: 0; visibility: hidden; pointer-events: none; }
+  #settingsPanel {
+    position: absolute; top: 0; right: 0; width: min(390px, 92vw); height: 100%; padding: 22px 20px;
+    color: #293354; background: #fffaf0; box-shadow: -14px 0 40px rgba(0,0,0,.35);
+    overflow-y: auto; transform: translateX(0); transition: transform .25s;
+  }
+  #settingsBackdrop.hidden #settingsPanel { transform: translateX(100%); }
+  #helpPanel, #aboutPanel {
+    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    width: min(560px, 100%); max-height: min(760px, calc(100vh - 32px)); overflow-y: auto;
+    padding: 22px 22px 24px; color: #293354; background: #fffaf0;
+    border: 2px solid rgba(255,255,255,.8); border-radius: 22px; box-shadow: 0 20px 50px rgba(0,0,0,.4);
+  }
+  .settings-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 18px; }
+  .settings-head h2 { margin: 0; color: #1f2c66; font-size: 24px; }
+  #settingsClose, #helpClose, #aboutClose {
+    width: 34px; height: 34px; border: 0; border-radius: 50%; color: #666;
+    background: rgba(0,0,0,.07); font-size: 16px; cursor: pointer;
+  }
+  .setting { padding: 15px 0; border-top: 2px solid #f4e7c6; }
+  .setting label, .setting-title, .setting h3 { display: block; margin: 0 0 9px; color: #33406b; font-size: 15px; font-weight: 700; }
+  .setting-help, .modal-intro { margin: -3px 0 10px; color: #77809a; font-size: 12.5px; line-height: 1.35; }
+  .modal-intro { margin: 0 0 14px; font-size: 13px; }
+  .setting p { margin: 0 0 10px; color: #596580; font-size: 13px; line-height: 1.5; }
+  #themeSelect {
+    width: 100%; padding: 10px 12px; border: 2px solid #f0e1bd; border-radius: 12px;
+    color: #344064; background: #fff; font: 600 14px inherit; outline: none;
+  }
+  #themeSelect:focus { border-color: #5f8dff; box-shadow: 0 0 0 3px rgba(95,141,255,.16); }
+  .language-options { display: grid; grid-template-columns: 1fr; gap: 7px; }
+  .language-option {
+    display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 12px;
+    border: 2px solid #f0e1bd; border-radius: 14px; color: #344064; background: #fff;
+    font: 600 14px inherit; text-align: left; cursor: pointer;
+  }
+  .language-option.selected { border-color: #5f8dff; background: #edf2ff; box-shadow: 0 0 0 2px rgba(95,141,255,.16); }
+  .language-option .language-flag { font-size: 23px; }
+  #themeStatus { margin: 10px 0 0; color: #77809a; font-size: 12px; }
+  .accent-options { display: flex; gap: 10px; }
+  .accent-option { width: 38px; height: 38px; border: 3px solid transparent; border-radius: 50%; cursor: pointer; box-shadow: 0 2px 8px rgba(0,0,0,.18); }
+  .accent-option.selected { border-color: #27345f; box-shadow: 0 0 0 3px #fff, 0 0 0 5px #27345f; }
+  .accent-gold { background: #ffd166; } .accent-mint { background: #64dfc8; }
+  .accent-pink { background: #ff9fbd; } .accent-blue { background: #70b7ff; }
+  .settings-note { margin-top: 18px; padding: 12px 13px; border-radius: 14px; background: #fff0ca; color: #6b5627; font-size: 12.5px; line-height: 1.4; }
+  #helpButton, #aboutButton {
+    display: flex; align-items: center; justify-content: center; width: 100%; margin: 0 0 2px;
+    padding: 11px 12px; border: 2px solid #d7dffb; border-radius: 13px; color: #344064;
+    background: #edf2ff; font: 700 14px inherit; cursor: pointer;
+  }
+  #aboutButton { margin-top: 8px; }
+  #helpButton:hover, #aboutButton:hover { border-color: #839cff; background: #e1e8ff; }
 </style>
 </head>
 <body>
@@ -604,6 +671,70 @@
     <button id="introBtn">Começar a aventura 🚀</button>
   </div>
 </div>
+<button id="menuToggle" aria-label="Abrir configurações" aria-expanded="false">☰</button>
+
+<div id="settingsBackdrop" class="hidden">
+  <aside id="settingsPanel" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+    <div class="settings-head">
+      <h2 id="settingsTitle">⚙️ Configurações</h2>
+      <button id="settingsClose" aria-label="Fechar">✕</button>
+    </div>
+    <button id="helpButton" type="button">❓ Help</button>
+    <button id="aboutButton" type="button">ℹ️ About</button>
+    <section class="setting">
+      <div class="setting-title" id="languageTitle">🌐 Idioma</div>
+      <div class="language-options">
+        <button class="language-option" data-language="pt" type="button"><span class="language-flag">🇧🇷</span><span>Português</span></button>
+        <button class="language-option" data-language="en" type="button"><span class="language-flag">🇺🇸</span><span>English</span></button>
+        <button class="language-option" data-language="es" type="button"><span class="language-flag">🇪🇸</span><span>Español</span></button>
+      </div>
+    </section>
+    <section class="setting">
+      <label for="themeSelect" id="themeTitle">🎨 Cores do ambiente</label>
+      <p class="setting-help" id="themeHelp">Automático muda o céu conforme a hora do computador.</p>
+      <select id="themeSelect">
+        <option value="auto" data-key="themeAuto"></option>
+        <option value="day" data-key="themeDay"></option>
+        <option value="sunset" data-key="themeSunset"></option>
+        <option value="night" data-key="themeNight"></option>
+      </select>
+      <p id="themeStatus"></p>
+    </section>
+    <section class="setting">
+      <div class="setting-title" id="accentTitle">✨ Cor do destaque</div>
+      <div class="accent-options">
+        <button class="accent-option accent-gold" data-accent="gold" aria-label="Dourado" type="button"></button>
+        <button class="accent-option accent-mint" data-accent="mint" aria-label="Menta" type="button"></button>
+        <button class="accent-option accent-pink" data-accent="pink" aria-label="Rosa" type="button"></button>
+        <button class="accent-option accent-blue" data-accent="blue" aria-label="Azul" type="button"></button>
+      </div>
+    </section>
+    <p class="settings-note" id="settingsNote">💾 Suas escolhas ficam salvas neste computador.</p>
+  </aside>
+</div>
+
+<div id="helpBackdrop" class="hidden">
+  <aside id="helpPanel" role="dialog" aria-modal="true" aria-labelledby="helpTitle">
+    <div class="settings-head"><h2 id="helpTitle">❓ Como usar o atlas</h2><button id="helpClose" aria-label="Fechar ajuda">✕</button></div>
+    <p class="modal-intro" id="helpIntro"></p>
+    <section class="setting"><h3 id="helpExploreTitle"></h3><p id="helpExploreText"></p></section>
+    <section class="setting"><h3 id="helpControlsTitle"></h3><p id="helpControlsText"></p></section>
+    <section class="setting"><h3 id="helpStickersTitle"></h3><p id="helpStickersText"></p></section>
+    <section class="setting"><h3 id="helpBadgesTitle"></h3><p id="helpBadgesText"></p></section>
+    <section class="setting"><h3 id="helpRankingTitle"></h3><p id="helpRankingText"></p></section>
+  </aside>
+</div>
+
+<div id="aboutBackdrop" class="hidden">
+  <aside id="aboutPanel" role="dialog" aria-modal="true" aria-labelledby="aboutTitle">
+    <div class="settings-head"><h2 id="aboutTitle">ℹ️ Sobre este projeto</h2><button id="aboutClose" aria-label="Fechar About">✕</button></div>
+    <p class="modal-intro" id="aboutIntro"></p>
+    <section class="setting"><h3 id="aboutStoryTitle"></h3><p id="aboutStoryText"></p></section>
+    <section class="setting"><h3 id="aboutCreatorsTitle"></h3><p id="aboutCreatorsText"></p></section>
+    <section class="setting"><h3 id="aboutAITitle"></h3><p id="aboutAIText"></p></section>
+  </aside>
+</div>
+
 <script src="data/earth-data.js"></script>
 <script src="lib/app.bundle.js"></script>
 </body>

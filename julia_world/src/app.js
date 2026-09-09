@@ -83,6 +83,7 @@ const introNameLabel = $('introNameLabel');
 const btnHome = $('btnHome');
 const btnSpin = $('btnSpin');
 const btnMenu = $('btnMenu');
+const menuToggle = $('menuToggle');
 const cardLabel = $('cardLabel');
 
 // ── Paleta por continente (pastel, alegre, contraste com o espaço) ──────────
@@ -800,6 +801,41 @@ function updateInterface() {
     button.classList.toggle('selected', selected);
     button.setAttribute('aria-pressed', String(selected));
   }
+  menuToggle.setAttribute('aria-label', text(language, 'settings'));
+  $('settingsTitle').textContent = text(language, 'settings');
+  $('settingsClose').setAttribute('aria-label', text(language, 'close'));
+  $('languageTitle').textContent = text(language, 'language');
+  $('themeTitle').textContent = text(language, 'theme');
+  $('themeHelp').textContent = text(language, 'themeHelp');
+  $('settingsNote').textContent = text(language, 'saved');
+  $('themeSelect').value = preferences.theme;
+  for (const option of $('themeSelect').options) option.textContent = text(language, option.dataset.key);
+  $('themeStatus').textContent = text(language, 'themeStatus', { theme: text(language, themeLabelKey(themeFor(preferences))) });
+  for (const button of document.querySelectorAll('[data-accent]')) button.classList.toggle('selected', button.dataset.accent === preferences.accent);
+  $('helpButton').textContent = text(language, 'helpButton');
+  $('helpTitle').textContent = text(language, 'helpTitle');
+  $('helpClose').setAttribute('aria-label', text(language, 'helpClose'));
+  $('helpIntro').textContent = text(language, 'helpIntro');
+  $('helpExploreTitle').textContent = text(language, 'helpExploreTitle');
+  $('helpExploreText').textContent = text(language, 'helpExploreText');
+  $('helpControlsTitle').textContent = text(language, 'helpControlsTitle');
+  $('helpControlsText').textContent = text(language, 'helpControlsText');
+  $('helpStickersTitle').textContent = text(language, 'helpStickersTitle');
+  $('helpStickersText').textContent = text(language, 'helpStickersText');
+  $('helpBadgesTitle').textContent = text(language, 'helpBadgesTitle');
+  $('helpBadgesText').textContent = text(language, 'helpBadgesText');
+  $('helpRankingTitle').textContent = text(language, 'helpRankingTitle');
+  $('helpRankingText').textContent = text(language, 'helpRankingText');
+  $('aboutButton').textContent = text(language, 'aboutButton');
+  $('aboutTitle').textContent = text(language, 'aboutTitle');
+  $('aboutClose').setAttribute('aria-label', text(language, 'aboutClose'));
+  $('aboutIntro').textContent = text(language, 'aboutIntro');
+  $('aboutStoryTitle').textContent = text(language, 'aboutStoryTitle');
+  $('aboutStoryText').textContent = text(language, 'aboutStoryText');
+  $('aboutCreatorsTitle').textContent = text(language, 'aboutCreatorsTitle');
+  $('aboutCreatorsText').textContent = text(language, 'aboutCreatorsText');
+  $('aboutAITitle').textContent = text(language, 'aboutAITitle');
+  $('aboutAIText').textContent = text(language, 'aboutAIText');
   updateTheme();
   if (current && !card.classList.contains('hidden')) pinCard(current);
   renderProgressUI();
@@ -822,7 +858,12 @@ switchPlayer.addEventListener('click', () => {
   childNameInput.select();
 });
 window.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') closePlaceModal();
+  if (event.key === 'Escape') {
+    closePlaceModal();
+    $('settingsBackdrop').classList.add('hidden');
+    $('helpBackdrop').classList.add('hidden');
+    $('aboutBackdrop').classList.add('hidden');
+  }
 });
 for (const button of document.querySelectorAll('[data-language]')) {
   button.addEventListener('click', () => setPreferences({ language: button.dataset.language }));
@@ -861,6 +902,40 @@ function enterFromLauncher() {
 // ── Título / introdução ──────────────────────────────────────────────────────
 updateInterface();
 enterFromLauncher();
+if (childName) intro.classList.add('hidden');
+
+// ── Menu ☰ / Configurações ───────────────────────────────────────────────────
+function openSettings() {
+  $('settingsBackdrop').classList.remove('hidden');
+  menuToggle.setAttribute('aria-expanded', 'true');
+}
+function closeSettings() {
+  $('settingsBackdrop').classList.add('hidden');
+  menuToggle.setAttribute('aria-expanded', 'false');
+}
+menuToggle.addEventListener('click', () => ($('settingsBackdrop').classList.contains('hidden') ? openSettings() : closeSettings()));
+$('settingsClose').addEventListener('click', closeSettings);
+$('themeSelect').addEventListener('change', (event) => setPreferences({ theme: event.target.value }));
+for (const button of document.querySelectorAll('[data-accent]')) {
+  button.addEventListener('click', () => setPreferences({ accent: button.dataset.accent }));
+}
+$('helpButton').addEventListener('click', () => {
+  closeSettings();
+  $('helpBackdrop').classList.remove('hidden');
+  $('helpClose').focus();
+});
+$('helpClose').addEventListener('click', () => $('helpBackdrop').classList.add('hidden'));
+$('aboutButton').addEventListener('click', () => {
+  closeSettings();
+  $('aboutBackdrop').classList.remove('hidden');
+  $('aboutClose').focus();
+});
+$('aboutClose').addEventListener('click', () => $('aboutBackdrop').classList.add('hidden'));
+for (const backdropId of ['settingsBackdrop', 'helpBackdrop', 'aboutBackdrop']) {
+  $(backdropId).addEventListener('click', (event) => {
+    if (event.target === $(backdropId)) $(backdropId).classList.add('hidden');
+  });
+}
 
 childNameInput.addEventListener('input', () => {
   childName = childNameInput.value.trim().replace(/\s+/g, ' ');
