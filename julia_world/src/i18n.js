@@ -7,7 +7,7 @@ export const LANG_META = {
 export const TEXT = {
   pt: {
     subtitle: '🌎 um atlas 3D cheio de surpresas', hint: 'Passe o mouse em um país para descobrir segredos!',
-    home: '🏠 Início', spin: '🌀 Girar', stopSpin: '⏸ Parar giro', homeTitle: 'Voltar para a visão inicial', spinTitle: 'Girar o globo sozinho',
+    home: '🏠 Início', spin: '🌀 Girar', stopSpin: '⏸ Parar giro', homeTitle: 'Voltar para a visão inicial', spinTitle: 'Girar o globo sozinho', menu: '🗺️ Menu', menuTitle: 'Voltar ao menu de aventuras',
     sheet: '✨ ficha do país', capital: 'Capital', population: 'População', size: 'Tamanho', region: 'Região',
     curiosities: '🎈 Curiosidades', places: '📸 Lugares para conhecer', speak: '🔊 Ouvir em voz alta', stop: '⏹ Parar',
     worldTitle: 'O Mundo da {brand}', namePrompt: 'Como você se chama?', nameText: 'Digite seu nome para começar a aventura.', nameLabel: 'Seu nome', namePlaceholder: 'Escreva seu nome', introTitle: 'Olá, {name}!', introText: 'Que bom ter você no <b>Mundo da {brand}</b>!<br>Arraste para girar o planeta, role para chegar pertinho e passe o mouse nos países para descobrir curiosidades incríveis!', introButton: 'Começar a aventura 🚀', introLanguage: '🌐 Escolha seu idioma',
@@ -19,7 +19,7 @@ export const TEXT = {
   },
   en: {
     subtitle: '🌎 a 3D atlas full of surprises', hint: 'Hover over a country to discover secrets!',
-    home: '🏠 Home', spin: '🌀 Spin', stopSpin: '⏸ Stop spinning', homeTitle: 'Return to the starting view', spinTitle: 'Spin the globe automatically',
+    home: '🏠 Home', spin: '🌀 Spin', stopSpin: '⏸ Stop spinning', homeTitle: 'Return to the starting view', spinTitle: 'Spin the globe automatically', menu: '🗺️ Menu', menuTitle: 'Back to the adventures menu',
     sheet: '✨ country card', capital: 'Capital', population: 'Population', size: 'Size', region: 'Region',
     curiosities: '🎈 Fun facts', places: '📸 Places to visit', speak: '🔊 Listen out loud', stop: '⏹ Stop',
     worldTitle: '{brand}\'s World', namePrompt: 'What is your name?', nameText: 'Tell us your name to begin the adventure.', nameLabel: 'Your name', namePlaceholder: 'Type your name', introTitle: 'Hello, {name}!', introText: 'Welcome to <b>{brand}\'s World</b>!<br>Drag to spin the planet, scroll to zoom in and hover over countries to discover amazing facts!', introButton: 'Start the adventure 🚀', introLanguage: '🌐 Choose your language',
@@ -31,7 +31,7 @@ export const TEXT = {
   },
   es: {
     subtitle: '🌎 un atlas 3D lleno de sorpresas', hint: '¡Pasa el mouse por un país y descubre secretos!',
-    home: '🏠 Inicio', spin: '🌀 Girar', stopSpin: '⏸ Parar giro', homeTitle: 'Volver a la vista inicial', spinTitle: 'Girar el globo automáticamente',
+    home: '🏠 Inicio', spin: '🌀 Girar', stopSpin: '⏸ Parar giro', homeTitle: 'Volver a la vista inicial', spinTitle: 'Girar el globo automáticamente', menu: '🗺️ Menú', menuTitle: 'Volver al menú de aventuras',
     sheet: '✨ ficha del país', capital: 'Capital', population: 'Población', size: 'Tamaño', region: 'Región',
     curiosities: '🎈 Curiosidades', places: '📸 Lugares para conocer', speak: '🔊 Escuchar en voz alta', stop: '⏹ Parar',
     worldTitle: 'El Mundo de {brand}', namePrompt: '¿Cómo te llamas?', nameText: 'Escribe tu nombre para comenzar la aventura.', nameLabel: 'Tu nombre', namePlaceholder: 'Escribe tu nombre', introTitle: '¡Hola, {name}!', introText: '¡Qué bueno tenerte en el <b>Mundo de {brand}</b>!<br>Arrastra para girar el planeta, usa la rueda para acercarte y pasa el mouse por los países para descubrir curiosidades increíbles!', introButton: 'Comenzar la aventura 🚀', introLanguage: '🌐 Elige tu idioma',

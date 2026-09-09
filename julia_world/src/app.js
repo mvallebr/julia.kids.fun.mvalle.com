@@ -82,6 +82,7 @@ const childNameInput = $('childNameInput');
 const introNameLabel = $('introNameLabel');
 const btnHome = $('btnHome');
 const btnSpin = $('btnSpin');
+const btnMenu = $('btnMenu');
 const cardLabel = $('cardLabel');
 
 // ── Paleta por continente (pastel, alegre, contraste com o espaço) ──────────
@@ -369,6 +370,10 @@ btnSpin.addEventListener('click', () => (ctl.autoRotate ? stopSpin() : startSpin
 btnHome.addEventListener('click', () => {
   stopSpin();
   world.pointOfView({ lat: -10, lng: -45, altitude: 2.6 }, 900);
+});
+btnMenu.addEventListener('click', () => {
+  stopSpeaking();
+  location.href = '../';
 });
 // quando a criança arrasta o globo, para o giro automático
 globeEl.addEventListener('pointerdown', () => {
@@ -769,6 +774,8 @@ function updateInterface() {
   $('hintText').textContent = text(language, 'hint');
   btnHome.textContent = text(language, 'home');
   btnHome.title = text(language, 'homeTitle');
+  btnMenu.textContent = text(language, 'menu');
+  btnMenu.title = text(language, 'menuTitle');
   btnSpin.title = text(language, 'spinTitle');
   cardClose.title = text(language, 'close');
   placeModalClose.title = text(language, 'close');
