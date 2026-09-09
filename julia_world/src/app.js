@@ -373,7 +373,7 @@ btnHome.addEventListener('click', () => {
 });
 btnMenu.addEventListener('click', () => {
   stopSpeaking();
-  location.href = '../';
+  location.href = '../index.html';
 });
 // quando a criança arrasta o globo, para o giro automático
 globeEl.addEventListener('pointerdown', () => {
