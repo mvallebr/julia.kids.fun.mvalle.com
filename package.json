@@ -1,0 +1,23 @@
+{
+  "name": "mapa",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "fetch:fonts": "node tools/fetch-fonts.mjs",
+    "build:data": "node tools/build.mjs",
+    "build:app": "esbuild src/app.js --bundle --minify --outfile=lib/app.bundle.js",
+    "build": "npm run build:data && npm run build:app"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "globe.gl": "^2.46.2",
+    "three": "^0.185.1"
+  }
+}
