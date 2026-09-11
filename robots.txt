@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://julia.kids.fun.mvalle.com/sitemap.xml
