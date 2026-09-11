@@ -249,11 +249,17 @@
       $('hubTitle').textContent = name ? `${COPY[language].helloPrefix}, ${name.toUpperCase()}!` : `${COPY[language].helloPrefix}!`;
     }
 
+    function refreshWorldLink() {
+      const params = new URLSearchParams({ from: 'launcher', name: nameInput.value.trim().replace(/\s+/g, ' '), language });
+      $('appWorld').href = `julia_world/index.html?${params}`;
+    }
+
     function applyLanguage() {
       const copy = COPY[language];
       document.documentElement.lang = copy.htmlLang;
       document.title = copy.title;
       updateGreeting();
+      refreshWorldLink();
       $('tagline').textContent = copy.tagline;
       $('nameLabel').textContent = copy.nameLabel;
       nameInput.placeholder = copy.namePlaceholder;
@@ -283,6 +289,7 @@
     nameInput.addEventListener('input', () => {
       savePrefs({ name: nameInput.value.trim().replace(/\s+/g, ' ') });
       updateGreeting();
+      refreshWorldLink();
     });
 
     function bindModal(openId, backdropId, closeId) {
