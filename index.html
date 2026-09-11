@@ -200,7 +200,7 @@
     };
     const COPY = {
       pt: {
-        htmlLang: 'pt-BR', title: 'Aventuras da Julia 🌍', hello: 'OLÁ, JULIA!',
+        htmlLang: 'pt-BR', title: 'Aventuras da Julia 🌍', helloPrefix: 'OLÁ',
         tagline: 'Escolha uma aventura para começar:', nameLabel: 'Seu nome', namePlaceholder: 'Escreva seu nome', world: "Julia's World",
         math: 'Aventuras de Matemática', english: 'Aventuras de Inglês', soon: 'EM BREVE',
         languageLabel: '🌐 Escolha seu idioma', helpButton: 'Help', aboutButton: 'About',
@@ -209,7 +209,7 @@
         aboutTitle: 'ℹ️ Sobre este projeto', aboutClose: 'Fechar About', aboutIntro: 'Julia’s World é um projeto feito pela Julia com o pai, Marcelo.', aboutStoryTitle: '💛 Uma ideia para fazer juntos', aboutStoryText: 'Nós dois queríamos uma atividade para fazer juntos. Por isso, escolhemos criar apps com inteligência artificial e transformar essa ideia em um mundo para explorar.', aboutCreatorsTitle: '👩‍💻👨‍💻 Julia e Marcelo', aboutCreatorsText: 'Este app é resultado do trabalho conjunto dos dois.', aboutAITitle: '✨ Criando com IA', aboutAIText: 'A inteligência artificial foi usada como uma ferramenta de criação para ajudar a transformar as ideias deles em apps.',
       },
       en: {
-        htmlLang: 'en', title: "Julia's Adventures 🌍", hello: 'HELLO, JULIA!',
+        htmlLang: 'en', title: "Julia's Adventures 🌍", helloPrefix: 'HELLO',
         tagline: 'Pick an adventure to start:', nameLabel: 'Your name', namePlaceholder: 'Type your name', world: "Julia's World",
         math: 'Math Adventures', english: 'English Adventures', soon: 'COMING SOON',
         languageLabel: '🌐 Choose your language', helpButton: 'Help', aboutButton: 'About',
@@ -218,7 +218,7 @@
         aboutTitle: 'ℹ️ About this project', aboutClose: 'Close About', aboutIntro: "Julia’s World is a project made by Julia and her father, Marcelo.", aboutStoryTitle: '💛 An activity to do together', aboutStoryText: 'They wanted an activity they could do together, so they chose to create apps with artificial intelligence and turn that idea into a world to explore.', aboutCreatorsTitle: '👩‍💻👨‍💻 Julia and Marcelo', aboutCreatorsText: 'This app is the result of their work together.', aboutAITitle: '✨ Creating with AI', aboutAIText: 'Artificial intelligence was used as a creative tool to help turn their ideas into apps.',
       },
       es: {
-        htmlLang: 'es', title: 'Aventuras de Julia 🌍', hello: '¡HOLA, JULIA!',
+        htmlLang: 'es', title: 'Aventuras de Julia 🌍', helloPrefix: '¡HOLA',
         tagline: 'Elige una aventura para empezar:', nameLabel: 'Tu nombre', namePlaceholder: 'Escribe tu nombre', world: "Julia's World",
         math: 'Aventuras de Matemáticas', english: 'Aventuras de Inglés', soon: 'PRONTO',
         languageLabel: '🌐 Elige tu idioma', helpButton: 'Ayuda', aboutButton: 'Acerca de',
@@ -244,11 +244,16 @@
     const nameInput = $('nameInput');
     nameInput.value = String(loadPrefs().name || '').trim().replace(/\s+/g, ' ');
 
+    function updateGreeting() {
+      const name = nameInput.value.trim().replace(/\s+/g, ' ');
+      $('hubTitle').textContent = name ? `${COPY[language].helloPrefix}, ${name.toUpperCase()}!` : `${COPY[language].helloPrefix}!`;
+    }
+
     function applyLanguage() {
       const copy = COPY[language];
       document.documentElement.lang = copy.htmlLang;
       document.title = copy.title;
-      $('hubTitle').textContent = copy.hello;
+      updateGreeting();
       $('tagline').textContent = copy.tagline;
       $('nameLabel').textContent = copy.nameLabel;
       nameInput.placeholder = copy.namePlaceholder;
@@ -275,7 +280,10 @@
         applyLanguage();
       });
     }
-    nameInput.addEventListener('input', () => savePrefs({ name: nameInput.value.trim().replace(/\s+/g, ' ') }));
+    nameInput.addEventListener('input', () => {
+      savePrefs({ name: nameInput.value.trim().replace(/\s+/g, ' ') });
+      updateGreeting();
+    });
 
     function bindModal(openId, backdropId, closeId) {
       const backdrop = $(backdropId);
