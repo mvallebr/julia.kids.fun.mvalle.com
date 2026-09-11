@@ -757,7 +757,7 @@ function updateTheme() {
 }
 function updateIntroCopy() {
   const hasName = Boolean(childName);
-  const safeBrand = escapeHtml(BRAND_NAME);
+  const safeBrand = escapeHtml(childName || BRAND_NAME);
   $('introTitle').textContent = hasName
     ? text(language, 'introTitle', { name: childName })
     : text(language, 'namePrompt');
@@ -768,7 +768,8 @@ function updateIntroCopy() {
 }
 function updateInterface() {
   ensureCurrentPlayer();
-  const title = text(language, 'worldTitle', { brand: BRAND_NAME });
+  const brand = childName || BRAND_NAME;
+  const title = text(language, 'worldTitle', { brand });
   document.title = `${title} 🌍`;
   $('appTitle').textContent = title;
   $('subtitle').textContent = text(language, 'subtitle');
