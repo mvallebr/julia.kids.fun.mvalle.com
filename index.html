@@ -257,12 +257,18 @@
       $('appWorld').href = `julia_world/index.html?${params}`;
     }
 
+    function updateWorldLabel() {
+      const name = nameInput.value.trim().replace(/\s+/g, ' ');
+      document.querySelector('[data-i18n="world"]').textContent = name ? `${name}'s World` : COPY[language].world;
+    }
+
     function applyLanguage() {
       const copy = COPY[language];
       document.documentElement.lang = copy.htmlLang;
       document.title = copy.title;
       updateGreeting();
       refreshWorldLink();
+      updateWorldLabel();
       $('tagline').textContent = copy.tagline;
       $('nameLabel').textContent = copy.nameLabel;
       nameInput.placeholder = copy.namePlaceholder;
@@ -293,6 +299,7 @@
       savePrefs({ name: nameInput.value.trim().replace(/\s+/g, ' ') });
       updateGreeting();
       refreshWorldLink();
+      updateWorldLabel();
     });
 
     function bindModal(openId, backdropId, closeId) {
