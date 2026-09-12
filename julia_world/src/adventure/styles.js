@@ -87,6 +87,65 @@ const CSS = `
   .adv-balloon { bottom: 12vh; }
   .adv-seg-fill { transition: none; }
 }
+
+/* ── Final da World Adventure (spec §21-25) ── */
+.adv-final-hint {
+  color: #fff; font: 800 20px 'Fredoka', sans-serif; text-align: center;
+  text-shadow: 0 3px 10px rgba(0,0,0,.5); margin-bottom: 10px;
+}
+.adv-seq { display: flex; gap: 10px; margin-bottom: 14px; }
+.adv-seq-dot {
+  width: 36px; height: 36px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(255,255,255,.14); color: rgba(255,255,255,.55);
+  font: 800 15px 'Fredoka', sans-serif;
+}
+.adv-seq-dot.current { background: #ffd166; color: #5a3b00; box-shadow: 0 0 18px rgba(255,209,102,.85); }
+.adv-seq-dot.done { background: #7ad97a; color: #123c12; }
+.adv-prize { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.adv-prize-icon {
+  border: 0; background: none; cursor: pointer; line-height: 1;
+  font-size: clamp(110px, 24vw, 170px);
+  filter: drop-shadow(0 12px 26px rgba(255,209,102,.55));
+  transition: transform .12s;
+}
+.adv-prize-icon.rainbow {
+  background: linear-gradient(135deg, #ff5a5a, #ff9a3d, #ffd166, #7ad97a, #4ecdc4, #6ca6ff, #b9a4f5);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 22px rgba(255,209,102,.75));
+}
+.adv-chest { position: relative; width: clamp(140px, 26vw, 190px); height: 118px; border: 0; background: none; cursor: pointer; perspective: 500px; }
+.adv-chest .adv-chest-lid {
+  position: absolute; top: 0; left: 0; right: 0; height: 44px;
+  border-radius: 16px 16px 4px 4px; background: linear-gradient(180deg, #ffe08a, #d4a017);
+  box-shadow: inset 0 -4px 0 rgba(0,0,0,.18); transform-origin: top center;
+  transition: transform .5s ease; z-index: 2;
+}
+.adv-chest .adv-chest-body {
+  position: absolute; bottom: 0; left: 5px; right: 5px; height: 66px; border-radius: 10px;
+  background: linear-gradient(180deg, #f4c542, #b8860b); box-shadow: inset 0 6px 0 rgba(255,255,255,.28);
+}
+.adv-chest .adv-chest-lock {
+  position: absolute; top: 34px; left: 50%; transform: translateX(-50%);
+  width: 26px; height: 32px; border-radius: 6px; background: #7a5901; z-index: 3;
+}
+.adv-chest.open .adv-chest-lid { transform: rotateX(105deg) translateY(-16px); }
+.adv-chest.glow { filter: drop-shadow(0 0 30px rgba(255,209,102,.9)); }
+.adv-world-title {
+  position: relative; display: block; text-align: center;
+  font: 400 clamp(30px, 6.4vw, 58px) 'Luckiest Guy', 'Fredoka', sans-serif;
+  text-shadow: 0 4px 18px rgba(0,0,0,.25); margin: 0 0 6px; line-height: 1.15;
+}
+.adv-world-title .adv-word { display: inline-block; white-space: nowrap; margin: 0 .18em; }
+.adv-sparkle { position: absolute; font-size: 24px; animation: advTwinkle 1.5s ease-in-out infinite; pointer-events: none; }
+.adv-final-stats { color: #596580; font: 600 15px 'Fredoka', sans-serif; margin: 12px 0 4px; }
+.adv-return {
+  margin-top: 16px; padding: 13px 32px; border: 0; border-radius: 999px; cursor: pointer;
+  background: linear-gradient(135deg, #8a5bdb, #526fff); color: #fff;
+  font: 800 16px 'Fredoka', sans-serif; box-shadow: 0 10px 24px rgba(82,111,255,.4);
+}
+.adv-return:hover { filter: brightness(1.08); transform: translateY(-1px); }
+@keyframes advTwinkle { 0%,100% { opacity: .15; transform: scale(.6) rotate(0deg); } 50% { opacity: 1; transform: scale(1.2) rotate(20deg); } }
+@media (prefers-reduced-motion: reduce) { .adv-sparkle { animation: none; } }
 `;
 
 export function ensureAdventureStyles() {

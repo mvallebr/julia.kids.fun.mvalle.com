@@ -124,3 +124,17 @@ test('completar a última tarefa marca a World Adventure (spec §20)', () => {
   assert.ok(state.completed.includes('countries-all'));
   assert.equal(result.reward.certificate, true);
 });
+
+test('flag da celebração final persiste sem repetir (spec §42)', () => {
+  const state = normalizeAdventureState({ finalCelebrated: true });
+  assert.ok(state.finalCelebrated);
+  assert.equal(normalizeAdventureState({}).finalCelebrated, false);
+  const backing = new Map();
+  const storage = {
+    getItem: (key) => backing.get(key) ?? null,
+    setItem: (key, value) => backing.set(key, value),
+  };
+  state.finalCelebrated = true;
+  saveAdventure(storage, 'Maria', state);
+  assert.ok(loadAdventure(storage, 'Maria').finalCelebrated);
+});

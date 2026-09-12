@@ -28,7 +28,7 @@ import {
   taskById,
   taskTitle,
 } from './adventure/engine.js';
-import { runCelebration } from './adventure/celebration.js';
+import { runCelebration, runWorldFinale } from './adventure/celebration.js';
 import { ensureAdventureStyles } from './adventure/styles.js';
 import { segmentColorsFor, segmentCountFor } from './adventure/tasks.js';
 const BRAND_NAME = 'Julia';
@@ -949,6 +949,7 @@ function loadAdventureForPlayer() {
     // Progresso anterior vira tarefas concluídas em silêncio (spec §27).
   }
   saveAdventure(localStorage, childName, adventureState);
+  if (window.innerWidth < 640) $('adventurePanel')?.classList.add('collapsed');
   renderAdventurePanel();
 }
 
@@ -966,7 +967,8 @@ function renderAdventurePanel() {
   }
   panel.hidden = false;
   $('adventurePanelTitle').textContent = text(language, 'advPanel');
-  $('adventurePanelCount').textContent = `${adventureState.completed.length}/${ADVENTURE_TASKS.length}`;
+  const adventureDone = adventureState.completed.length >= ADVENTURE_TASKS.length;
+  $('adventurePanelCount').textContent = adventureDone ? '🏆' : `${adventureState.completed.length}/${ADVENTURE_TASKS.length}`;
   const snapshot = adventureSnapshot();
   tasksEl.replaceChildren();
   for (const id of adventureState.active) {
@@ -1049,8 +1051,10 @@ function finishAdventureTask(task) {
   if (!result) return;
   persistAdventure();
   renderAdventurePanel();
-  queueAdventureCelebration(taskTitle(language, task), result.reward, null);
+  const isWorldTask = task.target == null;
+  queueAdventureCelebration(taskTitle(language, task), result.reward, isWorldTask ? 'world' : null);
   checkAdventureMilestone();
+  maybeStartWorldFinale();
 }
 
 function checkAdventureMilestone() {
@@ -1061,8 +1065,8 @@ function checkAdventureMilestone() {
   queueAdventureCelebration(text(language, 'advMilestoneBadge', { n: milestone }), { certificate: true, stickers: 5, badges: 1 }, milestone);
 }
 
-function queueAdventureCelebration(title, reward, milestone) {
-  adventureCelebrationQueue.push({ title, reward, milestone });
+function queueAdventureCelebration(title, reward, milestone, finale = false) {
+  adventureCelebrationQueue.push({ title, reward, milestone, finale });
   pumpAdventureCelebrations();
 }
 
@@ -1070,6 +1074,18 @@ function pumpAdventureCelebrations() {
   if (adventureCelebrating || !adventureCelebrationQueue.length) return;
   adventureCelebrating = true;
   const next = adventureCelebrationQueue.shift();
+  if (next.finale) {
+    runWorldFinale({
+      language,
+      text,
+      explorerName: childName,
+      tasksCompleted: adventureState.completed.length,
+      onReturnToMenu: () => {
+        location.href = '../index.html';
+      },
+    });
+    return;
+  }
   runCelebration({
     language,
     text,
@@ -1083,6 +1099,16 @@ function pumpAdventureCelebrations() {
       pumpAdventureCelebrations();
     },
   });
+}
+
+// A sequência final dispara uma única vez quando todas as tarefas estão feitas (spec §21).
+function maybeStartWorldFinale() {
+  if (!adventureState || adventureState.finalCelebrated) return;
+  if (adventureState.completed.length < ADVENTURE_TASKS.length) return;
+  adventureState.finalCelebrated = true;
+  persistAdventure();
+  renderAdventurePanel();
+  queueAdventureCelebration(null, null, null, true);
 }
 
 $('adventureToggle').addEventListener('click', () => {
@@ -1105,9 +1131,18 @@ loadAdventureForPlayer();
 // ganchos de depuração/teste manual pelo console
 window.__adventureDebug = {
   state: () => adventureState,
+  tasks: () => ADVENTURE_TASKS.map((task) => task.id),
   audio: (id) => recordAdventureAudio(id),
   wiki: (href) => recordAdventureWiki(href),
   complete: (id) => finishAdventureTask(taskById(id)),
+  completeAll: () => {
+    for (const task of ADVENTURE_TASKS) {
+      if (!adventureState.completed.includes(task.id)) completeTask(adventureState, task.id);
+    }
+    persistAdventure();
+    maybeStartWorldFinale();
+  },
+  finale: () => maybeStartWorldFinale(),
 };
 
 // ── Menu ☰ / Configurações ───────────────────────────────────────────────────

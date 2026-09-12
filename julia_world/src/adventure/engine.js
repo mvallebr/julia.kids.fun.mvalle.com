@@ -13,6 +13,7 @@ export function emptyAdventureState() {
     counters: { audio: [], wiki: [] },
     milestones: [],
     worldCompleted: false,
+    finalCelebrated: false,
     migrated: false,
   };
 }
@@ -32,6 +33,7 @@ export function normalizeAdventureState(value = {}) {
   state.counters.wiki = uniqueStrings(source.counters?.wiki);
   state.milestones = uniqueStrings(source.milestones).map(Number).filter(Number.isFinite);
   state.worldCompleted = Boolean(source.worldCompleted);
+  state.finalCelebrated = Boolean(source.finalCelebrated);
   state.migrated = Boolean(source.migrated);
   if (source.rewards && typeof source.rewards === 'object') {
     for (const [id, reward] of Object.entries(source.rewards)) {
