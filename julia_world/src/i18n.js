@@ -1,6 +1,6 @@
 export const LANG_META = {
   pt: { flag: '🇧🇷', label: 'Português', locale: 'pt-BR' },
-  en: { flag: '🇺🇸', label: 'English', locale: 'en-US' },
+  en: { flag: '🇬🇧', label: 'English', locale: 'en-GB' },
   es: { flag: '🇪🇸', label: 'Español', locale: 'es-ES' },
 };
 

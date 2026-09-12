@@ -657,13 +657,17 @@ let preferredVoice = null;
 function pickVoice() {
   if (!('speechSynthesis' in window)) return;
   const vs = speechSynthesis.getVoices();
-  const base = LANG_META[language].locale.split('-')[0];
-  const byLanguage = vs.filter((v) => v.lang.replace('_', '-').toLowerCase().startsWith(base));
-  preferredVoice =
-    byLanguage.find((v) => /google/i.test(v.name)) ||
-    byLanguage.find((v) => /natural|neural|microsoft/i.test(v.name)) ||
-    byLanguage[0] ||
+  const locale = LANG_META[language].locale.toLowerCase();
+  const base = locale.split('-')[0];
+  const normalize = (lang) => lang.replace('_', '-').toLowerCase();
+  const byLanguage = vs.filter((v) => normalize(v.lang).startsWith(base));
+  const byLocale = byLanguage.filter((v) => normalize(v.lang) === locale);
+  const prefer = (list) =>
+    list.find((v) => /google/i.test(v.name)) ||
+    list.find((v) => /natural|neural|microsoft/i.test(v.name)) ||
+    list[0] ||
     null;
+  preferredVoice = prefer(byLocale) || prefer(byLanguage) || null;
 }
 if ('speechSynthesis' in window) {
   pickVoice();
