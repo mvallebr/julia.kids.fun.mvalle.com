@@ -13,6 +13,24 @@ import {
   visitCountry,
   visitPlace,
 } from './progress.js';
+import {
+  ADVENTURE_TASKS,
+  buildSnapshot,
+  completeMilestone,
+  completeTask,
+  loadAdventure,
+  migrateIfNeeded,
+  normalizeAdventureState,
+  pendingMilestone,
+  progressFor,
+  recordCounter,
+  saveAdventure,
+  taskById,
+  taskTitle,
+} from './adventure/engine.js';
+import { runCelebration } from './adventure/celebration.js';
+import { ensureAdventureStyles } from './adventure/styles.js';
+import { segmentColorsFor, segmentCountFor } from './adventure/tasks.js';
 const BRAND_NAME = 'Julia';
 
 const escapeHtml = (value) => value.replace(/[&<>"']/g, (character) => ({
@@ -310,6 +328,7 @@ function recordCountryVisit(feature) {
   ensureCurrentPlayer();
   if (visitCountry(progress, childName, countryIdFor(feature))) saveProgress(progress);
   renderProgressUI();
+  adventureCheck();
 }
 
 function recordPlaceVisit(feature, place) {
@@ -317,6 +336,7 @@ function recordPlaceVisit(feature, place) {
   ensureCurrentPlayer();
   if (visitPlace(progress, childName, countryIdFor(feature), place)) saveProgress(progress);
   renderProgressUI();
+  adventureCheck();
 }
 
 let hoverId = null;
@@ -649,6 +669,7 @@ function closeCard() {
 cardClose.addEventListener('click', closeCard);
 cardSpeak.addEventListener('click', () => {
   if (!current) return;
+  recordAdventureAudio(String(countryIdFor(current)));
   speak(countrySpeech(current));
 });
 
@@ -843,6 +864,7 @@ function updateInterface() {
   $('aboutAIText').textContent = text(language, 'aboutAIText');
   updateTheme();
   if (current && !card.classList.contains('hidden')) pinCard(current);
+  renderAdventurePanel();
   renderProgressUI();
 }
 
@@ -851,6 +873,7 @@ function setPreferences(changes) {
   childName = preferences.name;
   language = preferences.language;
   updateInterface();
+  loadAdventureForPlayer();
 }
 
 rankingToggle.addEventListener('click', () => {
@@ -904,10 +927,188 @@ function enterFromLauncher() {
   startSpin();
 }
 
+// ── Aventuras: tarefas progressivas (spec Mundo da Julia) ───────────────────
+ensureAdventureStyles();
+
+let adventureState = null;
+let adventureCelebrating = false;
+const adventureCelebrationQueue = [];
+
+const adventureSnapshot = () =>
+  buildSnapshot(ensurePlayer(progress, childName), EARTH.features, adventureState?.counters);
+
+function loadAdventureForPlayer() {
+  if (!childName) {
+    adventureState = null;
+    renderAdventurePanel();
+    return;
+  }
+  adventureState = loadAdventure(localStorage, childName);
+  const snapshot = adventureSnapshot();
+  if (migrateIfNeeded(adventureState, snapshot)) {
+    // Progresso anterior vira tarefas concluídas em silêncio (spec §27).
+  }
+  saveAdventure(localStorage, childName, adventureState);
+  renderAdventurePanel();
+}
+
+function persistAdventure() {
+  if (adventureState) saveAdventure(localStorage, childName, adventureState);
+}
+
+function renderAdventurePanel() {
+  const panel = $('adventurePanel');
+  const tasksEl = $('adventureTasks');
+  if (!panel || !tasksEl) return;
+  if (!adventureState) {
+    panel.hidden = true;
+    return;
+  }
+  panel.hidden = false;
+  $('adventurePanelTitle').textContent = text(language, 'advPanel');
+  $('adventurePanelCount').textContent = `${adventureState.completed.length}/${ADVENTURE_TASKS.length}`;
+  const snapshot = adventureSnapshot();
+  tasksEl.replaceChildren();
+  for (const id of adventureState.active) {
+    const task = taskById(id);
+    if (!task) continue;
+    const { current, target } = progressFor(task, snapshot);
+    const segments = segmentCountFor(target);
+    const colors = segmentColorsFor(segments);
+    const row = document.createElement('div');
+    row.className = 'adv-task';
+    const head = document.createElement('div');
+    head.className = 'adv-task-head';
+    const icon = document.createElement('span');
+    icon.className = 'adv-icon';
+    icon.textContent = task.icon;
+    const label = document.createElement('span');
+    label.textContent = taskTitle(language, task);
+    const count = document.createElement('span');
+    count.className = 'adv-task-count';
+    count.textContent = `${text(language, 'advCountries', { n: Math.min(current, target), total: target })}`;
+    head.appendChild(icon);
+    head.appendChild(label);
+    head.appendChild(count);
+    const bar = document.createElement('div');
+    bar.className = 'adv-bar';
+    bar.setAttribute('role', 'progressbar');
+    bar.setAttribute('aria-valuemin', '0');
+    bar.setAttribute('aria-valuemax', String(target));
+    bar.setAttribute('aria-valuenow', String(Math.min(current, target)));
+    bar.setAttribute('aria-label', label.textContent);
+    const perSegment = target / segments;
+    for (let index = 0; index < segments; index += 1) {
+      const segment = document.createElement('div');
+      segment.className = 'adv-seg';
+      const fill = document.createElement('div');
+      fill.className = 'adv-seg-fill';
+      const segmentStart = index * perSegment;
+      const segmentRatio = Math.max(0, Math.min(1, (current - segmentStart) / perSegment));
+      fill.style.width = `${segmentRatio * 100}%`;
+      fill.style.background = colors[index];
+      segment.appendChild(fill);
+      bar.appendChild(segment);
+    }
+    row.appendChild(head);
+    row.appendChild(bar);
+    tasksEl.appendChild(row);
+  }
+}
+
+function recordAdventureAudio(countryId) {
+  if (!adventureState || !countryId) return;
+  if (recordCounter(adventureState, 'audio', countryId)) {
+    persistAdventure();
+    checkAdventureTasks();
+  }
+}
+
+function recordAdventureWiki(href) {
+  if (!adventureState || !href) return;
+  if (recordCounter(adventureState, 'wiki', href)) {
+    persistAdventure();
+    checkAdventureTasks();
+  }
+}
+
+function checkAdventureTasks() {
+  if (!adventureState || adventureCelebrating) return;
+  const snapshot = adventureSnapshot();
+  for (const id of [...adventureState.active]) {
+    const task = taskById(id);
+    if (!task) continue;
+    const { current, target } = progressFor(task, snapshot);
+    if (target > 0 && current >= target) finishAdventureTask(task);
+  }
+  renderAdventurePanel();
+}
+
+function finishAdventureTask(task) {
+  const result = completeTask(adventureState, task.id);
+  if (!result) return;
+  persistAdventure();
+  renderAdventurePanel();
+  queueAdventureCelebration(taskTitle(language, task), result.reward, null);
+  checkAdventureMilestone();
+}
+
+function checkAdventureMilestone() {
+  const milestone = pendingMilestone(adventureState);
+  if (!milestone) return;
+  completeMilestone(adventureState, milestone);
+  persistAdventure();
+  queueAdventureCelebration(text(language, 'advMilestoneBadge', { n: milestone }), { certificate: true, stickers: 5, badges: 1 }, milestone);
+}
+
+function queueAdventureCelebration(title, reward, milestone) {
+  adventureCelebrationQueue.push({ title, reward, milestone });
+  pumpAdventureCelebrations();
+}
+
+function pumpAdventureCelebrations() {
+  if (adventureCelebrating || !adventureCelebrationQueue.length) return;
+  adventureCelebrating = true;
+  const next = adventureCelebrationQueue.shift();
+  runCelebration({
+    language,
+    text,
+    title: next.title,
+    reward: next.reward,
+    milestone: next.milestone,
+    explorerName: childName,
+    onDone: () => {
+      adventureCelebrating = false;
+      renderAdventurePanel();
+      pumpAdventureCelebrations();
+    },
+  });
+}
+
+$('adventureToggle').addEventListener('click', () => {
+  const panel = $('adventurePanel');
+  const collapsed = panel.classList.toggle('collapsed');
+  $('adventureToggle').setAttribute('aria-expanded', String(!collapsed));
+});
+
+document.addEventListener('click', (event) => {
+  const link = event.target.closest?.('a[href*="wikipedia.org"]');
+  if (link) recordAdventureWiki(link.href);
+}, true);
+
 // ── Título / introdução ──────────────────────────────────────────────────────
 updateInterface();
 enterFromLauncher();
 if (childName) intro.classList.add('hidden');
+loadAdventureForPlayer();
+
+// ganchos de depuração/teste manual pelo console
+window.__adventureDebug = {
+  state: () => adventureState,
+  audio: (id) => recordAdventureAudio(id),
+  wiki: (href) => recordAdventureWiki(href),
+  complete: (id) => finishAdventureTask(taskById(id)),
+};
 
 // ── Menu ☰ / Configurações ───────────────────────────────────────────────────
 function openSettings() {
