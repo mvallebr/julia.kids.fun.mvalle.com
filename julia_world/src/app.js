@@ -699,7 +699,7 @@ function speak(textToSay) {
   pickVoice();
   const utterance = new SpeechSynthesisUtterance(textToSay);
   utterance.lang = LANG_META[language].locale;
-  utterance.rate = 1.1;
+  utterance.rate = 0.9;
   utterance.pitch = 1.0;
   if (preferredVoice) utterance.voice = preferredVoice;
   const token = ++speakToken;
