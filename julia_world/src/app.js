@@ -653,16 +653,16 @@ cardSpeak.addEventListener('click', () => {
 });
 
 // ── Fala (offline: usa voz do sistema) ───────────────────────────────────────
-let ptVoice = null;
+let preferredVoice = null;
 function pickVoice() {
   if (!('speechSynthesis' in window)) return;
   const vs = speechSynthesis.getVoices();
-  const ptBR = vs.filter((v) => /^pt(-|_)?BR/i.test(v.lang));
-  ptVoice =
-    ptBR.find((v) => /google/i.test(v.name)) ||
-    ptBR.find((v) => /natural|neural|microsoft/i.test(v.name)) ||
-    ptBR[0] ||
-    vs.find((v) => v.lang.startsWith('pt')) ||
+  const base = LANG_META[language].locale.split('-')[0];
+  const byLanguage = vs.filter((v) => v.lang.replace('_', '-').toLowerCase().startsWith(base));
+  preferredVoice =
+    byLanguage.find((v) => /google/i.test(v.name)) ||
+    byLanguage.find((v) => /natural|neural|microsoft/i.test(v.name)) ||
+    byLanguage[0] ||
     null;
 }
 if ('speechSynthesis' in window) {
@@ -701,7 +701,7 @@ function speak(textToSay) {
   utterance.lang = LANG_META[language].locale;
   utterance.rate = 1.1;
   utterance.pitch = 1.0;
-  if (ptVoice) utterance.voice = ptVoice;
+  if (preferredVoice) utterance.voice = preferredVoice;
   const token = ++speakToken;
   const done = () => {
     if (token === speakToken) setSpeakingUi(false);
