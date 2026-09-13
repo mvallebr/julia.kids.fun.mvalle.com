@@ -309,6 +309,7 @@
         pill.addEventListener('click', () => {
           selectedAvatar = avatar;
           savePrefs({ avatar });
+          saveAvatarToPlayer(nameInput.value, avatar);
           renderAvatars();
           renderSavedUsers();
           refreshWorldLink();
@@ -343,7 +344,7 @@
         chip.append(avatar, name);
         chip.addEventListener('click', () => {
           nameInput.value = player.name;
-          selectedAvatar = player.avatar || selectedAvatar;
+          selectedAvatar = player.avatar || '';
           savePrefs({ name: player.name, avatar: selectedAvatar });
           updateGreeting();
           refreshWorldLink();
@@ -357,6 +358,26 @@
 
     function profileMatches(name) {
       return nameInput.value.trim().toLowerCase() === String(name).trim().toLowerCase();
+    }
+
+    // Grava o avatar direto no perfil da jogadora (se ela já existir no progresso).
+    function saveAvatarToPlayer(name, avatar) {
+      const key = String(name || '').trim().toLowerCase();
+      if (!key) return;
+      try {
+        const all = JSON.parse(localStorage.getItem(PROGRESS_KEY_LAUNCHER) || 'null') || {};
+        const player = (all.players || []).find((candidate) => String(candidate?.name || '').trim().toLowerCase() === key);
+        if (!player) return;
+        player.avatar = avatar;
+        localStorage.setItem(PROGRESS_KEY_LAUNCHER, JSON.stringify(all));
+        renderSavedUsers();
+      } catch {}
+    }
+
+    function avatarOfSavedPlayer(name) {
+      const key = String(name || '').trim().toLowerCase();
+      const player = savedPlayers().find((candidate) => String(candidate?.name || '').trim().toLowerCase() === key);
+      return player ? String(player.avatar || '') : null;
     }
 
     function updateGreeting() {
@@ -434,10 +455,17 @@
       });
     }
     nameInput.addEventListener('input', () => {
-      savePrefs({ name: nameInput.value.trim().replace(/\s+/g, ' ') });
+      const name = nameInput.value.trim().replace(/\s+/g, ' ');
+      // digitando o nome de uma jogadora salva, adota o avatar dela
+      const knownAvatar = avatarOfSavedPlayer(name);
+      if (knownAvatar !== null && knownAvatar !== selectedAvatar) {
+        selectedAvatar = knownAvatar;
+      }
+      savePrefs({ name, avatar: selectedAvatar });
       updateGreeting();
       refreshWorldLink();
       updateWorldLabel();
+      renderAvatars();
       renderSavedUsers();
     });
 
