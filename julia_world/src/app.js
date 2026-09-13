@@ -103,6 +103,7 @@ const introNameLabel = $('introNameLabel');
 const btnHome = $('btnHome');
 const btnSpin = $('btnSpin');
 const btnMenu = $('btnMenu');
+const btnNotebook = $('btnNotebook');
 const menuToggle = $('menuToggle');
 const cardLabel = $('cardLabel');
 
@@ -400,6 +401,11 @@ btnHome.addEventListener('click', () => {
 btnMenu.addEventListener('click', () => {
   stopSpeaking();
   location.href = '../index.html';
+});
+btnNotebook.addEventListener('click', () => {
+  stopSpeaking();
+  const query = new URLSearchParams({ from: 'launcher', name: childName, language, avatar: preferences.avatar });
+  location.href = `../notebook/index.html?${query}`;
 });
 // quando a criança arrasta o globo, para o giro automático
 globeEl.addEventListener('pointerdown', () => {
@@ -813,6 +819,8 @@ function updateInterface() {
   btnHome.title = text(language, 'homeTitle');
   btnMenu.textContent = text(language, 'menu');
   btnMenu.title = text(language, 'menuTitle');
+  btnNotebook.textContent = text(language, 'notebook');
+  btnNotebook.title = text(language, 'notebookTitle');
   btnSpin.title = text(language, 'spinTitle');
   cardClose.title = text(language, 'close');
   placeModalClose.title = text(language, 'close');
