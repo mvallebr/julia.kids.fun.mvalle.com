@@ -6,6 +6,7 @@ export const DEFAULT_PREFERENCES = Object.freeze({
   language: 'pt',
   theme: 'auto',
   accent: 'gold',
+  avatar: '',
 });
 
 const LANGUAGES = new Set(['pt', 'en', 'es']);
@@ -14,6 +15,10 @@ const ACCENTS = new Set(['gold', 'mint', 'pink', 'blue']);
 
 function valid(value, allowed, fallback) {
   return allowed.has(value) ? value : fallback;
+}
+
+function normalizeAvatar(value) {
+  return typeof value === 'string' ? value.trim().slice(0, 16) : DEFAULT_PREFERENCES.avatar;
 }
 
 function normalizeCountry(value) {
@@ -34,6 +39,7 @@ export function normalizePreferences(value = {}) {
     language: valid(source.language, LANGUAGES, DEFAULT_PREFERENCES.language),
     theme: valid(source.theme, THEMES, DEFAULT_PREFERENCES.theme),
     accent: valid(source.accent, ACCENTS, DEFAULT_PREFERENCES.accent),
+    avatar: normalizeAvatar(source.avatar),
   };
 }
 

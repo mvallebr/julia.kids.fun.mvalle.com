@@ -24,11 +24,16 @@ function uniqueStrings(value) {
   return [...new Set(Array.isArray(value) ? value.filter((item) => typeof item === 'string' && item) : [])];
 }
 
+function normalizeAvatar(value) {
+  return typeof value === 'string' ? value.trim().slice(0, 16) : '';
+}
+
 function normalizeProfile(value) {
   const name = cleanName(value?.name);
   if (!name) return null;
   return {
     name,
+    avatar: normalizeAvatar(value?.avatar),
     visitedCountries: uniqueStrings(value?.visitedCountries),
     visitedPlaces: uniqueStrings(value?.visitedPlaces),
   };
@@ -76,16 +81,18 @@ export function profileKey(name) {
   return cleanName(name).toLocaleLowerCase();
 }
 
-export function ensurePlayer(progress, name) {
+export function ensurePlayer(progress, name, avatar = '') {
   const clean = cleanName(name);
   if (!clean) return null;
   const key = profileKey(clean);
   let profile = progress.players.find((candidate) => profileKey(candidate.name) === key);
   if (!profile) {
-    profile = { name: clean, visitedCountries: [], visitedPlaces: [] };
+    profile = { name: clean, avatar: normalizeAvatar(avatar), visitedCountries: [], visitedPlaces: [] };
     progress.players.push(profile);
   } else {
     profile.name = clean;
+    const cleanAvatar = normalizeAvatar(avatar);
+    if (cleanAvatar) profile.avatar = cleanAvatar;
   }
   return profile;
 }
@@ -188,6 +195,7 @@ export function profileStats(profile, features, extras = {}) {
   const badges = badgesFor(profile, features);
   return {
     name: profile?.name || '',
+    avatar: profile?.avatar || '',
     countries,
     places,
     badges,

@@ -43,6 +43,7 @@ const launcherConfig = launcherParams.get('from') === 'launcher'
       name: launcherParams.get('name') || '',
       country: launcherParams.get('country') || '',
       language: launcherParams.get('language') || '',
+      avatar: launcherParams.get('avatar') || '',
     }
   : null;
 let preferences = applyPreferences(loadPreferences());
@@ -52,6 +53,7 @@ if (launcherConfig) {
     name: launcherConfig.name || preferences.name,
     country: launcherConfig.country || preferences.country,
     language: launcherConfig.language || preferences.language,
+    avatar: launcherConfig.avatar || preferences.avatar,
   }));
 }
 let progress = loadProgress();
@@ -139,8 +141,10 @@ function continentLabel(continent) {
 function ensureCurrentPlayer() {
   if (!childName) return null;
   const before = progress.players.length;
-  const profile = ensurePlayer(progress, childName);
-  if (progress.players.length !== before) saveProgress(progress);
+  const existing = progress.players.find((candidate) => profileKey(candidate.name) === profileKey(childName));
+  const priorAvatar = existing?.avatar;
+  const profile = ensurePlayer(progress, childName, preferences.avatar);
+  if (progress.players.length !== before || profile.avatar !== priorAvatar) saveProgress(progress);
   return profile;
 }
 function visitedStickerDetails(profile) {
@@ -232,7 +236,8 @@ function renderProgressUI() {
 
   rankingCurrent.innerHTML = '';
   if (current) {
-    rankingCurrent.innerHTML = `<strong>${escapeHtml(current.name)} · #${currentRank}</strong><span>${text(language, 'score', { points: current.score })} · ${text(language, 'placesVisited', { count: current.places })}</span>`;
+    const avatarPrefix = current.avatar ? `${current.avatar} ` : '';
+    rankingCurrent.innerHTML = `<strong>${escapeHtml(avatarPrefix + current.name)} · #${currentRank}</strong><span>${text(language, 'score', { points: current.score })} · ${text(language, 'placesVisited', { count: current.places })}</span>`;
   } else {
     rankingCurrent.textContent = text(language, 'noRanking');
   }
@@ -309,7 +314,7 @@ function renderProgressUI() {
       rank.textContent = `#${index + 1}`;
       const name = document.createElement('span');
       name.className = 'ranking-name';
-      name.textContent = entry.name;
+      name.textContent = entry.avatar ? `${entry.avatar} ${entry.name}` : entry.name;
       const points = document.createElement('span');
       points.className = 'ranking-points';
       points.textContent = text(language, 'score', { points: entry.score });

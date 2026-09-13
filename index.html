@@ -61,6 +61,27 @@
     }
     .name-input:focus { border-color: #ffd166; box-shadow: 0 0 0 3px rgba(255,209,102,.25); }
     .name-input::placeholder { color: rgba(255,255,255,.45); }
+    .saved-label { margin: 14px auto 6px; color: #c9bff2; font-size: 12.5px; font-weight: 700; }
+    .saved-users { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+    .user-chip {
+      display: inline-flex; align-items: center; gap: 7px;
+      padding: 7px 13px; border: 2px solid rgba(255,255,255,.22); border-radius: 999px;
+      color: #f8f6ff; background: rgba(255,255,255,.08);
+      font: 600 13.5px 'Fredoka', sans-serif; cursor: pointer;
+      transition: transform .15s, background .2s, border-color .2s;
+    }
+    .user-chip:hover { transform: translateY(-2px); background: rgba(255,255,255,.16); }
+    .user-chip.selected { border-color: #ffd166; background: rgba(255,209,102,.18); }
+    .user-chip .chip-avatar { font-size: 18px; }
+    .avatar-label { margin: 14px auto 8px; color: #c9bff2; font-size: 13px; font-weight: 700; }
+    .avatars { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; max-width: 360px; margin: 0 auto; }
+    .avatar-pill {
+      width: 44px; height: 44px; border-radius: 50%; cursor: pointer;
+      border: 2px solid rgba(255,255,255,.22); background: rgba(255,255,255,.1);
+      font-size: 22px; line-height: 1; transition: transform .15s, border-color .2s, background .2s;
+    }
+    .avatar-pill:hover { transform: translateY(-2px); background: rgba(255,255,255,.18); }
+    .avatar-pill.selected { border-color: #ffd166; background: rgba(255,209,102,.18); box-shadow: 0 0 0 3px rgba(255,209,102,.25); }
     .apps { display: flex; flex-direction: column; gap: 13px; margin-top: 22px; }
     .app {
       display: flex; align-items: center; gap: 12px; width: 100%;
@@ -145,12 +166,16 @@
     <span class="wave" aria-hidden="true">👋</span>
     <h1 id="hubTitle">OLÁ, JULIA!</h1>
     <p class="tagline" id="tagline">Escolha uma aventura para começar:</p>
+    <label class="saved-label" id="savedLabel" hidden>Quem está jogando?</label>
+    <div class="saved-users" id="savedUsers" hidden></div>
     <label class="name-label" for="nameInput" id="nameLabel">Seu nome</label>
     <input class="name-input" id="nameInput" type="text" maxlength="32" autocomplete="off" placeholder="Escreva seu nome">
+    <div class="avatar-label" id="avatarLabel">Escolha seu avatar</div>
+    <div class="avatars" id="avatars"></div>
     <div class="language-label" id="languageLabel">🌐 Escolha seu idioma</div>
     <div class="languages">
       <button class="lang-pill" data-language="pt" type="button"><span class="flag">🇧🇷</span>PT</button>
-      <button class="lang-pill" data-language="en" type="button"><span class="flag">🇺🇸</span>EN</button>
+      <button class="lang-pill" data-language="en" type="button"><span class="flag">🇬🇧</span>EN</button>
       <button class="lang-pill" data-language="es" type="button"><span class="flag">🇪🇸</span>ES</button>
     </div>
     <nav class="apps" aria-label="Aventuras">
@@ -214,7 +239,7 @@
     const COPY = {
       pt: {
         htmlLang: 'pt-BR', title: 'Aventuras da Julia 🌍', helloPrefix: 'OLÁ',
-        tagline: 'Escolha uma aventura para começar:', nameLabel: 'Seu nome', namePlaceholder: 'Escreva seu nome', world: "Julia's World",
+        tagline: 'Escolha uma aventura para começar:', nameLabel: 'Seu nome', namePlaceholder: 'Escreva seu nome', avatarLabel: 'Escolha seu avatar', savedLabel: 'Quem está jogando?', world: "Julia's World",
         math: 'Aventuras de Matemática', english: 'Aventuras de Inglês', notebook: 'Caderno de Stickers e Badges', soon: 'EM BREVE',
         languageLabel: '🌐 Escolha seu idioma', helpButton: 'Help', aboutButton: 'About',
         madeWith: 'feito com 💛 pela Julia e pelo papai',
@@ -223,7 +248,7 @@
       },
       en: {
         htmlLang: 'en', title: "Julia's Adventures 🌍", helloPrefix: 'HELLO',
-        tagline: 'Pick an adventure to start:', nameLabel: 'Your name', namePlaceholder: 'Type your name', world: "Julia's World",
+        tagline: 'Pick an adventure to start:', nameLabel: 'Your name', namePlaceholder: 'Type your name', avatarLabel: 'Pick your avatar', savedLabel: 'Who is playing?', world: "Julia's World",
         math: 'Math Adventures', english: 'English Adventures', notebook: 'Stickers & Badges Notebook', soon: 'COMING SOON',
         languageLabel: '🌐 Choose your language', helpButton: 'Help', aboutButton: 'About',
         madeWith: 'made with 💛 by Julia and her dad',
@@ -232,7 +257,7 @@
       },
       es: {
         htmlLang: 'es', title: 'Aventuras de Julia 🌍', helloPrefix: '¡HOLA',
-        tagline: 'Elige una aventura para empezar:', nameLabel: 'Tu nombre', namePlaceholder: 'Escribe tu nombre', world: "Julia's World",
+        tagline: 'Elige una aventura para empezar:', nameLabel: 'Tu nombre', namePlaceholder: 'Escribe tu nombre', avatarLabel: 'Elige tu avatar', savedLabel: '¿Quién está jugando?', world: "Julia's World",
         math: 'Aventuras de Matemáticas', english: 'Aventuras de Inglés', notebook: 'Cuaderno de Stickers y Badges', soon: 'PRONTO',
         languageLabel: '🌐 Elige tu idioma', helpButton: 'Ayuda', aboutButton: 'Acerca de',
         madeWith: 'hecho con 💛 por Julia y su papá',
@@ -255,7 +280,80 @@
 
     let language = ['pt', 'en', 'es'].includes(loadPrefs().language) ? loadPrefs().language : 'pt';
     const nameInput = $('nameInput');
+    const AVATARS = ['👧', '🧒', '🦄', '🐱', '🐶', '🦊', '🐼', '🐸', '🦋', '🌟', '🚀', '🌸'];
+    const PROGRESS_KEY_LAUNCHER = 'mundo-atlas.progress.v1';
+    let selectedAvatar = String(loadPrefs().avatar || '');
     nameInput.value = String(loadPrefs().name || '').trim().replace(/\s+/g, ' ');
+
+    function savedPlayers() {
+      try {
+        const all = JSON.parse(localStorage.getItem(PROGRESS_KEY_LAUNCHER) || 'null');
+        return (all?.players || []).filter((player) => player?.name);
+      } catch { return []; }
+    }
+
+    function renderAvatars() {
+      const grid = $('avatars');
+      grid.replaceChildren();
+      for (const avatar of AVATARS) {
+        const pill = document.createElement('button');
+        pill.type = 'button';
+        pill.className = `avatar-pill${selectedAvatar === avatar ? ' selected' : ''}`;
+        pill.textContent = avatar;
+        pill.setAttribute('aria-label', avatar);
+        pill.setAttribute('aria-pressed', String(selectedAvatar === avatar));
+        pill.addEventListener('click', () => {
+          selectedAvatar = avatar;
+          savePrefs({ avatar });
+          renderAvatars();
+          renderSavedUsers();
+          refreshWorldLink();
+        });
+        grid.appendChild(pill);
+      }
+    }
+
+    function renderSavedUsers() {
+      const players = savedPlayers();
+      const label = $('savedLabel');
+      const wrap = $('savedUsers');
+      if (!players.length) {
+        label.hidden = true;
+        wrap.hidden = true;
+        return;
+      }
+      label.hidden = false;
+      wrap.hidden = false;
+      label.textContent = COPY[language].savedLabel;
+      wrap.replaceChildren();
+      for (const player of players) {
+        const chip = document.createElement('button');
+        chip.type = 'button';
+        const isCurrent = profileMatches(player.name);
+        chip.className = `user-chip${isCurrent ? ' selected' : ''}`;
+        const avatar = document.createElement('span');
+        avatar.className = 'chip-avatar';
+        avatar.textContent = player.avatar || '👧';
+        const name = document.createElement('span');
+        name.textContent = player.name;
+        chip.append(avatar, name);
+        chip.addEventListener('click', () => {
+          nameInput.value = player.name;
+          selectedAvatar = player.avatar || selectedAvatar;
+          savePrefs({ name: player.name, avatar: selectedAvatar });
+          updateGreeting();
+          refreshWorldLink();
+          updateWorldLabel();
+          renderAvatars();
+          renderSavedUsers();
+        });
+        wrap.appendChild(chip);
+      }
+    }
+
+    function profileMatches(name) {
+      return nameInput.value.trim().toLowerCase() === String(name).trim().toLowerCase();
+    }
 
     function updateGreeting() {
       const name = nameInput.value.trim().replace(/\s+/g, ' ');
@@ -263,7 +361,7 @@
     }
 
     function refreshWorldLink() {
-      const params = new URLSearchParams({ from: 'launcher', name: nameInput.value.trim().replace(/\s+/g, ' '), language });
+      const params = new URLSearchParams({ from: 'launcher', name: nameInput.value.trim().replace(/\s+/g, ' '), language, avatar: selectedAvatar });
       $('appWorld').href = `julia_world/index.html?${params}`;
       $('appNotebook').href = `notebook/index.html?${params}`;
     }
@@ -283,6 +381,7 @@
       $('tagline').textContent = copy.tagline;
       $('nameLabel').textContent = copy.nameLabel;
       nameInput.placeholder = copy.namePlaceholder;
+      $('avatarLabel').textContent = copy.avatarLabel;
       $('languageLabel').textContent = copy.languageLabel;
       $('madeWith').textContent = copy.madeWith;
       for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = copy[el.dataset.i18n] ?? el.textContent;
@@ -311,6 +410,7 @@
       updateGreeting();
       refreshWorldLink();
       updateWorldLabel();
+      renderSavedUsers();
     });
 
     function bindModal(openId, backdropId, closeId) {
@@ -339,6 +439,8 @@
     }
     layer.appendChild(fragment);
 
+    renderAvatars();
+    renderSavedUsers();
     applyLanguage();
   </script>
 </body>
