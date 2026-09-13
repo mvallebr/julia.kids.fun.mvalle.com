@@ -17,60 +17,117 @@
         radial-gradient(1000px 700px at 10% 105%, rgba(72, 40, 155, .45), transparent 55%),
         linear-gradient(160deg, #32215c 0%, #221644 52%, #150d2e 100%);
     }
-    .shell { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(880px, 100%); }
+    .shell { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(920px, 100%); }
     .top { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px; }
-    .back {
+    .top-link {
       padding: 9px 16px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px;
       color: #f8f6ff; background: rgba(255,255,255,.1); font: 700 14px 'Fredoka', sans-serif;
       text-decoration: none; cursor: pointer;
     }
-    .back:hover { background: rgba(255,255,255,.2); }
+    .top-link:hover { background: rgba(255,255,255,.2); }
     h1 {
       margin: 0; font-family: 'Luckiest Guy', 'Fredoka', sans-serif; font-weight: 400;
-      font-size: clamp(22px, 4vw, 34px); color: #ffd166; letter-spacing: .02em;
+      font-size: clamp(20px, 3.6vw, 32px); color: #ffd166; letter-spacing: .02em;
       text-shadow: 0 3px 0 rgba(120, 60, 0, .35), 0 8px 22px rgba(0,0,0,.35); text-align: center;
     }
+    .stage { perspective: 2400px; width: min(880px, 100%); }
     .book {
-      position: relative; width: min(880px, 100%); min-height: 480px;
-      background: #fffaf0; border-radius: 22px; color: #293354;
-      box-shadow: 0 24px 70px rgba(0,0,0,.5), inset 0 0 0 6px #e8d9b5;
-      padding: 26px 30px 20px 56px; overflow: hidden;
+      position: relative; min-height: 500px;
+      transform-style: preserve-3d; transform-origin: left center;
+      transition: transform .8s cubic-bezier(.55, .06, .3, 1), opacity .5s;
     }
-    .binding { position: absolute; top: 0; bottom: 0; left: 18px; width: 22px; display: flex; flex-direction: column; gap: 26px; padding-top: 30px; }
-    .binding i { width: 14px; height: 14px; border-radius: 50%; background: #2a3150; opacity: .25; }
-    .page-head { text-align: center; margin-bottom: 16px; }
-    .page-head h2 { margin: 0; font: 400 26px 'Luckiest Guy', 'Fredoka', sans-serif; color: #d1495b; letter-spacing: .03em; }
-    .page-head p { margin: 4px 0 0; color: #77809a; font-size: 13px; font-weight: 600; }
-    .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; padding: 6px 0 12px; }
-    .badge { width: 108px; text-align: center; }
+    .book.closed { transform: rotateY(-4deg); }
+    .book.opening { transform: rotateY(-140deg); opacity: .35; }
+    /* ── capa ── */
+    .cover {
+      position: absolute; inset: 0; z-index: 40; cursor: pointer;
+      transform-origin: left center; transform-style: preserve-3d;
+      transition: transform .9s cubic-bezier(.4, .05, .28, 1);
+      border-radius: 10px 22px 22px 10px;
+      background:
+        repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0 8px, transparent 8px 16px),
+        linear-gradient(160deg, #c0392b 0%, #8e2418 55%, #5f150c 100%);
+      border: 3px solid #6d1a10;
+      box-shadow: inset 0 0 0 14px rgba(255, 209, 102, .16), inset 0 0 60px rgba(0,0,0,.4), 0 26px 60px rgba(0,0,0,.5);
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px;
+      backface-visibility: hidden;
+    }
+    .cover::after {
+      content: ''; position: absolute; left: 26px; top: 18px; bottom: 18px; width: 4px;
+      border-radius: 4px; background: rgba(255,209,102,.55); box-shadow: 10px 0 0 rgba(255,255,255,.12);
+    }
+    .cover .cover-emoji { font-size: 74px; filter: drop-shadow(0 8px 16px rgba(0,0,0,.45)); }
+    .cover .cover-title {
+      font: 400 clamp(22px, 4.4vw, 38px) 'Luckiest Guy', 'Fredoka', sans-serif; color: #ffd166;
+      text-shadow: 0 3px 0 rgba(0,0,0,.4); text-align: center; padding: 0 40px; line-height: 1.15;
+    }
+    .cover .cover-sub {
+      color: #ffe9b8; font: 700 14px 'Fredoka', sans-serif; letter-spacing: .12em; text-transform: uppercase;
+      animation: coverPulse 1.6s ease-in-out infinite;
+    }
+    .cover.open { transform: rotateY(-150deg); opacity: .12; pointer-events: none; }
+    @keyframes coverPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+    /* ── miolo ── */
+    .inner {
+      position: relative; display: grid; grid-template-columns: 1fr 1fr;
+      border-radius: 12px 22px 22px 12px; overflow: hidden;
+      background: linear-gradient(90deg, #efe2c3 0%, #fbf5e8 16%, #fdfaf1 50%, #fbf5e8 84%, #efe2c3 100%);
+      box-shadow: 0 26px 60px rgba(0,0,0,.5), inset 0 0 0 3px #d9c9a3;
+      color: #293354; min-height: 520px;
+    }
+    .page { position: relative; padding: 24px 22px 42px 30px; display: flex; flex-direction: column; min-height: 520px; }
+    .page.left { border-radius: 12px 0 0 12px; box-shadow: inset -22px 0 34px -26px rgba(90, 60, 10, .55); }
+    .page.right { border-radius: 0 22px 22px 0; box-shadow: inset 22px 0 34px -26px rgba(90, 60, 10, .55); padding: 24px 30px 42px 22px; }
+    .page .pagenum {
+      position: absolute; bottom: 12px; width: 100%; text-align: center;
+      color: #a89a77; font: 700 12px 'Fredoka', sans-serif;
+    }
+    .page-head { text-align: center; margin-bottom: 12px; }
+    .page-head h2 { margin: 0; font: 400 21px 'Luckiest Guy', 'Fredoka', sans-serif; color: #d1495b; letter-spacing: .03em; }
+    .page-head p { margin: 3px 0 0; color: #77809a; font-size: 11.5px; font-weight: 600; line-height: 1.3; }
+    .grid { display: flex; flex-wrap: wrap; justify-content: center; align-content: flex-start; gap: 13px; }
+    .badge { width: 96px; text-align: center; }
     .badge .coin {
-      width: 76px; height: 76px; margin: 0 auto 7px; border-radius: 50%;
-      display: grid; place-items: center; font-size: 36px;
+      width: 68px; height: 68px; margin: 0 auto 6px; border-radius: 50%;
+      display: grid; place-items: center; font-size: 32px;
       background: radial-gradient(circle at 32% 28%, #fff3c9, #ffd166 62%, #d4a017);
-      border: 4px solid #b8860b; box-shadow: 0 6px 14px rgba(0,0,0,.25), inset 0 2px 6px rgba(255,255,255,.7);
+      border: 4px solid #b8860b; box-shadow: 0 5px 12px rgba(0,0,0,.22), inset 0 2px 6px rgba(255,255,255,.7);
     }
-    .badge.locked .coin {
-      background: radial-gradient(circle at 32% 28%, #4a4a4a, #17171c 68%);
-      border-color: #000;
-    }
+    .badge.locked .coin { background: radial-gradient(circle at 32% 28%, #4a4a4a, #17171c 68%); border-color: #000; }
     .badge.locked .coin span { filter: brightness(0); opacity: .55; }
-    .badge .name { font-size: 11.5px; font-weight: 700; color: #33406b; line-height: 1.25; }
+    .badge .name { font-size: 10.5px; font-weight: 700; color: #33406b; line-height: 1.25; }
     .badge.locked .name { color: #9aa2b6; }
-    .badge .status { font-size: 10.5px; font-weight: 700; color: #2e7d32; }
+    .badge .status { font-size: 10px; font-weight: 700; color: #2e7d32; }
     .badge.locked .status { color: #b0672f; }
-    .sticker-hero {
-      display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px 0 8px;
+    /* folha que vira */
+    .leaf {
+      position: absolute; top: 0; right: 0; width: 50%; height: 100%; z-index: 20;
+      transform-origin: left center; transform-style: preserve-3d; pointer-events: none;
     }
-    .sticker-visual {
-      display: inline-flex; align-items: center; gap: 16px; padding: 22px 30px;
-      border-radius: 22px; background: #fff;
-      border: 4px dashed #ffb347; box-shadow: 0 10px 26px rgba(0,0,0,.18);
-      transform: rotate(-2deg);
+    .leaf .face {
+      position: absolute; inset: 0; backface-visibility: hidden; overflow: hidden;
+      background: linear-gradient(90deg, #f6eed9, #fdfaf1 30%, #fdfaf1 100%);
+      box-shadow: inset 22px 0 34px -26px rgba(90, 60, 10, .55);
+      color: #293354; padding: 24px 22px 42px 30px;
     }
-    .sticker-visual .emoji { font-size: 64px; line-height: 1; }
-    .sticker-visual .times { font: 400 54px 'Luckiest Guy', 'Fredoka', sans-serif; color: #d1495b; }
-    .sticker-breakdown { color: #596580; font-weight: 700; font-size: 15px; }
-    .sticker-note { color: #9aa2b6; font-size: 12.5px; font-weight: 600; }
+    .leaf .face.back { transform: rotateY(180deg); box-shadow: inset -22px 0 34px -26px rgba(90, 60, 10, .55); }
+    .leaf.backward { right: auto; left: 0; transform-origin: right center; animation: flipBackward .75s ease-in forwards; }
+    .leaf.forward { animation: flipForward .75s ease-in forwards; }
+    .underlay { position: absolute; top: 0; height: 100%; z-index: 15; pointer-events: none; }
+    .underlay.left-half { left: 0; width: 50%; border-radius: 12px 0 0 12px; overflow: hidden; }
+    .underlay.right-half { right: 0; width: 50%; border-radius: 0 22px 22px 0; overflow: hidden; }
+    .underlay .face { position: absolute; inset: 0; background: #fdfaf1; }
+    .underlay .face > * { width: 100%; height: 100%; }
+    @keyframes flipForward { from { transform: rotateY(0); } to { transform: rotateY(-178deg); } }
+    @keyframes flipBackward { from { transform: rotateY(0); } to { transform: rotateY(178deg); } }
+    /* controle e fita de fechar */
+    .close-ribbon {
+      position: absolute; top: 14px; right: 14px; z-index: 30;
+      width: 40px; height: 40px; border: 0; border-radius: 50%; cursor: pointer;
+      color: #fff; background: #d1495b; font-size: 17px; line-height: 1;
+      box-shadow: 0 6px 14px rgba(0,0,0,.3); transition: transform .15s;
+    }
+    .close-ribbon:hover { transform: scale(1.1) rotate(8deg); }
     .controls { display: flex; align-items: center; justify-content: center; gap: 18px; }
     .flip {
       width: 52px; height: 52px; border: 0; border-radius: 50%; cursor: pointer;
@@ -80,27 +137,75 @@
     .flip:hover:not(:disabled) { transform: scale(1.08); background: rgba(255,255,255,.26); }
     .flip:disabled { opacity: .25; cursor: default; }
     .page-indicator { font: 800 15px 'Fredoka', sans-serif; color: #c9bff2; min-width: 42px; text-align: center; }
-    .page { animation: pageIn .4s ease; }
-    @keyframes pageIn { from { opacity: 0; transform: rotateY(-8deg) translateX(24px); } to { opacity: 1; transform: none; } }
-    @media (prefers-reduced-motion: reduce) { .page { animation: none; } }
-    @media (max-width: 640px) { .book { padding: 20px 18px 16px 46px; min-height: 420px; } .badge { width: 88px; } .badge .coin { width: 62px; height: 62px; font-size: 30px; } }
+    .closed-actions { display: none; gap: 12px; margin-top: 4px; }
+    .closed-actions button {
+      padding: 12px 24px; border: 0; border-radius: 999px; cursor: pointer;
+      font: 800 15px 'Fredoka', sans-serif; color: #fff;
+      background: linear-gradient(135deg, #4ecdc4, #526fff); box-shadow: 0 10px 24px rgba(82,111,255,.35);
+    }
+    .closed-actions button.menu { background: rgba(255,255,255,.14); box-shadow: none; border: 1px solid rgba(255,255,255,.3); }
+    /* conteúdo das páginas */
+    .sticker-hero { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 10px 0; }
+    .sticker-visual {
+      display: inline-flex; align-items: center; gap: 14px; padding: 20px 26px;
+      border-radius: 20px; background: #fff;
+      border: 4px dashed #ffb347; box-shadow: 0 8px 20px rgba(0,0,0,.15);
+      transform: rotate(-2deg);
+    }
+    .sticker-visual .emoji { font-size: 56px; line-height: 1; }
+    .sticker-visual .times { font: 400 46px 'Luckiest Guy', 'Fredoka', sans-serif; color: #d1495b; }
+    .sticker-breakdown { color: #596580; font-weight: 700; font-size: 14px; }
+    .sticker-note { color: #9aa2b6; font-size: 12px; font-weight: 600; text-align: center; }
+    .sticker-list { list-style: none; margin: 0; padding: 0; overflow-y: auto; flex: 1; display: flex; flex-direction: column; gap: 7px; }
+    .sticker-list li {
+      display: flex; align-items: center; gap: 8px; padding: 7px 10px;
+      background: #fff; border: 1.5px solid #f0e1bd; border-radius: 12px;
+      font-size: 12.5px; font-weight: 600; color: #33406b;
+    }
+    .sticker-list .s-icon { font-size: 18px; }
+    .sticker-empty { color: #9aa2b6; font-size: 12.5px; font-weight: 600; text-align: center; margin-top: 10px; }
+    @media (max-width: 760px) {
+      .inner { grid-template-columns: 1fr; min-height: 0; }
+      .page.left { border-radius: 12px 12px 0 0; box-shadow: inset 0 -16px 24px -20px rgba(90,60,10,.5); min-height: 0; }
+      .page.right { border-radius: 0 0 22px 22px; box-shadow: none; min-height: 0; }
+      .page { min-height: 0; }
+      .inner { min-height: 0; }
+      .leaf, .underlay { display: none; }
+      .book { min-height: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      .book, .cover, .leaf, .cover .cover-sub { transition: none; animation: none; }
+      .leaf, .underlay { display: none; }
+    }
   </style>
 </head>
 <body>
   <main class="shell">
     <div class="top">
-      <a class="back" id="backButton" href="../index.html">◀ Menu</a>
-      <h1 id="notebookTitle">📔 Caderno da Julia</h1>
-      <a class="back" id="atlasButton" href="../julia_world/index.html">🌍 Mundo</a>
+      <a class="top-link" href="../index.html">◀ Menu</a>
+      <h1 id="notebookTitle">📔 Caderno</h1>
+      <a class="top-link" href="../julia_world/index.html">🌍 Mundo</a>
     </div>
-    <section class="book" aria-live="polite">
-      <div class="binding" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
-      <div id="pageHost"></div>
-    </section>
-    <div class="controls">
+    <div class="stage">
+      <div class="book closed" id="book">
+        <div class="inner" id="inner">
+          <button class="close-ribbon" id="closeButton" type="button" aria-label="Fechar caderno">✕</button>
+        </div>
+        <div class="cover" id="cover">
+          <span class="cover-emoji">📔</span>
+          <span class="cover-title" id="coverTitle">Caderno da Julia</span>
+          <span class="cover-sub" id="coverHint">Clique para abrir!</span>
+        </div>
+      </div>
+    </div>
+    <div class="controls" id="controls">
       <button class="flip" id="prevButton" type="button" aria-label="Página anterior">◀</button>
       <span class="page-indicator" id="pageIndicator">1/3</span>
       <button class="flip" id="nextButton" type="button" aria-label="Próxima página">▶</button>
+    </div>
+    <div class="closed-actions" id="closedActions">
+      <button id="reopenButton" type="button">📖 Abrir de novo</button>
+      <button class="menu" id="menuButton" type="button">◀ Voltar ao menu</button>
     </div>
   </main>
 
@@ -114,22 +219,34 @@
     const LANG_META = { pt: { locale: 'pt-BR' }, en: { locale: 'en-US' }, es: { locale: 'es-ES' } };
     const COPY = {
       pt: {
-        title: (name) => `📔 Caderno da ${name}`, continents: 'Badges de continentes', continentsSub: 'Visite todos os países de um continente para conquistar o badge',
-        explorers: 'Badges de exploradora', explorersSub: 'Colecione lugares para subir de nível', milestones: 'Marcos da aventura', milestonesSub: 'Complete tarefas da aventura para conquistar',
-        stickers: 'Meus stickers', earned: 'Conquistado!', locked: 'Ainda não…', lockedHint: 'Visite {missing} países', stickerTitle: 'Minha coleção',
-        placesBonus: '{places} lugares + {bonus} bônus', stickerNext: 'Aos 10 lugares: +5 stickers · aos 50: +20', empty: 'Abra lugares no atlas para começar sua coleção!',
+        coverTitle: (name) => `Caderno da ${name}`, coverHint: 'Clique para abrir!',
+        continents: 'Badges de continentes', continentsSub: 'Visite todos os países de um continente para conquistar o badge',
+        explorers: 'Badges de exploradora', explorersSub: 'Colecione lugares para subir de nível',
+        milestones: 'Marcos da aventura', milestonesSub: 'Complete tarefas da aventura',
+        stickers: 'Minha coleção', stickersSub: 'Cada lugar visitado é um sticker', stickerList: 'Stickers conquistados',
+        earned: 'Conquistado!', locked: 'Ainda não…', lockedHint: 'Faltam {missing}',
+        placesBonus: '{places} lugares + {bonus} bônus', stickerNext: 'Aos 10 lugares: +5 stickers · aos 50: +20',
+        empty: 'Explore o atlas para começar!', page: 'pág.',
       },
       en: {
-        title: (name) => `📔 ${name}'s Notebook`, continents: 'Continent badges', continentsSub: 'Visit every country in a continent to earn its badge',
-        explorers: 'Explorer badges', explorersSub: 'Collect places to level up', milestones: 'Adventure milestones', milestonesSub: 'Complete adventure tasks to earn',
-        stickers: 'My stickers', earned: 'Earned!', locked: 'Not yet…', lockedHint: 'Visit {missing} countries', stickerTitle: 'My collection',
-        placesBonus: '{places} places + {bonus} bonus', stickerNext: 'At 10 places: +5 stickers · at 50: +20', empty: 'Open places in the atlas to start your collection!',
+        coverTitle: (name) => `${name}'s Notebook`, coverHint: 'Click to open!',
+        continents: 'Continent badges', continentsSub: 'Visit every country in a continent to earn its badge',
+        explorers: 'Explorer badges', explorersSub: 'Collect places to level up',
+        milestones: 'Adventure milestones', milestonesSub: 'Complete adventure tasks',
+        stickers: 'My collection', stickersSub: 'Every visited place is a sticker', stickerList: 'Stickers earned',
+        earned: 'Earned!', locked: 'Not yet…', lockedHint: '{missing} to go',
+        placesBonus: '{places} places + {bonus} bonus', stickerNext: 'At 10 places: +5 stickers · at 50: +20',
+        empty: 'Explore the atlas to start!', page: 'p.',
       },
       es: {
-        title: (name) => `📔 Cuaderno de ${name}`, continents: 'Badges de continentes', continentsSub: 'Visita todos los países de un continente para ganar el badge',
-        explorers: 'Badges de exploradora', explorersSub: 'Colecciona lugares para subir de nivel', milestones: 'Hitos de la aventura', milestonesSub: 'Completa tareas de la aventura para ganar',
-        stickers: 'Mis stickers', earned: '¡Conquistado!', locked: 'Todavía no…', lockedHint: 'Visita {missing} países', stickerTitle: 'Mi colección',
-        placesBonus: '{places} lugares + {bonus} bónus', stickerNext: 'A los 10 lugares: +5 stickers · a los 50: +20', empty: '¡Abre lugares en el atlas para empezar tu colección!',
+        coverTitle: (name) => `Cuaderno de ${name}`, coverHint: '¡Haz clic para abrir!',
+        continents: 'Badges de continentes', continentsSub: 'Visita todos los países de un continente para ganar el badge',
+        explorers: 'Badges de exploradora', explorersSub: 'Colecciona lugares para subir de nivel',
+        milestones: 'Hitos de la aventura', milestonesSub: 'Completa tareas de la aventura',
+        stickers: 'Mi colección', stickersSub: 'Cada lugar visitado es un sticker', stickerList: 'Stickers conquistados',
+        earned: '¡Conquistado!', locked: 'Todavía no…', lockedHint: 'Faltan {missing}',
+        placesBonus: '{places} lugares + {bonus} bónus', stickerNext: 'A los 10 lugares: +5 stickers · a los 50: +20',
+        empty: '¡Explora el atlas para empezar!', page: 'pág.',
       },
     };
     const BADGE_LABELS = {
@@ -159,9 +276,8 @@
       if (!params.get('language') && ['pt', 'en', 'es'].includes(prefs.language)) language = prefs.language;
     } catch {}
 
-    function readJSON(key) {
-      try { return JSON.parse(localStorage.getItem(key) || 'null') || null; } catch { return null; }
-    }
+    const copy = COPY[language];
+    function readJSON(key) { try { return JSON.parse(localStorage.getItem(key) || 'null') || null; } catch { return null; } }
 
     const profileKey = (value) => String(value || '').trim().toLowerCase();
     const progress = readJSON(PROGRESS_KEY) || { players: [] };
@@ -179,29 +295,31 @@
       return { id, total: countries.length, visited, complete: countries.length > 0 && visited === countries.length };
     });
     const allCountryIds = features.map((feature) => feature.properties?.i).filter(Boolean);
-    const allCountriesComplete = allCountryIds.length > 0 && allCountryIds.every((id) => visitedCountries.has(id));
     const places = visitedPlaces.size;
     const bonus = (places >= 10 ? 5 : 0) + (places >= 50 ? 20 : 0);
+    const placeNames = [...visitedPlaces].map((key) => key.split(':').slice(1).join(':'));
 
     const badges = [
       ...continentStats.map((stat) => ({
         id: `continent-${stat.id}`, icon: CONTINENT_LABELS[stat.id].icon,
         label: BADGE_LABELS[language].continent.replace('{c}', CONTINENT_LABELS[stat.id][language]),
-        earned: stat.complete, missing: Math.max(0, stat.total - stat.visited), group: 'continents',
+        earned: stat.complete, missing: Math.max(0, stat.total - stat.visited),
       })),
-      { id: 'mini', icon: '🧭', label: BADGE_LABELS[language].mini, earned: places >= 5, missing: Math.max(0, 5 - places), group: 'explorers' },
-      { id: 'silver', icon: '🥈', label: BADGE_LABELS[language].silver, earned: places >= 25, missing: Math.max(0, 25 - places), group: 'explorers' },
-      { id: 'gold', icon: '🥇', label: BADGE_LABELS[language].gold, earned: places >= 75, missing: Math.max(0, 75 - places), group: 'explorers' },
-      { id: 'super', icon: '🌍', label: BADGE_LABELS[language].super, earned: allCountriesComplete, missing: Math.max(0, allCountryIds.length - visitedCountries.size), group: 'explorers' },
-      { id: 'm10', icon: '🎖️', label: BADGE_LABELS[language].m10, earned: milestones.has(10), missing: 0, group: 'milestones' },
-      { id: 'm20', icon: '🏆', label: BADGE_LABELS[language].m20, earned: milestones.has(20), missing: 0, group: 'milestones' },
+      { id: 'mini', icon: '🧭', label: BADGE_LABELS[language].mini, earned: places >= 5, missing: Math.max(0, 5 - places) },
+      { id: 'silver', icon: '🥈', label: BADGE_LABELS[language].silver, earned: places >= 25, missing: Math.max(0, 25 - places) },
+      { id: 'gold', icon: '🥇', label: BADGE_LABELS[language].gold, earned: places >= 75, missing: Math.max(0, 75 - places) },
+      { id: 'super', icon: '🌍', label: BADGE_LABELS[language].super, earned: allCountryIds.length > 0 && allCountryIds.every((id) => visitedCountries.has(id)), missing: Math.max(0, allCountryIds.length - visitedCountries.size) },
+      { id: 'm10', icon: '🎖️', label: BADGE_LABELS[language].m10, earned: milestones.has(10), missing: 0 },
+      { id: 'm20', icon: '🏆', label: BADGE_LABELS[language].m20, earned: milestones.has(20), missing: 0 },
     ];
 
     const $ = (id) => document.getElementById(id);
-    const PAGES = ['continents', 'explorers+milestones', 'stickers'];
-    let currentPage = 0;
+    const reducedMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    const SPREADS = 3;
+    let currentSpread = 0;
+    let flipping = false;
 
-    function badgeCard(badge, copy) {
+    function badgeCard(badge) {
       const card = document.createElement('div');
       card.className = `badge${badge.earned ? '' : ' locked'}`;
       const coin = document.createElement('div');
@@ -230,23 +348,29 @@
       return head;
     }
 
-    function badgePage(groupTitleKey, groupSubKey, groups) {
-      const copy = COPY[language];
+    function badgePage(badges_, title, subtitle, pageNumber) {
       const page = document.createElement('div');
       page.className = 'page';
-      page.appendChild(pageHead(copy[groupTitleKey], copy[groupSubKey]));
+      page.appendChild(pageHead(title, subtitle));
       const grid = document.createElement('div');
       grid.className = 'grid';
-      badges.filter((badge) => groups.includes(badge.group)).forEach((badge) => grid.appendChild(badgeCard(badge, copy)));
+      badges_.forEach((badge) => grid.appendChild(badgeCard(badge)));
       page.appendChild(grid);
+      const num = document.createElement('div');
+      num.className = 'pagenum';
+      num.textContent = `${copy.page} ${pageNumber}`;
+      page.appendChild(num);
       return page;
     }
 
-    function stickersPage() {
-      const copy = COPY[language];
+    function continentPage(from, to, pageNumber) {
+      return badgePage(badges.slice(from, to), copy.continents, copy.continentsSub, pageNumber);
+    }
+
+    function stickerHeroPage(pageNumber) {
       const page = document.createElement('div');
       page.className = 'page';
-      page.appendChild(pageHead(`${copy.stickers} 🎟️`, copy.stickerTitle));
+      page.appendChild(pageHead(`🎟️ ${copy.stickers}`, copy.stickersSub));
       const hero = document.createElement('div');
       hero.className = 'sticker-hero';
       const visual = document.createElement('div');
@@ -266,32 +390,187 @@
       note.textContent = places === 0 ? copy.empty : copy.stickerNext;
       hero.append(visual, breakdown, note);
       page.appendChild(hero);
+      const num = document.createElement('div');
+      num.className = 'pagenum';
+      num.textContent = `${copy.page} ${pageNumber}`;
+      page.appendChild(num);
       return page;
     }
 
-    function renderPage() {
-      const host = $('pageHost');
-      host.replaceChildren();
-      const page = PAGES[currentPage] === 'stickers'
-        ? stickersPage()
-        : PAGES[currentPage] === 'continents'
-          ? badgePage('continents', 'continentsSub', ['continents'])
-          : badgePage('explorers', 'explorersSub', ['explorers', 'milestones']);
-      host.appendChild(page);
-      $('pageIndicator').textContent = `${currentPage + 1}/${PAGES.length}`;
-      $('prevButton').disabled = currentPage === 0;
-      $('nextButton').disabled = currentPage === PAGES.length - 1;
+    function stickerListPage(pageNumber) {
+      const page = document.createElement('div');
+      page.className = 'page';
+      page.appendChild(pageHead(copy.stickerList, ''));
+      const list = document.createElement('ul');
+      list.className = 'sticker-list';
+      if (!placeNames.length) {
+        const empty = document.createElement('div');
+        empty.className = 'sticker-empty';
+        empty.textContent = copy.empty;
+        page.appendChild(empty);
+      } else {
+        for (const name of placeNames.slice(0, 14)) {
+          const item = document.createElement('li');
+          const icon = document.createElement('span');
+          icon.className = 's-icon';
+          icon.textContent = '🎟️';
+          const label = document.createElement('span');
+          label.textContent = name;
+          item.append(icon, label);
+          list.appendChild(item);
+        }
+        page.appendChild(list);
+      }
+      const num = document.createElement('div');
+      num.className = 'pagenum';
+      num.textContent = `${copy.page} ${pageNumber}`;
+      page.appendChild(num);
+      return page;
     }
 
-    $('notebookTitle').textContent = COPY[language].title(explorerName);
-    document.documentElement.lang = LANG_META[language].locale;
-    $('prevButton').addEventListener('click', () => { if (currentPage > 0) { currentPage -= 1; renderPage(); } });
-    $('nextButton').addEventListener('click', () => { if (currentPage < PAGES.length - 1) { currentPage += 1; renderPage(); } });
-    window.addEventListener('keydown', (event) => {
-      if (event.key === 'ArrowLeft') $('prevButton').click();
-      if (event.key === 'ArrowRight') $('nextButton').click();
+    // Páginas 1-6: continentes (4|3), exploradoras | marcos, herói | lista de stickers.
+    function buildPage(index) {
+      switch (index) {
+        case 0: return continentPage(0, 4, 1);
+        case 1: return continentPage(4, 7, 2);
+        case 2: return badgePage(badges.filter((badge) => ['mini', 'silver', 'gold', 'super'].includes(badge.id)), copy.explorers, copy.explorersSub, 3);
+        case 3: return badgePage(badges.filter((badge) => ['m10', 'm20'].includes(badge.id)), copy.milestones, copy.milestonesSub, 4);
+        case 4: return stickerHeroPage(5);
+        default: return stickerListPage(6);
+      }
+    }
+
+    function buildSpread(index) {
+      const left = buildPage(index * 2);
+      const right = buildPage(index * 2 + 1);
+      left.classList.add('left');
+      right.classList.add('right');
+      return [left, right];
+    }
+
+    function renderSpread() {
+      const inner = $('inner');
+      inner.querySelectorAll('.page, .leaf, .underlay').forEach((page) => page.remove());
+      const [left, right] = buildSpread(currentSpread);
+      const ribbon = $('closeButton');
+      inner.insertBefore(left, ribbon);
+      inner.insertBefore(right, ribbon);
+      $('pageIndicator').textContent = `${currentSpread + 1}/${SPREADS}`;
+      $('prevButton').disabled = currentSpread === 0;
+      $('nextButton').disabled = currentSpread === SPREADS - 1;
+    }
+
+    function wrapInUnderlay(page, side) {
+      const underlay = document.createElement('div');
+      underlay.className = `underlay ${side}`;
+      const face = document.createElement('div');
+      face.className = 'face';
+      face.appendChild(page);
+      underlay.appendChild(face);
+      return underlay;
+    }
+
+    function wrapInLeaf(page, sideClass) {
+      const leaf = document.createElement('div');
+      leaf.className = `leaf ${sideClass}`;
+      const front = document.createElement('div');
+      front.className = 'face';
+      front.appendChild(page);
+      leaf.appendChild(front);
+      return leaf;
+    }
+
+    function flip(direction) {
+      if (flipping) return;
+      const target = currentSpread + direction;
+      if (target < 0 || target >= SPREADS) return;
+      const mobile = window.matchMedia('(max-width: 760px)').matches;
+      if (mobile || reducedMotion) {
+        currentSpread = target;
+        renderSpread();
+        return;
+      }
+      flipping = true;
+      const inner = $('inner');
+      const [currentLeft, currentRight] = buildSpread(currentSpread);
+      const [nextLeft, nextRight] = buildSpread(target);
+      // o miolo passa a mostrar o spread de destino; sobreposições mostram o spread atual durante a virada
+      inner.querySelectorAll('.page').forEach((page) => page.remove());
+      const ribbon = $('closeButton');
+      inner.insertBefore(nextLeft, ribbon);
+      inner.insertBefore(nextRight, ribbon);
+      let underlay;
+      let leaf;
+      if (direction > 0) {
+        underlay = wrapInUnderlay(currentLeft, 'left-half');
+        leaf = wrapInLeaf(currentRight, 'forward');
+        const back = document.createElement('div');
+        back.className = 'face back';
+        back.appendChild(buildPage(target * 2));
+        leaf.appendChild(back);
+      } else {
+        const underLeft = wrapInUnderlay(currentLeft, 'left-half');
+        const underRight = wrapInUnderlay(currentRight, 'right-half');
+        inner.insertBefore(underLeft, ribbon);
+        inner.insertBefore(underRight, ribbon);
+        leaf = wrapInLeaf(buildPage(currentSpread * 2), 'backward');
+        const back = document.createElement('div');
+        back.className = 'face back';
+        back.appendChild(buildPage(target * 2 + 1));
+        leaf.appendChild(back);
+      }
+      inner.appendChild(underlay);
+      inner.appendChild(leaf);
+      setTimeout(() => {
+        currentSpread = target;
+        renderSpread();
+        flipping = false;
+      }, 780);
+    }
+
+    // ── abrir / fechar o caderno ──
+    let isOpen = false;
+    function openBook() {
+      if (isOpen) return;
+      isOpen = true;
+      renderSpread();
+      $('controls').style.visibility = 'visible';
+      $('cover').classList.add('open');
+      $('book').classList.remove('closed');
+    }
+    function closeBook() {
+      if (!isOpen) return;
+      isOpen = false;
+      $('cover').classList.remove('open');
+      $('book').classList.add('closed');
+      $('controls').style.visibility = 'hidden';
+      $('closedActions').style.display = 'flex';
+      $('coverHint').textContent = copy.coverHint;
+    }
+
+    $('cover').addEventListener('click', openBook);
+    $('closeButton').addEventListener('click', (event) => {
+      event.stopPropagation();
+      closeBook();
     });
-    renderPage();
+    $('reopenButton').addEventListener('click', () => {
+      $('closedActions').style.display = 'none';
+      openBook();
+    });
+    $('menuButton').addEventListener('click', () => { location.href = '../index.html'; });
+    $('prevButton').addEventListener('click', () => flip(-1));
+    $('nextButton').addEventListener('click', () => flip(1));
+    window.addEventListener('keydown', (event) => {
+      if (!isOpen || flipping) return;
+      if (event.key === 'ArrowLeft') flip(-1);
+      if (event.key === 'ArrowRight') flip(1);
+    });
+
+    document.title = `📔 ${copy.coverTitle(explorerName)}`;
+    document.documentElement.lang = LANG_META[language].locale;
+    $('notebookTitle').textContent = `📔 ${copy.coverTitle(explorerName)}`;
+    $('coverTitle').textContent = copy.coverTitle(explorerName);
+    $('controls').style.visibility = 'hidden';
   </script>
 </body>
 </html>
