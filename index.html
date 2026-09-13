@@ -405,7 +405,6 @@
       document.title = copy.title;
       updateGreeting();
       refreshWorldLink();
-      updateWorldLabel();
       $('tagline').textContent = copy.tagline;
       $('nameLabel').textContent = copy.nameLabel;
       nameInput.placeholder = copy.namePlaceholder;
@@ -413,6 +412,7 @@
       $('languageLabel').textContent = copy.languageLabel;
       $('madeWith').textContent = copy.madeWith;
       for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = copy[el.dataset.i18n] ?? el.textContent;
+      updateWorldLabel();
       for (const button of document.querySelectorAll('[data-language]')) {
         const selected = button.dataset.language === language;
         button.classList.toggle('selected', selected);
