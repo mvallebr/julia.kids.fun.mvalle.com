@@ -79,7 +79,6 @@ const tipEmoji = $('tipEmoji');
 const tipCont = $('tipCont');
 const tipFacts = $('tipFacts');
 const card = $('card');
-const hint = $('hint');
 const intro = $('intro');
 const rankingPanel = $('rankingPanel');
 const rankingTitle = $('rankingTitle');
@@ -455,7 +454,6 @@ function showTooltip(f) {
     tipFacts.appendChild(li);
   });
   tooltip.classList.remove('hidden');
-  hint.classList.add('seen');
   placeTooltip();
 }
 
@@ -656,7 +654,6 @@ function pinCard(f) {
   renderPlaces(f);
   card.classList.remove('hidden');
   pinned = true;
-  hint.classList.add('seen');
   confetti(f);
 }
 
