@@ -4,7 +4,7 @@ const STYLE_ID = 'adventure-styles';
 
 const CSS = `
 #adventurePanel {
-  position: fixed; top: 92px; left: 18px; z-index: 15;
+  position: fixed; top: 150px; left: 18px; z-index: 15;
   width: min(330px, calc(100vw - 36px));
   color: #293354; background: rgba(255,250,240,.97);
   border: 2px solid rgba(255,255,255,.7); border-radius: 22px;
