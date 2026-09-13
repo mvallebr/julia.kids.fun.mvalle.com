@@ -1,0 +1,297 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Caderno de Stickers e Badges 📔</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📔</text></svg>">
+  <link rel="stylesheet" href="../julia_world/fonts/fonts.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; display: flex; align-items: center; justify-content: center; padding: 18px;
+      font-family: 'Fredoka', 'Segoe UI', system-ui, sans-serif; color: #fff;
+      background:
+        radial-gradient(1200px 800px at 70% -5%, rgba(124, 86, 230, .5), transparent 60%),
+        radial-gradient(1000px 700px at 10% 105%, rgba(72, 40, 155, .45), transparent 55%),
+        linear-gradient(160deg, #32215c 0%, #221644 52%, #150d2e 100%);
+    }
+    .shell { display: flex; flex-direction: column; align-items: center; gap: 14px; width: min(880px, 100%); }
+    .top { display: flex; align-items: center; justify-content: space-between; width: 100%; gap: 10px; }
+    .back {
+      padding: 9px 16px; border: 1px solid rgba(255,255,255,.25); border-radius: 999px;
+      color: #f8f6ff; background: rgba(255,255,255,.1); font: 700 14px 'Fredoka', sans-serif;
+      text-decoration: none; cursor: pointer;
+    }
+    .back:hover { background: rgba(255,255,255,.2); }
+    h1 {
+      margin: 0; font-family: 'Luckiest Guy', 'Fredoka', sans-serif; font-weight: 400;
+      font-size: clamp(22px, 4vw, 34px); color: #ffd166; letter-spacing: .02em;
+      text-shadow: 0 3px 0 rgba(120, 60, 0, .35), 0 8px 22px rgba(0,0,0,.35); text-align: center;
+    }
+    .book {
+      position: relative; width: min(880px, 100%); min-height: 480px;
+      background: #fffaf0; border-radius: 22px; color: #293354;
+      box-shadow: 0 24px 70px rgba(0,0,0,.5), inset 0 0 0 6px #e8d9b5;
+      padding: 26px 30px 20px 56px; overflow: hidden;
+    }
+    .binding { position: absolute; top: 0; bottom: 0; left: 18px; width: 22px; display: flex; flex-direction: column; gap: 26px; padding-top: 30px; }
+    .binding i { width: 14px; height: 14px; border-radius: 50%; background: #2a3150; opacity: .25; }
+    .page-head { text-align: center; margin-bottom: 16px; }
+    .page-head h2 { margin: 0; font: 400 26px 'Luckiest Guy', 'Fredoka', sans-serif; color: #d1495b; letter-spacing: .03em; }
+    .page-head p { margin: 4px 0 0; color: #77809a; font-size: 13px; font-weight: 600; }
+    .grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 16px; padding: 6px 0 12px; }
+    .badge { width: 108px; text-align: center; }
+    .badge .coin {
+      width: 76px; height: 76px; margin: 0 auto 7px; border-radius: 50%;
+      display: grid; place-items: center; font-size: 36px;
+      background: radial-gradient(circle at 32% 28%, #fff3c9, #ffd166 62%, #d4a017);
+      border: 4px solid #b8860b; box-shadow: 0 6px 14px rgba(0,0,0,.25), inset 0 2px 6px rgba(255,255,255,.7);
+    }
+    .badge.locked .coin {
+      background: radial-gradient(circle at 32% 28%, #4a4a4a, #17171c 68%);
+      border-color: #000;
+    }
+    .badge.locked .coin span { filter: brightness(0); opacity: .55; }
+    .badge .name { font-size: 11.5px; font-weight: 700; color: #33406b; line-height: 1.25; }
+    .badge.locked .name { color: #9aa2b6; }
+    .badge .status { font-size: 10.5px; font-weight: 700; color: #2e7d32; }
+    .badge.locked .status { color: #b0672f; }
+    .sticker-hero {
+      display: flex; flex-direction: column; align-items: center; gap: 14px; padding: 18px 0 8px;
+    }
+    .sticker-visual {
+      display: inline-flex; align-items: center; gap: 16px; padding: 22px 30px;
+      border-radius: 22px; background: #fff;
+      border: 4px dashed #ffb347; box-shadow: 0 10px 26px rgba(0,0,0,.18);
+      transform: rotate(-2deg);
+    }
+    .sticker-visual .emoji { font-size: 64px; line-height: 1; }
+    .sticker-visual .times { font: 400 54px 'Luckiest Guy', 'Fredoka', sans-serif; color: #d1495b; }
+    .sticker-breakdown { color: #596580; font-weight: 700; font-size: 15px; }
+    .sticker-note { color: #9aa2b6; font-size: 12.5px; font-weight: 600; }
+    .controls { display: flex; align-items: center; justify-content: center; gap: 18px; }
+    .flip {
+      width: 52px; height: 52px; border: 0; border-radius: 50%; cursor: pointer;
+      color: #fff; background: rgba(255,255,255,.14); font-size: 22px;
+      transition: transform .15s, background .2s;
+    }
+    .flip:hover:not(:disabled) { transform: scale(1.08); background: rgba(255,255,255,.26); }
+    .flip:disabled { opacity: .25; cursor: default; }
+    .page-indicator { font: 800 15px 'Fredoka', sans-serif; color: #c9bff2; min-width: 42px; text-align: center; }
+    .page { animation: pageIn .4s ease; }
+    @keyframes pageIn { from { opacity: 0; transform: rotateY(-8deg) translateX(24px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) { .page { animation: none; } }
+    @media (max-width: 640px) { .book { padding: 20px 18px 16px 46px; min-height: 420px; } .badge { width: 88px; } .badge .coin { width: 62px; height: 62px; font-size: 30px; } }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <div class="top">
+      <a class="back" id="backButton" href="../index.html">◀ Menu</a>
+      <h1 id="notebookTitle">📔 Caderno da Julia</h1>
+      <a class="back" id="atlasButton" href="../julia_world/index.html">🌍 Mundo</a>
+    </div>
+    <section class="book" aria-live="polite">
+      <div class="binding" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+      <div id="pageHost"></div>
+    </section>
+    <div class="controls">
+      <button class="flip" id="prevButton" type="button" aria-label="Página anterior">◀</button>
+      <span class="page-indicator" id="pageIndicator">1/3</span>
+      <button class="flip" id="nextButton" type="button" aria-label="Próxima página">▶</button>
+    </div>
+  </main>
+
+  <script src="../julia_world/data/earth-data.js"></script>
+  <script>
+    const params = new URLSearchParams(location.search);
+    const PREFERENCES_KEY = 'mundo-da-julia.preferences.v1';
+    const PROGRESS_KEY = 'mundo-atlas.progress.v1';
+    const ADVENTURE_KEY = 'mundo-atlas.adventure.v1';
+
+    const LANG_META = { pt: { locale: 'pt-BR' }, en: { locale: 'en-US' }, es: { locale: 'es-ES' } };
+    const COPY = {
+      pt: {
+        title: (name) => `📔 Caderno da ${name}`, continents: 'Badges de continentes', continentsSub: 'Visite todos os países de um continente para conquistar o badge',
+        explorers: 'Badges de exploradora', explorersSub: 'Colecione lugares para subir de nível', milestones: 'Marcos da aventura', milestonesSub: 'Complete tarefas da aventura para conquistar',
+        stickers: 'Meus stickers', earned: 'Conquistado!', locked: 'Ainda não…', lockedHint: 'Visite {missing} países', stickerTitle: 'Minha coleção',
+        placesBonus: '{places} lugares + {bonus} bônus', stickerNext: 'Aos 10 lugares: +5 stickers · aos 50: +20', empty: 'Abra lugares no atlas para começar sua coleção!',
+      },
+      en: {
+        title: (name) => `📔 ${name}'s Notebook`, continents: 'Continent badges', continentsSub: 'Visit every country in a continent to earn its badge',
+        explorers: 'Explorer badges', explorersSub: 'Collect places to level up', milestones: 'Adventure milestones', milestonesSub: 'Complete adventure tasks to earn',
+        stickers: 'My stickers', earned: 'Earned!', locked: 'Not yet…', lockedHint: 'Visit {missing} countries', stickerTitle: 'My collection',
+        placesBonus: '{places} places + {bonus} bonus', stickerNext: 'At 10 places: +5 stickers · at 50: +20', empty: 'Open places in the atlas to start your collection!',
+      },
+      es: {
+        title: (name) => `📔 Cuaderno de ${name}`, continents: 'Badges de continentes', continentsSub: 'Visita todos los países de un continente para ganar el badge',
+        explorers: 'Badges de exploradora', explorersSub: 'Colecciona lugares para subir de nivel', milestones: 'Hitos de la aventura', milestonesSub: 'Completa tareas de la aventura para ganar',
+        stickers: 'Mis stickers', earned: '¡Conquistado!', locked: 'Todavía no…', lockedHint: 'Visita {missing} países', stickerTitle: 'Mi colección',
+        placesBonus: '{places} lugares + {bonus} bónus', stickerNext: 'A los 10 lugares: +5 stickers · a los 50: +20', empty: '¡Abre lugares en el atlas para empezar tu colección!',
+      },
+    };
+    const BADGE_LABELS = {
+      pt: { continent: 'Explorador de {c}', mini: 'Mini exploradora', silver: 'Exploradora prata', gold: 'Exploradora ouro', super: 'Super exploradora', m10: 'Aventura: 10 tarefas', m20: 'Aventura: 20 tarefas' },
+      en: { continent: '{c} explorer', mini: 'Mini Explorer', silver: 'Silver Explorer', gold: 'Gold Explorer', super: 'Super Explorer', m10: 'Adventure: 10 tasks', m20: 'Adventure: 20 tasks' },
+      es: { continent: 'Explorador de {c}', mini: 'Mini exploradora', silver: 'Exploradora de plata', gold: 'Exploradora de oro', super: 'Súper exploradora', m10: 'Aventura: 10 tareas', m20: 'Aventura: 20 tareas' },
+    };
+    const CONTINENT_LABELS = {
+      'africa': { pt: 'África', en: 'Africa', es: 'África', icon: '🌍' },
+      'north-america': { pt: 'América do Norte', en: 'North America', es: 'Norteamérica', icon: '🌎' },
+      'south-america': { pt: 'América do Sul', en: 'South America', es: 'Sudamérica', icon: '🌎' },
+      'asia': { pt: 'Ásia', en: 'Asia', es: 'Asia', icon: '🌏' },
+      'europe': { pt: 'Europa', en: 'Europe', es: 'Europa', icon: '🌍' },
+      'oceania': { pt: 'Oceania', en: 'Oceania', es: 'Oceanía', icon: '🌊' },
+      'antarctica': { pt: 'Antártida', en: 'Antarctica', es: 'Antártida', icon: '🧊' },
+    };
+    const CONTINENT_DATA_NAMES = {
+      'africa': 'África', 'north-america': 'América do Norte', 'south-america': 'América do Sul',
+      'asia': 'Ásia', 'europe': 'Europa', 'oceania': 'Oceania', 'antarctica': 'Antártida',
+    };
+
+    let language = ['pt', 'en', 'es'].includes(params.get('language')) ? params.get('language') : 'pt';
+    let explorerName = (params.get('name') || '').trim().slice(0, 32);
+    try {
+      const prefs = JSON.parse(localStorage.getItem(PREFERENCES_KEY) || 'null') || {};
+      if (!explorerName) explorerName = String(prefs.name || '').trim() || 'Julia';
+      if (!params.get('language') && ['pt', 'en', 'es'].includes(prefs.language)) language = prefs.language;
+    } catch {}
+
+    function readJSON(key) {
+      try { return JSON.parse(localStorage.getItem(key) || 'null') || null; } catch { return null; }
+    }
+
+    const profileKey = (value) => String(value || '').trim().toLowerCase();
+    const progress = readJSON(PROGRESS_KEY) || { players: [] };
+    const adventure = readJSON(ADVENTURE_KEY) || {};
+    const profile = progress.players.find((candidate) => profileKey(candidate.name) === profileKey(explorerName))
+      || progress.players[0] || { name: explorerName, visitedCountries: [], visitedPlaces: [] };
+    const visitedCountries = new Set(profile.visitedCountries || []);
+    const visitedPlaces = new Set(profile.visitedPlaces || []);
+    const milestones = new Set(adventure[profileKey(profile.name)]?.milestones || []);
+
+    const features = window.__EARTH__?.features || [];
+    const continentStats = Object.entries(CONTINENT_DATA_NAMES).map(([id, dataName]) => {
+      const countries = features.filter((feature) => feature.properties?.c === dataName);
+      const visited = countries.filter((feature) => visitedCountries.has(feature.properties?.i)).length;
+      return { id, total: countries.length, visited, complete: countries.length > 0 && visited === countries.length };
+    });
+    const allCountryIds = features.map((feature) => feature.properties?.i).filter(Boolean);
+    const allCountriesComplete = allCountryIds.length > 0 && allCountryIds.every((id) => visitedCountries.has(id));
+    const places = visitedPlaces.size;
+    const bonus = (places >= 10 ? 5 : 0) + (places >= 50 ? 20 : 0);
+
+    const badges = [
+      ...continentStats.map((stat) => ({
+        id: `continent-${stat.id}`, icon: CONTINENT_LABELS[stat.id].icon,
+        label: BADGE_LABELS[language].continent.replace('{c}', CONTINENT_LABELS[stat.id][language]),
+        earned: stat.complete, missing: Math.max(0, stat.total - stat.visited), group: 'continents',
+      })),
+      { id: 'mini', icon: '🧭', label: BADGE_LABELS[language].mini, earned: places >= 5, missing: Math.max(0, 5 - places), group: 'explorers' },
+      { id: 'silver', icon: '🥈', label: BADGE_LABELS[language].silver, earned: places >= 25, missing: Math.max(0, 25 - places), group: 'explorers' },
+      { id: 'gold', icon: '🥇', label: BADGE_LABELS[language].gold, earned: places >= 75, missing: Math.max(0, 75 - places), group: 'explorers' },
+      { id: 'super', icon: '🌍', label: BADGE_LABELS[language].super, earned: allCountriesComplete, missing: Math.max(0, allCountryIds.length - visitedCountries.size), group: 'explorers' },
+      { id: 'm10', icon: '🎖️', label: BADGE_LABELS[language].m10, earned: milestones.has(10), missing: 0, group: 'milestones' },
+      { id: 'm20', icon: '🏆', label: BADGE_LABELS[language].m20, earned: milestones.has(20), missing: 0, group: 'milestones' },
+    ];
+
+    const $ = (id) => document.getElementById(id);
+    const PAGES = ['continents', 'explorers+milestones', 'stickers'];
+    let currentPage = 0;
+
+    function badgeCard(badge, copy) {
+      const card = document.createElement('div');
+      card.className = `badge${badge.earned ? '' : ' locked'}`;
+      const coin = document.createElement('div');
+      coin.className = 'coin';
+      const icon = document.createElement('span');
+      icon.textContent = badge.icon;
+      coin.appendChild(icon);
+      const name = document.createElement('div');
+      name.className = 'name';
+      name.textContent = badge.label;
+      const status = document.createElement('div');
+      status.className = 'status';
+      status.textContent = badge.earned ? copy.earned : (badge.missing > 0 ? copy.lockedHint.replace('{missing}', badge.missing) : copy.locked);
+      card.append(coin, name, status);
+      return card;
+    }
+
+    function pageHead(title, subtitle) {
+      const head = document.createElement('div');
+      head.className = 'page-head';
+      const h2 = document.createElement('h2');
+      h2.textContent = title;
+      const p = document.createElement('p');
+      p.textContent = subtitle;
+      head.append(h2, p);
+      return head;
+    }
+
+    function badgePage(groupTitleKey, groupSubKey, groups) {
+      const copy = COPY[language];
+      const page = document.createElement('div');
+      page.className = 'page';
+      page.appendChild(pageHead(copy[groupTitleKey], copy[groupSubKey]));
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+      badges.filter((badge) => groups.includes(badge.group)).forEach((badge) => grid.appendChild(badgeCard(badge, copy)));
+      page.appendChild(grid);
+      return page;
+    }
+
+    function stickersPage() {
+      const copy = COPY[language];
+      const page = document.createElement('div');
+      page.className = 'page';
+      page.appendChild(pageHead(`${copy.stickers} 🎟️`, copy.stickerTitle));
+      const hero = document.createElement('div');
+      hero.className = 'sticker-hero';
+      const visual = document.createElement('div');
+      visual.className = 'sticker-visual';
+      const emoji = document.createElement('span');
+      emoji.className = 'emoji';
+      emoji.textContent = '🎟️';
+      const times = document.createElement('span');
+      times.className = 'times';
+      times.textContent = `× ${places + bonus}`;
+      visual.append(emoji, times);
+      const breakdown = document.createElement('div');
+      breakdown.className = 'sticker-breakdown';
+      breakdown.textContent = copy.placesBonus.replace('{places}', places).replace('{bonus}', bonus);
+      const note = document.createElement('div');
+      note.className = 'sticker-note';
+      note.textContent = places === 0 ? copy.empty : copy.stickerNext;
+      hero.append(visual, breakdown, note);
+      page.appendChild(hero);
+      return page;
+    }
+
+    function renderPage() {
+      const host = $('pageHost');
+      host.replaceChildren();
+      const page = PAGES[currentPage] === 'stickers'
+        ? stickersPage()
+        : PAGES[currentPage] === 'continents'
+          ? badgePage('continents', 'continentsSub', ['continents'])
+          : badgePage('explorers', 'explorersSub', ['explorers', 'milestones']);
+      host.appendChild(page);
+      $('pageIndicator').textContent = `${currentPage + 1}/${PAGES.length}`;
+      $('prevButton').disabled = currentPage === 0;
+      $('nextButton').disabled = currentPage === PAGES.length - 1;
+    }
+
+    $('notebookTitle').textContent = COPY[language].title(explorerName);
+    document.documentElement.lang = LANG_META[language].locale;
+    $('prevButton').addEventListener('click', () => { if (currentPage > 0) { currentPage -= 1; renderPage(); } });
+    $('nextButton').addEventListener('click', () => { if (currentPage < PAGES.length - 1) { currentPage += 1; renderPage(); } });
+    window.addEventListener('keydown', (event) => {
+      if (event.key === 'ArrowLeft') $('prevButton').click();
+      if (event.key === 'ArrowRight') $('nextButton').click();
+    });
+    renderPage();
+  </script>
+</body>
+</html>

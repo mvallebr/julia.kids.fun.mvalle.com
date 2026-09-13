@@ -75,6 +75,11 @@
       box-shadow: 0 10px 26px rgba(255, 94, 126, .38);
     }
     .app-live:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .app-notebook {
+      background: linear-gradient(135deg, #4ecdc4, #526fff);
+      box-shadow: 0 10px 26px rgba(78, 205, 196, .35);
+    }
+    .app-notebook:hover { transform: translateY(-2px); filter: brightness(1.06); }
     .app-soon {
       background: rgba(255,255,255,.08); color: rgba(255,255,255,.68);
       border: 2px dashed rgba(255,255,255,.28); cursor: default;
@@ -164,11 +169,11 @@
         <span data-i18n="english">Aventuras de Inglês</span>
         <span class="soon-badge" data-i18n="soon">EM BREVE</span>
       </button>
-      <button class="app app-soon" type="button" disabled>
+      <a class="app app-notebook" href="notebook/index.html" id="appNotebook">
         <span class="emoji" aria-hidden="true">📔</span>
         <span data-i18n="notebook">Caderno de Stickers e Badges</span>
-        <span class="soon-badge" data-i18n="soon">EM BREVE</span>
-      </button>
+        <span class="emoji" style="margin-left:auto" aria-hidden="true">✨</span>
+      </a>
     </nav>
     <div class="page-buttons">
       <button class="page-button" id="helpOpen" type="button">❓ <span data-i18n="helpButton">Help</span></button>
@@ -260,6 +265,7 @@
     function refreshWorldLink() {
       const params = new URLSearchParams({ from: 'launcher', name: nameInput.value.trim().replace(/\s+/g, ' '), language });
       $('appWorld').href = `julia_world/index.html?${params}`;
+      $('appNotebook').href = `notebook/index.html?${params}`;
     }
 
     function updateWorldLabel() {
