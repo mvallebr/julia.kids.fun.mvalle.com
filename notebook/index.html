@@ -68,6 +68,10 @@
       font: 400 clamp(22px, 4.4vw, 38px) 'Luckiest Guy', 'Fredoka', sans-serif; color: #ffd166;
       text-shadow: 0 3px 0 rgba(0,0,0,.4); text-align: center; padding: 0 40px; line-height: 1.15;
     }
+    .cover .cover-subtitle {
+      font: 700 clamp(14px, 2.4vw, 19px) 'Fredoka', sans-serif; letter-spacing: .3em;
+      color: #ffe9b8; text-shadow: 0 2px 8px rgba(0,0,0,.5);
+    }
     .cover .cover-sub {
       color: #ffe9b8; font: 700 14px 'Fredoka', sans-serif; letter-spacing: .12em; text-transform: uppercase;
       animation: coverPulse 1.6s ease-in-out infinite;
@@ -202,6 +206,7 @@
         <div class="cover" id="cover">
           <span class="cover-emoji">📔</span>
           <span class="cover-title" id="coverTitle">Caderno da Julia</span>
+          <span class="cover-sub cover-subtitle" id="coverSubtitle">stickers and badges</span>
           <span class="cover-sub" id="coverHint">Clique para abrir!</span>
         </div>
       </div>
@@ -227,7 +232,7 @@
     const LANG_META = { pt: { locale: 'pt-BR' }, en: { locale: 'en-US' }, es: { locale: 'es-ES' } };
     const COPY = {
       pt: {
-        coverTitle: (name) => `Caderno da ${name}`, coverHint: 'Clique para abrir!',
+        coverTitle: (name) => `Caderno da ${name}`, coverSub: 'stickers and badges', coverHint: 'Clique para abrir!',
         continents: 'Badges de continentes', continentsSub: 'Visite todos os países de um continente para conquistar o badge',
         explorers: 'Badges de exploradora', explorersSub: 'Colecione lugares para subir de nível',
         milestones: 'Marcos da aventura', milestonesSub: 'Complete tarefas da aventura',
@@ -237,7 +242,7 @@
         empty: 'Explore o atlas para começar!', page: 'pág.',
       },
       en: {
-        coverTitle: (name) => `${name}'s Notebook`, coverHint: 'Click to open!',
+        coverTitle: (name) => `${name}'s Notebook`, coverSub: 'stickers and badges', coverHint: 'Click to open!',
         continents: 'Continent badges', continentsSub: 'Visit every country in a continent to earn its badge',
         explorers: 'Explorer badges', explorersSub: 'Collect places to level up',
         milestones: 'Adventure milestones', milestonesSub: 'Complete adventure tasks',
@@ -247,7 +252,7 @@
         empty: 'Explore the atlas to start!', page: 'p.',
       },
       es: {
-        coverTitle: (name) => `Cuaderno de ${name}`, coverHint: '¡Haz clic para abrir!',
+        coverTitle: (name) => `Cuaderno de ${name}`, coverSub: 'stickers and badges', coverHint: '¡Haz clic para abrir!',
         continents: 'Badges de continentes', continentsSub: 'Visita todos los países de un continente para ganar el badge',
         explorers: 'Badges de exploradora', explorersSub: 'Colecciona lugares para subir de nivel',
         milestones: 'Hitos de la aventura', milestonesSub: 'Completa tareas de la aventura',
@@ -580,6 +585,7 @@
     document.documentElement.lang = LANG_META[language].locale;
     $('notebookTitle').textContent = `📔 ${copy.coverTitle(explorerName)}`;
     $('coverTitle').textContent = copy.coverTitle(explorerName);
+    $('coverSubtitle').textContent = copy.coverSub;
     if (explorerAvatar) {
       $('playerChip').textContent = `${explorerAvatar} ${explorerName}`;
       $('playerChip').hidden = false;
