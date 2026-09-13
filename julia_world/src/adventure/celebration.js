@@ -37,10 +37,17 @@ export function runCelebration({
     return element;
   };
 
-  // 1. Confetti + balões (festa) — apresentação apenas, some sozinha.
+  // 1. Confetti + balões estouráveis — o presente só vem depois da festa.
+  const balloonTotal = milestone ? 20 : 14;
+  let balloonsLeft = balloonTotal;
+  let startPresentPhase;
+  const party = layer('adv-celebration');
+  const hint = document.createElement('div');
+  hint.className = 'adv-pop-hint';
+  hint.textContent = text(language, 'advPopBalloons');
+  party.appendChild(hint);
   if (!reducedMotion) {
-    const party = layer('adv-celebration');
-    const confettiCount = milestone ? 120 : 70;
+    const confettiCount = milestone ? 220 : 140;
     for (let index = 0; index < confettiCount; index += 1) {
       const piece = document.createElement('span');
       piece.className = 'adv-confetti';
@@ -51,29 +58,45 @@ export function runCelebration({
       piece.style.animationDelay = `${Math.random() * 0.9}s`;
       party.appendChild(piece);
     }
-    const balloonCount = milestone ? 16 : 10;
-    for (let index = 0; index < balloonCount; index += 1) {
-      const balloon = document.createElement('button');
-      balloon.type = 'button';
-      balloon.className = 'adv-balloon';
-      balloon.setAttribute('aria-label', text(language, 'close'));
-      balloon.style.left = `${4 + Math.random() * 88}%`;
-      balloon.style.background = BALLOON_COLORS[index % BALLOON_COLORS.length];
-      balloon.style.animationDuration = `${5 + Math.random() * 4}s`;
-      balloon.style.animationDelay = `${Math.random() * 1.6}s`;
-      balloon.addEventListener('click', () => {
-        balloon.classList.add('pop');
-        balloon.disabled = true;
-        sounds.pop();
-        later(() => balloon.remove(), 350);
-      });
-      party.appendChild(balloon);
-    }
-    later(() => party.remove(), 5200);
   }
+  const popBalloon = (balloon) => {
+    if (balloon.disabled) return;
+    balloon.disabled = true;
+    balloon.classList.add('pop');
+    sounds.pop();
+    later(() => balloon.remove(), 350);
+    balloonsLeft -= 1;
+    if (balloonsLeft > 0) {
+      hint.textContent = `${text(language, 'advPopBalloons')} (${balloonTotal - balloonsLeft}/${balloonTotal})`;
+      return;
+    }
+    hint.remove();
+    later(() => {
+      party.remove();
+      startPresentPhase();
+    }, 500);
+  };
+  for (let index = 0; index < balloonTotal; index += 1) {
+    const balloon = document.createElement('button');
+    balloon.type = 'button';
+    balloon.className = 'adv-balloon';
+    balloon.setAttribute('aria-label', text(language, 'advPopBalloons'));
+    balloon.style.left = `${3 + Math.random() * 90}%`;
+    balloon.style.bottom = `${6 + Math.random() * 44}vh`;
+    balloon.style.background = BALLOON_COLORS[index % BALLOON_COLORS.length];
+    balloon.style.animationDuration = `${1.8 + Math.random() * 1.6}s`;
+    balloon.style.animationDelay = `${Math.random() * 1.2}s`;
+    balloon.addEventListener('click', () => popBalloon(balloon));
+    party.appendChild(balloon);
+  }
+  // Rede de segurança: ninguém fica preso — após 30s os balões estouram sozinhos.
+  later(() => {
+    const remaining = [...party.querySelectorAll('.adv-balloon:not(.pop)')];
+    remaining.forEach((balloon, index) => later(() => popBalloon(balloon), index * 150));
+  }, 30000);
 
   // 2. Overlay escuro + presente com vários toques (spec §14).
-  later(() => {
+  startPresentPhase = () => {
     const stage = layer('adv-stage');
     const wrap = document.createElement('div');
     wrap.className = 'adv-present-wrap';
@@ -112,7 +135,7 @@ export function runCelebration({
       if (taps >= REQUIRED_TAPS) openPresent();
     });
     present.focus();
-  }, reducedMotion ? 250 : 1500);
+  };
 
   // 3. Revelação: certificado + recompensas (spec §15/§16).
   function showReveal(stage) {
@@ -219,11 +242,12 @@ export function runWorldFinale({ language, text, explorerName, tasksCompleted, o
       const balloon = document.createElement('button');
       balloon.type = 'button';
       balloon.className = 'adv-balloon';
-      balloon.setAttribute('aria-label', text(language, 'close'));
+      balloon.setAttribute('aria-label', text(language, 'advPopBalloons'));
       balloon.style.left = `${2 + Math.random() * 92}%`;
+      balloon.style.bottom = `${6 + Math.random() * 44}vh`;
       balloon.style.background = BALLOON_COLORS[index % BALLOON_COLORS.length];
-      balloon.style.animationDuration = `${6 + Math.random() * 5}s`;
-      balloon.style.animationDelay = `${Math.random() * 2.4}s`;
+      balloon.style.animationDuration = `${1.8 + Math.random() * 1.6}s`;
+      balloon.style.animationDelay = `${Math.random() * 1.2}s`;
       balloon.addEventListener('click', () => {
         balloon.classList.add('pop');
         balloon.disabled = true;

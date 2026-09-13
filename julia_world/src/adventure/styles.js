@@ -35,15 +35,21 @@ const CSS = `
   animation: advFall linear forwards;
 }
 .adv-balloon {
-  position: absolute; bottom: -110px; width: 46px; height: 58px;
+  position: absolute; bottom: 18vh; width: 46px; height: 58px;
   border-radius: 50% 50% 46% 46%; border: 0; cursor: pointer; pointer-events: auto;
-  box-shadow: inset -5px -7px 0 rgba(0,0,0,.14); animation: advFloat linear forwards;
+  box-shadow: inset -5px -7px 0 rgba(0,0,0,.14); animation: advBob ease-in-out infinite;
 }
 .adv-balloon::after {
   content: ''; position: absolute; top: 100%; left: 50%;
   width: 2px; height: 64px; background: rgba(255,255,255,.55);
 }
 .adv-balloon.pop { animation: advPop .3s ease-out forwards; }
+.adv-pop-hint {
+  position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
+  padding: 10px 20px; border-radius: 999px; white-space: nowrap;
+  color: #fff; background: rgba(20, 26, 66, .8); border: 1px solid rgba(255,255,255,.3);
+  font: 800 16px 'Fredoka', sans-serif; text-shadow: 0 2px 6px rgba(0,0,0,.4);
+}
 .adv-stage { position: fixed; inset: 0; z-index: 131; display: grid; place-items: center; background: rgba(6,8,30,.68); pointer-events: auto; }
 .adv-present-wrap { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
 .adv-present {
@@ -79,12 +85,12 @@ const CSS = `
 }
 @keyframes advFall { to { transform: translateY(116vh) rotate(680deg); } }
 @keyframes advFloat { to { transform: translateY(-118vh) rotate(9deg); } }
+@keyframes advBob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-16px) rotate(3deg); } }
 @keyframes advPop { 40% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
 @keyframes advShake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-7deg) scale(1.04); } 75% { transform: rotate(7deg) scale(1.04); } }
 @keyframes advPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
 @media (prefers-reduced-motion: reduce) {
-  .adv-confetti, .adv-balloon, .adv-instruction, .adv-present.shake { animation: none; }
-  .adv-balloon { bottom: 12vh; }
+  .adv-confetti, .adv-instruction, .adv-present.shake, .adv-balloon { animation: none; }
   .adv-seg-fill { transition: none; }
 }
 
