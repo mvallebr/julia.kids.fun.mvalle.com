@@ -328,7 +328,7 @@ function recordCountryVisit(feature) {
   ensureCurrentPlayer();
   if (visitCountry(progress, childName, countryIdFor(feature))) saveProgress(progress);
   renderProgressUI();
-  adventureCheck();
+  checkAdventureTasks();
 }
 
 function recordPlaceVisit(feature, place) {
@@ -336,7 +336,7 @@ function recordPlaceVisit(feature, place) {
   ensureCurrentPlayer();
   if (visitPlace(progress, childName, countryIdFor(feature), place)) saveProgress(progress);
   renderProgressUI();
-  adventureCheck();
+  checkAdventureTasks();
 }
 
 let hoverId = null;
