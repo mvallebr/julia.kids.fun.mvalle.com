@@ -5,6 +5,29 @@ const CONFETTI_COLORS = ['#ffd166', '#ff6b9d', '#4ecdc4', '#a8e05f', '#6ca6ff', 
 const BALLOON_COLORS = ['#ff5e7e', '#ffd166', '#4ecdc4', '#8fdc6a', '#6ca6ff', '#b9a4f5', '#ff9a3d'];
 const REQUIRED_TAPS = 6;
 
+// Fragmentos de borracha voando do ponto do estouro.
+function burstBalloon(balloon) {
+  const parent = balloon.parentElement;
+  if (!parent) return;
+  const rect = balloon.getBoundingClientRect();
+  const burst = document.createElement('span');
+  burst.className = 'adv-burst';
+  burst.style.left = `${rect.left + rect.width / 2}px`;
+  burst.style.top = `${rect.top + rect.height / 2}px`;
+  const color = balloon.style.background || '#ff5e7e';
+  for (let index = 0; index < 10; index += 1) {
+    const fragment = document.createElement('i');
+    const angle = (index / 10) * Math.PI * 2 + Math.random() * 0.5;
+    const distance = 28 + Math.random() * 44;
+    fragment.style.background = color;
+    fragment.style.setProperty('--dx', `${Math.cos(angle) * distance}px`);
+    fragment.style.setProperty('--dy', `${Math.sin(angle) * distance + 14}px`);
+    burst.appendChild(fragment);
+  }
+  parent.appendChild(burst);
+  setTimeout(() => burst.remove(), 700);
+}
+
 // Máquina de estados da celebração (spec §41):
 // confetti → balloons → rewardOverlay → tapPresent → presentOpening → rewardReveal → retorno.
 export function runCelebration({
@@ -64,6 +87,7 @@ export function runCelebration({
     balloon.disabled = true;
     balloon.classList.add('pop');
     sounds.pop();
+    burstBalloon(balloon);
     later(() => balloon.remove(), 350);
     balloonsLeft -= 1;
     if (balloonsLeft > 0) {
@@ -252,6 +276,7 @@ export function runWorldFinale({ language, text, explorerName, tasksCompleted, o
         balloon.classList.add('pop');
         balloon.disabled = true;
         sounds.pop();
+        burstBalloon(balloon);
         later(() => balloon.remove(), 350);
       });
       party.appendChild(balloon);

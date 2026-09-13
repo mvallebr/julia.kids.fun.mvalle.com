@@ -29,8 +29,36 @@ function tone(freq, start, duration, type = 'sine', gain = 0.05) {
 export const sounds = {
   tap: () => tone(480, 0, 0.07, 'square', 0.035),
   pop: () => {
-    tone(720, 0, 0.05, 'square', 0.045);
-    tone(240, 0.02, 0.09, 'sawtooth', 0.035);
+    // Estouro real: estalo de ruído + corpo grave decaindo (sintetizado).
+    const ac = context();
+    if (!ac) return;
+    const t = ac.currentTime;
+    const length = Math.floor(ac.sampleRate * 0.08);
+    const noiseBuffer = ac.createBuffer(1, length, ac.sampleRate);
+    const data = noiseBuffer.getChannelData(0);
+    for (let index = 0; index < length; index += 1) {
+      data[index] = (Math.random() * 2 - 1) * Math.pow(1 - index / length, 2.2);
+    }
+    const noise = ac.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const filter = ac.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.value = 600;
+    const snap = ac.createGain();
+    snap.gain.setValueAtTime(0.35, t);
+    snap.gain.exponentialRampToValueAtTime(0.001, t + 0.08);
+    noise.connect(filter).connect(snap).connect(ac.destination);
+    noise.start(t);
+    const thump = ac.createOscillator();
+    const thumpGain = ac.createGain();
+    thump.type = 'sine';
+    thump.frequency.setValueAtTime(180, t);
+    thump.frequency.exponentialRampToValueAtTime(60, t + 0.12);
+    thumpGain.gain.setValueAtTime(0.25, t);
+    thumpGain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+    thump.connect(thumpGain).connect(ac.destination);
+    thump.start(t);
+    thump.stop(t + 0.16);
   },
   open: () => {
     tone(523, 0, 0.12);
