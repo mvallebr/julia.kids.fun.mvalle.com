@@ -510,31 +510,30 @@
       const [currentLeft, currentRight] = buildSpread(currentSpread);
       const [nextLeft, nextRight] = buildSpread(target);
       // o miolo passa a mostrar o spread de destino; sobreposições mostram o spread atual durante a virada
-      inner.querySelectorAll('.page').forEach((page) => page.remove());
+      inner.querySelectorAll('.page, .leaf, .underlay').forEach((element) => element.remove());
       const ribbon = $('closeButton');
       inner.insertBefore(nextLeft, ribbon);
       inner.insertBefore(nextRight, ribbon);
-      let underlay;
-      let leaf;
+      const leaf = document.createElement('div');
+      leaf.className = `leaf ${direction > 0 ? 'forward' : 'backward'}`;
+      const front = document.createElement('div');
+      front.className = 'face';
       if (direction > 0) {
-        underlay = wrapInUnderlay(currentLeft, 'left-half');
-        leaf = wrapInLeaf(currentRight, 'forward');
-        const back = document.createElement('div');
-        back.className = 'face back';
-        back.appendChild(buildPage(target * 2));
-        leaf.appendChild(back);
+        const underlay = wrapInUnderlay(currentLeft, 'left-half');
+        inner.appendChild(underlay);
+        front.appendChild(currentRight);
       } else {
         const underLeft = wrapInUnderlay(currentLeft, 'left-half');
         const underRight = wrapInUnderlay(currentRight, 'right-half');
-        inner.insertBefore(underLeft, ribbon);
-        inner.insertBefore(underRight, ribbon);
-        leaf = wrapInLeaf(buildPage(currentSpread * 2), 'backward');
-        const back = document.createElement('div');
-        back.className = 'face back';
-        back.appendChild(buildPage(target * 2 + 1));
-        leaf.appendChild(back);
+        inner.appendChild(underLeft);
+        inner.appendChild(underRight);
+        front.appendChild(buildPage(currentSpread * 2));
       }
-      inner.appendChild(underlay);
+      leaf.appendChild(front);
+      const back = document.createElement('div');
+      back.className = 'face back';
+      back.appendChild(buildPage(direction > 0 ? target * 2 : target * 2 + 1));
+      leaf.appendChild(back);
       inner.appendChild(leaf);
       setTimeout(() => {
         currentSpread = target;
