@@ -5,30 +5,56 @@ const STYLE_ID = 'adventure-styles';
 const CSS = `
 #adventurePanel {
   position: fixed; top: 92px; left: 18px; z-index: 15;
-  width: min(320px, calc(100vw - 36px));
-  color: #293354; background: rgba(255,250,240,.96);
-  border: 2px solid rgba(255,255,255,.7); border-radius: 20px;
-  box-shadow: 0 16px 36px rgba(0,0,0,.38);
+  width: min(330px, calc(100vw - 36px));
+  color: #293354; background: rgba(255,250,240,.97);
+  border: 2px solid rgba(255,255,255,.7); border-radius: 22px;
+  box-shadow: 0 18px 40px rgba(0,0,0,.4);
   backdrop-filter: blur(10px); overflow: hidden;
 }
 #adventurePanel[hidden] { display: none !important; }
 #adventureToggle {
-  display: flex; align-items: center; gap: 8px; width: 100%;
-  padding: 12px 14px; border: 0; background: none; cursor: pointer;
-  font: 700 15px 'Fredoka', 'Segoe UI', sans-serif; color: #1f2c66; text-align: left;
+  display: flex; align-items: center; gap: 10px; width: 100%;
+  padding: 13px 16px; border: 0; background: none; cursor: pointer;
+  font: 800 15px 'Fredoka', 'Segoe UI', sans-serif; color: #1f2c66; text-align: left;
 }
-#adventureToggle .adv-chevron { margin-left: auto; transition: transform .2s; }
+#adventureToggle .adv-target {
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px;
+  background: linear-gradient(135deg, #ffd166, #ff9a3d); font-size: 16px;
+  box-shadow: 0 4px 10px rgba(255,154,61,.4);
+}
+#adventurePanelCount {
+  padding: 3px 9px; border-radius: 999px;
+  background: rgba(42,49,80,.1); color: #596580;
+  font: 800 11.5px 'Fredoka', sans-serif; font-variant-numeric: tabular-nums;
+}
+#adventureToggle .adv-chevron { margin-left: auto; transition: transform .2s; color: #77809a; }
 #adventurePanel.collapsed .adv-chevron { transform: rotate(-90deg); }
 #adventurePanel.collapsed #adventureTasks { display: none; }
-#adventureTasks { display: flex; flex-direction: column; gap: 11px; padding: 2px 14px 14px; }
-.adv-task { display: flex; flex-direction: column; gap: 5px; }
-.adv-task-head { display: flex; align-items: baseline; gap: 6px; font-size: 13px; font-weight: 600; color: #33406b; }
-.adv-task-head .adv-icon { font-size: 15px; }
-.adv-task-count { margin-left: auto; font-weight: 700; font-size: 12px; color: #77809a; font-variant-numeric: tabular-nums; }
-.adv-task.done .adv-task-head { color: #2e7d32; }
-.adv-bar { display: flex; gap: 3px; height: 12px; }
-.adv-seg { flex: 1 1 0; border-radius: 4px; background: rgba(42,49,80,.14); overflow: hidden; }
-.adv-seg-fill { height: 100%; width: 0; border-radius: 4px; transition: width .45s ease; }
+#adventureTasks { display: flex; flex-direction: column; gap: 9px; padding: 2px 12px 14px; }
+.adv-task {
+  display: flex; flex-direction: column; gap: 7px;
+  padding: 10px 12px; border-radius: 16px;
+  background: rgba(42, 49, 80, .055);
+  border: 1.5px solid rgba(42, 49, 80, .07);
+}
+.adv-task.done { background: #e9f7ea; border-color: #bfe5c2; }
+.adv-task-head { display: flex; align-items: center; gap: 9px; }
+.adv-task-head .adv-icon {
+  display: grid; place-items: center; flex: 0 0 auto;
+  width: 28px; height: 28px; border-radius: 9px; font-size: 15px;
+  background: #fff; box-shadow: 0 2px 6px rgba(0,0,0,.12);
+}
+.adv-task-title { flex: 1; font-size: 12.5px; font-weight: 700; line-height: 1.25; color: #33406b; }
+.adv-task.done .adv-task-title { color: #2e7d32; }
+.adv-task-count {
+  padding: 3px 9px; border-radius: 999px; white-space: nowrap;
+  background: rgba(42,49,80,.1); color: #596580;
+  font: 800 11px 'Fredoka', sans-serif; font-variant-numeric: tabular-nums;
+}
+.adv-task.done .adv-task-count { background: #cdeacd; color: #2e7d32; }
+.adv-bar { display: flex; gap: 4px; height: 14px; }
+.adv-seg { flex: 1 1 0; border-radius: 6px; background: rgba(42,49,80,.1); overflow: hidden; }
+.adv-seg-fill { height: 100%; width: 0; border-radius: 6px; transition: width .45s ease; box-shadow: inset 0 -3px 0 rgba(0,0,0,.14), inset 0 2px 2px rgba(255,255,255,.45); }
 .adv-celebration { position: fixed; inset: 0; z-index: 130; pointer-events: none; overflow: hidden; }
 .adv-confetti {
   position: absolute; top: -24px; width: 10px; height: 15px; border-radius: 2px;
