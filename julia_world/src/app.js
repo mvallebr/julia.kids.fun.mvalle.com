@@ -14,6 +14,7 @@ import {
   visitPlace,
 } from './progress.js';
 import {
+  ADVENTURE_STORAGE_KEY,
   ADVENTURE_TASKS,
   buildSnapshot,
   completeMilestone,
@@ -209,7 +210,7 @@ function renderStickerAlbum(profile, stats) {
 
 
 function renderProgressUI() {
-  const ranking = rankingFor(progress, EARTH.features);
+  const ranking = rankingFor(progress, EARTH.features, adventureExtrasFor);
   const current = childName
     ? ranking.find((entry) => profileKey(entry.name) === profileKey(childName))
     : null;
@@ -955,6 +956,17 @@ function loadAdventureForPlayer() {
 
 function persistAdventure() {
   if (adventureState) saveAdventure(localStorage, childName, adventureState);
+}
+
+// Áudio e Wikipedia valem pontos: lê os contadores da aventura de cada exploradora.
+function adventureExtrasFor(profile) {
+  try {
+    const all = JSON.parse(localStorage.getItem(ADVENTURE_STORAGE_KEY) || '{}');
+    const counters = all[profileKey(profile.name)]?.counters;
+    return { audio: counters?.audio?.length || 0, wiki: counters?.wiki?.length || 0 };
+  } catch {
+    return { audio: 0, wiki: 0 };
+  }
 }
 
 function renderAdventurePanel() {

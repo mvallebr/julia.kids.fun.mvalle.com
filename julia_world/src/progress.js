@@ -182,7 +182,7 @@ export function stickerStats(profile) {
   };
 }
 
-export function profileStats(profile, features) {
+export function profileStats(profile, features, extras = {}) {
   const countries = new Set(profile?.visitedCountries || []).size;
   const places = new Set(profile?.visitedPlaces || []).size;
   const badges = badgesFor(profile, features);
@@ -193,13 +193,13 @@ export function profileStats(profile, features) {
     badges,
     stickers: stickerStats(profile),
     continents: continentProgress(profile, features),
-    score: places * 3 + badges.length * 100,
+    score: countries * 5 + places * 3 + (extras.audio || 0) * 2 + (extras.wiki || 0) * 2 + badges.length * 100,
   };
 }
 
-export function rankingFor(progress, features) {
+export function rankingFor(progress, features, extrasFor = null) {
   return progress.players
-    .map((profile) => profileStats(profile, features))
+    .map((profile) => profileStats(profile, features, extrasFor ? extrasFor(profile) : {}))
     .sort((a, b) => b.score - a.score || b.countries - a.countries || b.places - a.places || a.name.localeCompare(b.name));
 }
 
