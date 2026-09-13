@@ -5,7 +5,7 @@ const CONFETTI_COLORS = ['#ffd166', '#ff6b9d', '#4ecdc4', '#a8e05f', '#6ca6ff', 
 const BALLOON_COLORS = ['#ff5e7e', '#ffd166', '#4ecdc4', '#8fdc6a', '#6ca6ff', '#b9a4f5', '#ff9a3d'];
 const REQUIRED_TAPS = 6;
 
-// Fragmentos de borracha voando do ponto do estouro.
+// Fragmentos de borracha que explodem pra fora e caem até o fundo da tela.
 function burstBalloon(balloon) {
   const parent = balloon.parentElement;
   if (!parent) return;
@@ -15,17 +15,19 @@ function burstBalloon(balloon) {
   burst.style.left = `${rect.left + rect.width / 2}px`;
   burst.style.top = `${rect.top + rect.height / 2}px`;
   const color = balloon.style.background || '#ff5e7e';
-  for (let index = 0; index < 10; index += 1) {
+  for (let index = 0; index < 20; index += 1) {
     const fragment = document.createElement('i');
-    const angle = (index / 10) * Math.PI * 2 + Math.random() * 0.5;
-    const distance = 28 + Math.random() * 44;
-    fragment.style.background = color;
-    fragment.style.setProperty('--dx', `${Math.cos(angle) * distance}px`);
-    fragment.style.setProperty('--dy', `${Math.sin(angle) * distance + 14}px`);
+    const angle = (index / 20) * Math.PI * 2 + Math.random() * 0.5;
+    fragment.style.background = index % 3 === 2 ? '#ffffff' : color;
+    fragment.style.setProperty('--dx', `${Math.cos(angle) * (60 + Math.random() * 140)}px`);
+    fragment.style.setProperty('--up', `${Math.sin(angle) * (40 + Math.random() * 70) - 30}px`);
+    fragment.style.setProperty('--spin', `${360 + Math.random() * 420}deg`);
+    fragment.style.animationDuration = `${2.3 + Math.random() * 1.1}s`;
+    fragment.style.animationDelay = `${Math.random() * 0.12}s`;
     burst.appendChild(fragment);
   }
   parent.appendChild(burst);
-  setTimeout(() => burst.remove(), 700);
+  setTimeout(() => burst.remove(), 3600);
 }
 
 // Máquina de estados da celebração (spec §41):

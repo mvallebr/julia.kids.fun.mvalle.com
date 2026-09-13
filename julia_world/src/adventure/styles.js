@@ -46,8 +46,8 @@ const CSS = `
 .adv-balloon.pop { animation: advPop .3s ease-out forwards; }
 .adv-burst { position: absolute; width: 0; height: 0; z-index: 2; pointer-events: none; }
 .adv-burst i {
-  position: absolute; width: 9px; height: 13px; border-radius: 2px;
-  animation: advBurst .55s ease-out forwards;
+  position: absolute; width: 12px; height: 16px; border-radius: 3px;
+  animation: advBurstFall ease-in forwards;
 }
 .adv-pop-hint {
   position: absolute; top: 24px; left: 50%; transform: translateX(-50%);
@@ -92,9 +92,10 @@ const CSS = `
 @keyframes advFloat { to { transform: translateY(-118vh) rotate(9deg); } }
 @keyframes advBob { 0%, 100% { transform: translateY(0) rotate(-3deg); } 50% { transform: translateY(-16px) rotate(3deg); } }
 @keyframes advPop { 40% { transform: scale(1.3); opacity: 1; } 100% { transform: scale(1.7); opacity: 0; } }
-@keyframes advBurst {
+@keyframes advBurstFall {
   0% { transform: translate(0, 0) rotate(0deg) scale(1); opacity: 1; }
-  100% { transform: translate(var(--dx), var(--dy)) rotate(260deg) scale(.4); opacity: 0; }
+  14% { transform: translate(calc(var(--dx) * .45), calc(var(--up) * .45)) rotate(130deg) scale(1.05); opacity: 1; }
+  100% { transform: translate(var(--dx), 108vh) rotate(var(--spin)); opacity: .85; }
 }
 @keyframes advShake { 0%,100% { transform: rotate(0); } 25% { transform: rotate(-7deg) scale(1.04); } 75% { transform: rotate(7deg) scale(1.04); } }
 @keyframes advPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.07); } }
