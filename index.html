@@ -82,6 +82,9 @@
     }
     .avatar-pill:hover { transform: translateY(-2px); background: rgba(255,255,255,.18); }
     .avatar-pill.selected { border-color: #ffd166; background: rgba(255,209,102,.18); box-shadow: 0 0 0 3px rgba(255,209,102,.25); }
+    .launcher-status { margin: 10px auto 0; min-height: 18px; color: #ff8fa3; font-size: 13px; font-weight: 700; }
+    .avatars.attention { animation: avatarsShake .45s ease; border-radius: 16px; box-shadow: 0 0 0 3px rgba(255, 95, 126, .55); }
+    @keyframes avatarsShake { 0%, 100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
     .apps { display: flex; flex-direction: column; gap: 13px; margin-top: 22px; }
     .app {
       display: flex; align-items: center; gap: 12px; width: 100%;
@@ -172,6 +175,7 @@
     <input class="name-input" id="nameInput" type="text" maxlength="32" autocomplete="off" placeholder="Escreva seu nome">
     <div class="avatar-label" id="avatarLabel">Escolha seu avatar</div>
     <div class="avatars" id="avatars"></div>
+    <p class="launcher-status" id="launcherStatus" role="status" aria-live="polite"></p>
     <div class="language-label" id="languageLabel">🌐 Escolha seu idioma</div>
     <div class="languages">
       <button class="lang-pill" data-language="pt" type="button"><span class="flag">🇧🇷</span>PT</button>
@@ -239,7 +243,7 @@
     const COPY = {
       pt: {
         htmlLang: 'pt-BR', title: 'Aventuras da Julia 🌍', helloPrefix: 'OLÁ',
-        tagline: 'Escolha uma aventura para começar:', nameLabel: 'Seu nome', namePlaceholder: 'Escreva seu nome', avatarLabel: 'Escolha seu avatar', savedLabel: 'Quem está jogando?', world: "Julia's World",
+        tagline: 'Escolha uma aventura para começar:', nameLabel: 'Seu nome', namePlaceholder: 'Escreva seu nome', avatarLabel: 'Escolha seu avatar', savedLabel: 'Quem está jogando?', needName: 'Digite seu nome para continuar!', needAvatar: 'Escolha um avatar para continuar!', world: "Julia's World",
         math: 'Aventuras de Matemática', english: 'Aventuras de Inglês', notebook: 'Caderno de Stickers e Badges', soon: 'EM BREVE',
         languageLabel: '🌐 Escolha seu idioma', helpButton: 'Help', aboutButton: 'About',
         madeWith: 'feito com 💛 pela Julia e pelo papai',
@@ -248,7 +252,7 @@
       },
       en: {
         htmlLang: 'en', title: "Julia's Adventures 🌍", helloPrefix: 'HELLO',
-        tagline: 'Pick an adventure to start:', nameLabel: 'Your name', namePlaceholder: 'Type your name', avatarLabel: 'Pick your avatar', savedLabel: 'Who is playing?', world: "Julia's World",
+        tagline: 'Pick an adventure to start:', nameLabel: 'Your name', namePlaceholder: 'Type your name', avatarLabel: 'Pick your avatar', savedLabel: 'Who is playing?', needName: 'Type your name to continue!', needAvatar: 'Pick an avatar to continue!', world: "Julia's World",
         math: 'Math Adventures', english: 'English Adventures', notebook: 'Stickers & Badges Notebook', soon: 'COMING SOON',
         languageLabel: '🌐 Choose your language', helpButton: 'Help', aboutButton: 'About',
         madeWith: 'made with 💛 by Julia and her dad',
@@ -257,7 +261,7 @@
       },
       es: {
         htmlLang: 'es', title: 'Aventuras de Julia 🌍', helloPrefix: '¡HOLA',
-        tagline: 'Elige una aventura para empezar:', nameLabel: 'Tu nombre', namePlaceholder: 'Escribe tu nombre', avatarLabel: 'Elige tu avatar', savedLabel: '¿Quién está jugando?', world: "Julia's World",
+        tagline: 'Elige una aventura para empezar:', nameLabel: 'Tu nombre', namePlaceholder: 'Escribe tu nombre', avatarLabel: 'Elige tu avatar', savedLabel: '¿Quién está jugando?', needName: '¡Escribe tu nombre para continuar!', needAvatar: '¡Elige un avatar para continuar!', world: "Julia's World",
         math: 'Aventuras de Matemáticas', english: 'Aventuras de Inglés', notebook: 'Cuaderno de Stickers y Badges', soon: 'PRONTO',
         languageLabel: '🌐 Elige tu idioma', helpButton: 'Ayuda', aboutButton: 'Acerca de',
         madeWith: 'hecho con 💛 por Julia y su papá',
@@ -371,6 +375,30 @@
       document.querySelector('[data-i18n="world"]').textContent = name ? `${name}'s World` : COPY[language].world;
     }
 
+    // Entrar num app exige jogadora identificada: nome + avatar (obrigatórios).
+    function requireProfile(event) {
+      const name = nameInput.value.trim().replace(/\s+/g, ' ');
+      const copy = COPY[language];
+      const status = $('launcherStatus');
+      if (!name) {
+        event.preventDefault();
+        status.textContent = copy.needName;
+        nameInput.focus();
+        return false;
+      }
+      if (!selectedAvatar) {
+        event.preventDefault();
+        status.textContent = copy.needAvatar;
+        const grid = $('avatars');
+        grid.classList.remove('attention');
+        void grid.offsetWidth;
+        grid.classList.add('attention');
+        return false;
+      }
+      status.textContent = '';
+      return true;
+    }
+
     function applyLanguage() {
       const copy = COPY[language];
       document.documentElement.lang = copy.htmlLang;
@@ -424,6 +452,8 @@
     window.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') { $('helpBackdrop').classList.add('hidden'); $('aboutBackdrop').classList.add('hidden'); }
     });
+    $('appWorld').addEventListener('click', requireProfile);
+    $('appNotebook').addEventListener('click', requireProfile);
 
     const layer = $('stars');
     const fragment = document.createDocumentFragment();

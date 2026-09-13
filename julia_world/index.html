@@ -171,6 +171,14 @@
     font-weight: 500;
     color: #dbe7ff;
   }
+  #playerBadge {
+    display: inline-flex; align-items: center; gap: 7px; margin-top: 8px;
+    padding: 5px 14px; border-radius: 999px;
+    background: rgba(255, 209, 102, .16); border: 1px solid rgba(255, 209, 102, .5);
+    backdrop-filter: blur(6px);
+    font-size: clamp(12px, 1.7vw, 15px); font-weight: 700; color: #ffe9b8;
+  }
+  #playerBadge[hidden] { display: none; }
 
   /* ── Dica inferior ── */
   #hint {
@@ -586,6 +594,7 @@
 <header>
   <h1 id="appTitle">O Mundo 🌍</h1>
   <div id="subtitle">🌎 um atlas 3D cheio de surpresas</div>
+  <div id="playerBadge" hidden></div>
 </header>
 <aside id="rankingPanel" aria-labelledby="rankingTitle">
   <div class="ranking-head">
@@ -748,6 +757,6 @@
 </div>
 
 <script src="data/earth-data.js"></script>
-<script src="lib/app.bundle.js?v=20260911h"></script>
+<script src="lib/app.bundle.js?v=20260911i"></script>
 </body>
 </html>

@@ -25,6 +25,13 @@
       text-decoration: none; cursor: pointer;
     }
     .top-link:hover { background: rgba(255,255,255,.2); }
+    .player-chip {
+      display: inline-flex; align-items: center; gap: 7px; padding: 7px 14px;
+      border-radius: 999px; white-space: nowrap;
+      background: rgba(255, 209, 102, .16); border: 1px solid rgba(255, 209, 102, .5);
+      font: 700 14px 'Fredoka', sans-serif; color: #ffe9b8;
+    }
+    .player-chip[hidden] { display: none; }
     h1 {
       margin: 0; font-family: 'Luckiest Guy', 'Fredoka', sans-serif; font-weight: 400;
       font-size: clamp(20px, 3.6vw, 32px); color: #ffd166; letter-spacing: .02em;
@@ -184,6 +191,7 @@
     <div class="top">
       <a class="top-link" href="../index.html">◀ Menu</a>
       <h1 id="notebookTitle">📔 Caderno</h1>
+      <span class="player-chip" id="playerChip" hidden></span>
       <a class="top-link" href="../julia_world/index.html">🌍 Mundo</a>
     </div>
     <div class="stage">
@@ -270,9 +278,11 @@
 
     let language = ['pt', 'en', 'es'].includes(params.get('language')) ? params.get('language') : 'pt';
     let explorerName = (params.get('name') || '').trim().slice(0, 32);
+    let explorerAvatar = (params.get('avatar') || '').trim().slice(0, 16);
     try {
       const prefs = JSON.parse(localStorage.getItem(PREFERENCES_KEY) || 'null') || {};
       if (!explorerName) explorerName = String(prefs.name || '').trim() || 'Julia';
+      if (!explorerAvatar) explorerAvatar = String(prefs.avatar || '').trim();
       if (!params.get('language') && ['pt', 'en', 'es'].includes(prefs.language)) language = prefs.language;
     } catch {}
 
@@ -570,6 +580,10 @@
     document.documentElement.lang = LANG_META[language].locale;
     $('notebookTitle').textContent = `📔 ${copy.coverTitle(explorerName)}`;
     $('coverTitle').textContent = copy.coverTitle(explorerName);
+    if (explorerAvatar) {
+      $('playerChip').textContent = `${explorerAvatar} ${explorerName}`;
+      $('playerChip').hidden = false;
+    }
     $('controls').style.visibility = 'hidden';
   </script>
 </body>

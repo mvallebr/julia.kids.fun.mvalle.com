@@ -800,6 +800,13 @@ function updateInterface() {
   const title = text(language, 'worldTitle', { brand });
   document.title = `${title} 🌍`;
   $('appTitle').textContent = title;
+  const playerBadge = $('playerBadge');
+  if (childName && preferences.avatar) {
+    playerBadge.textContent = `${preferences.avatar} ${childName}`;
+    playerBadge.hidden = false;
+  } else {
+    playerBadge.hidden = true;
+  }
   $('subtitle').textContent = text(language, 'subtitle');
   $('hintText').textContent = text(language, 'hint');
   btnHome.textContent = text(language, 'home');
