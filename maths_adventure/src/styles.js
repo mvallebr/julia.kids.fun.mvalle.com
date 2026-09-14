@@ -278,6 +278,7 @@ const CSS = `
 .ma-key.wrong { animation: maShake .5s ease; border-color: #ff8fa3; }
 
 /* Pedras de ordenação */
+.ma-order-instruction { font-size: clamp(14px, 2.2vw, 17px); font-weight: 800; color: #ffe9b8; padding: 8px 16px; border-radius: 999px; background: rgba(255,209,102,.14); border: 1.5px dashed rgba(255,209,102,.5); }
 .ma-stones { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
 .ma-stone {
   min-width: clamp(56px, 9vw, 74px); height: clamp(56px, 9vw, 74px); border-radius: 50% 50% 46% 46%;

@@ -280,11 +280,21 @@ export function showKeys(host, world, encounter, challenge, language, onSolved) 
 
 // ── 6. Ordenar (sequência em pedras mágicas) ─────────────────────────────────
 export function showOrdering(host, world, encounter, challenge, language, onSolved) {
+  // Este widget tem mecânica própria: ordenar, não "adivinhar o próximo".
+  // Enunciado/dicas do template (ex.: "qual número vem next?") confundiriam.
+  challenge = {
+    ...challenge,
+    display: null,
+    hints: [
+      { pt: 'Comece pelo menor número de todos.', en: 'Start with the smallest number of all.' },
+      { pt: 'Depois toque no próximo menor, e assim por diante.', en: 'Then tap the next smallest, and so on.' },
+    ],
+  };
   const attemptsRef = { value: 0 };
   const { overlay, panel } = basePanel();
   panel.classList.add('ma-enc-ordering');
-  panel.appendChild(el('div', 'ma-enc-prompt', challenge.prompt ? lang(challenge.prompt, language) : uiText(language, 'orderTitle')));
-  panel.appendChild(el('div', 'ma-enc-display', challenge.display));
+  panel.appendChild(el('div', 'ma-enc-prompt', uiText(language, 'orderTitle')));
+  panel.appendChild(el('div', 'ma-order-instruction', `🔼 ${uiText(language, 'orderSmallestFirst')}`));
   const row = el('div', 'ma-stones');
   const hintHelper = attachHints(panel, challenge, language, attemptsRef);
   const values = (challenge.context?.sequence || []).concat(Number(challenge.answer));
