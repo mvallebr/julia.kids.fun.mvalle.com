@@ -385,8 +385,10 @@
       $('hubTitle').textContent = name ? `${COPY[language].helloPrefix}, ${name.toUpperCase()}!` : `${COPY[language].helloPrefix}!`;
     }
 
+    // bump a cada release para vencer o cache de file:// nas páginas de destino
+    const TARGETS_VERSION = '20260911n';
     function refreshWorldLink() {
-      const params = new URLSearchParams({ from: 'launcher', name: nameInput.value.trim().replace(/\s+/g, ' '), language, avatar: selectedAvatar });
+      const params = new URLSearchParams({ from: 'launcher', name: nameInput.value.trim().replace(/\s+/g, ' '), language, avatar: selectedAvatar, v: TARGETS_VERSION });
       $('appWorld').href = `julia_world/index.html?${params}`;
       $('appNotebook').href = `notebook/index.html?${params}`;
     }

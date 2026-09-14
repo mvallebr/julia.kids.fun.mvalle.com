@@ -899,6 +899,7 @@ rankingToggle.addEventListener('click', () => {
   renderProgressUI();
 });
 switchPlayer.addEventListener('click', () => {
+  document.documentElement.classList.remove('skip-intro');
   intro.classList.remove('hidden');
   childNameInput.focus();
   childNameInput.select();
