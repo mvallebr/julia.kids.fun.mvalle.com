@@ -104,6 +104,11 @@
       box-shadow: 0 10px 26px rgba(78, 205, 196, .35);
     }
     .app-notebook:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .app-maths {
+      background: linear-gradient(135deg, #8a5bdb, #b9a4f5);
+      box-shadow: 0 10px 26px rgba(138, 93, 219, .38);
+    }
+    .app-maths:hover { transform: translateY(-2px); filter: brightness(1.06); }
     .app-soon {
       background: rgba(255,255,255,.08); color: rgba(255,255,255,.68);
       border: 2px dashed rgba(255,255,255,.28); cursor: default;
@@ -188,11 +193,11 @@
         <span data-i18n="world">Julia's World</span>
         <span class="emoji" style="margin-left:auto" aria-hidden="true">🚀</span>
       </a>
-      <button class="app app-soon" type="button" disabled>
+      <a class="app app-maths" href="maths_adventure/index.html" id="appMaths">
         <span class="emoji" aria-hidden="true">🔢</span>
         <span data-i18n="math">Aventuras de Matemática</span>
-        <span class="soon-badge" data-i18n="soon">EM BREVE</span>
-      </button>
+        <span class="emoji" style="margin-left:auto" aria-hidden="true">✨</span>
+      </a>
       <button class="app app-soon" type="button" disabled>
         <span class="emoji" aria-hidden="true">💬</span>
         <span data-i18n="english">Aventuras de Inglês</span>
@@ -390,6 +395,7 @@
     function refreshWorldLink() {
       const params = new URLSearchParams({ from: 'launcher', name: nameInput.value.trim().replace(/\s+/g, ' '), language, avatar: selectedAvatar, v: TARGETS_VERSION });
       $('appWorld').href = `julia_world/index.html?${params}`;
+      $('appMaths').href = `maths_adventure/index.html?${params}`;
       $('appNotebook').href = `notebook/index.html?${params}`;
     }
 
@@ -483,6 +489,7 @@
       if (event.key === 'Escape') { $('helpBackdrop').classList.add('hidden'); $('aboutBackdrop').classList.add('hidden'); }
     });
     $('appWorld').addEventListener('click', requireProfile);
+    $('appMaths').addEventListener('click', requireProfile);
     $('appNotebook').addEventListener('click', requireProfile);
 
     const layer = $('stars');

@@ -11,6 +11,32 @@ an app.
 - **[`julia_world/`](/julia_world/)** — an interactive 3D world atlas
   (globe.gl + three.js) where Julia can explore countries, cities and her
   projects.
+- **[`maths_adventure/`](/maths_adventure/)** — **Maths Adventures**, a
+  story-driven maths game: travel the golden glitter path through 10 worlds
+  (Story 1), meet friends, solve generated maths challenges and get crowned at
+  the Golden Palace.
+
+## Development (maths_adventure)
+
+- `index.html` — single page (HTML + CSS + JS, no framework)
+- `src/` — app source (bundled with esbuild): state, seeded maths challenge
+  generators, Story 1 data (`src/story.js`), screens and encounter widgets
+- `lib/` — generated bundle (`bundle.js`), committed
+- `assets/img/` — AI-generated art (world backgrounds, characters, stickers),
+  optimized WebP; raw sources in `assets/raw/` are not committed
+- `test/` — node:test suites for the generators, state machine and story data
+
+```sh
+cd maths_adventure
+npm install
+npm run build      # regenerates lib/bundle.js
+npm test
+npx serve ..       # then open /maths_adventure/
+```
+
+Adding Story 2 later should mostly mean appending new world data to
+`src/story.js` plus new art in `assets/` — the engine reads worlds, nodes,
+encounters and friends from data.
 
 ## Development (julia_world)
 
