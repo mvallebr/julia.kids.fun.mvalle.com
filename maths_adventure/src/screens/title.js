@@ -97,7 +97,9 @@ export function openTitleScreen(root, context) {
     intro.appendChild(el('h2', 'ma-story-title', `🏰 ${uiText(language, 'storyIntroTitle')}`));
     const lines = ['storyIntro1', 'storyIntro2', 'storyIntro3'].map((key) => uiText(language, key));
     const paragraph = el('p', 'ma-story-line');
+    const hint = el('div', 'ma-story-hint', `👆 ${uiText(language, 'tapToContinue')}`);
     intro.appendChild(paragraph);
+    intro.appendChild(hint);
     const begin = el('button', 'ma-continue hidden', `🚶 ${uiText(language, 'beginWalk')}`);
     begin.type = 'button';
     begin.addEventListener('click', () => {
@@ -109,11 +111,15 @@ export function openTitleScreen(root, context) {
 
     let index = 0;
     let typer = null;
+    const revealBegin = () => {
+      paragraph.classList.add('done');
+      begin.classList.remove('hidden');
+      hint.classList.add('hidden');
+      begin.focus();
+    };
     const nextLine = () => {
       if (index >= lines.length) {
-        paragraph.classList.add('done');
-        begin.classList.remove('hidden');
-        begin.focus();
+        revealBegin();
         return;
       }
       typer = typewriter(paragraph, lines[index], 22);
@@ -124,7 +130,6 @@ export function openTitleScreen(root, context) {
         typer.finish();
         return;
       }
-      if (index >= lines.length) return;
       sounds.tap();
       nextLine();
     });

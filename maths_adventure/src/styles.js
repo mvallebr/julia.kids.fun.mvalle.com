@@ -57,6 +57,8 @@ const CSS = `
 .ma-story-title { margin: 0; font: 400 clamp(22px, 4vw, 34px) 'Luckiest Guy','Fredoka',sans-serif; color: #ffe27a; text-shadow: 0 3px 0 #b8860b; }
 .ma-story-line { margin: 0; min-height: 3.2em; font-size: clamp(15px, 2.4vw, 19px); font-weight: 600; line-height: 1.5; color: #fff3d6; }
 .ma-story-line.done { min-height: 0; }
+.ma-story-hint { margin-top: -6px; font-size: 13px; font-weight: 700; color: rgba(255,243,214,.7); animation: maPulse 1.4s ease-in-out infinite; }
+.ma-story-hint.hidden { display: none; }
 
 /* ── Mapa do reino ── */
 .ma-map-sky { position: absolute; inset: 0; background:
