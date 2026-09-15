@@ -1159,6 +1159,11 @@ updateInterface();
 enterFromLauncher();
 if (childName) intro.classList.add('hidden');
 loadAdventureForPlayer();
+// Em telas pequenas os painéis abertos engolem o globo: começam recolhidos.
+if (window.innerWidth < 720) {
+  rankingPanel.classList.add('collapsed');
+  $('adventurePanel')?.classList.add('collapsed');
+}
 
 // ganchos de depuração/teste manual pelo console
 window.__adventureDebug = {
