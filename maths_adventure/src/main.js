@@ -108,6 +108,7 @@ function openWorld(worldId) {
     language,
     renderQuests,
     onExit: openMap,
+    onExitToMenu: exitToLauncher,
     onFriend: () => {},
     onComplete: () => {
       const next = nextWorld(worldId);

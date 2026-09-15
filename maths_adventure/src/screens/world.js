@@ -67,7 +67,7 @@ function deriveExpression(value, next) {
 }
 
 export function openWorldScreen(root, context) {
-  const { worldId, player, getState, setState, language, onExit, onComplete, onFriend } = context;
+  const { worldId, player, getState, setState, language, onExit, onComplete, onFriend, onExitToMenu } = context;
   const world = WORLDS[worldId];
   const nodes = nodesFor(worldId);
   const state = getState();
@@ -456,6 +456,14 @@ export function openWorldScreen(root, context) {
       onComplete();
     });
     card.appendChild(button);
+    // continuar mais tarde: o progresso já está salvo; volta ao menu principal
+    const laterButton = el('button', 'ma-secondary', uiText(language, 'continueLater'));
+    laterButton.type = 'button';
+    laterButton.addEventListener('click', () => {
+      sounds.tap();
+      onExitToMenu?.();
+    });
+    card.appendChild(laterButton);
     stage.appendChild(card);
     button.focus();
   }

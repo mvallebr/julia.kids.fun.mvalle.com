@@ -108,6 +108,7 @@ const COPY = {
     stickersCount: 'Stickers',
     badgesCount: 'Badges',
     errorFatal: 'Ops! Algo deu errado. Recarregue a página para continuar a aventura.',
+    continueLater: 'Continuar mais tarde',
     loading: 'Carregando a aventura…',
   },
   en: {
@@ -213,6 +214,7 @@ const COPY = {
     stickersCount: 'Stickers',
     badgesCount: 'Badges',
     errorFatal: 'Oops! Something went wrong. Reload the page to continue your adventure.',
+    continueLater: 'Continue later',
     loading: 'Loading the adventure…',
   },
 };

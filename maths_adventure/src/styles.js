@@ -374,6 +374,13 @@ const CSS = `
 .ma-world-complete-stats { display: flex; gap: 14px; flex-wrap: wrap; justify-content: center; font-size: 14.5px; font-weight: 700; color: #fff3d6; }
 .ma-world-complete-badge { margin-top: 2px; padding: 8px 18px; border-radius: 999px; background: rgba(255,209,102,.2); border: 1.5px solid rgba(255,209,102,.6); font-weight: 800; font-size: 14px; color: #ffe9b8; }
 .ma-world-complete .ma-continue { margin-top: 10px; }
+.ma-secondary {
+  border: 1.5px solid rgba(255,255,255,.35); cursor: pointer; border-radius: 999px;
+  padding: 11px 26px; background: rgba(255,255,255,.12);
+  color: #fff3d6; font-weight: 800; font-size: 14.5px;
+  transition: background .2s, transform .15s;
+}
+.ma-secondary:hover { background: rgba(255,255,255,.22); transform: translateY(-1px); }
 
 /* ── Galeria de amigos ── */
 .ma-gallery-panel {
