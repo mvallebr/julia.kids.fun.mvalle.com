@@ -121,6 +121,14 @@ const FALLBACK_COLOR = '#c3cede';
 const stickerEmoji = ['🎟️', '🌟', '🗺️', '🧭', '✨', '🚀'];
 const HOVER_COLOR = '#ffe14d';
 
+// Retratos 3D do guia (um par boca-fechada/boca-aberta por avatar do launcher).
+const GUIDE_AVATARS = {
+  '👧': 'girl', '🧒': 'boy', '🦄': 'unicorn', '🐱': 'cat', '🐶': 'dog',
+  '🦊': 'fox', '🐼': 'panda', '🐸': 'frog', '🦋': 'butterfly', '🌟': 'star',
+  '🚀': 'rocket', '🌸': 'flower',
+};
+const guideAsset = (emoji, pose) => `assets/guide/${GUIDE_AVATARS[emoji] || 'girl'}-${pose}.webp`;
+
 const contColor = (f) => CONT_COLOR[f.properties.c] || FALLBACK_COLOR;
 // para a América Central e o Caribe, mostrar a região em vez do continente (mais claro p/ criança)
 const chipText = (f) => {
@@ -643,9 +651,12 @@ function pinCard(f) {
   // ── Guia: o avatar da exploradora apresenta o país (pedido da Julia) ──────
   const guide = document.createElement('div');
   guide.className = 'card-guide';
-  const guideAvatar = document.createElement('span');
-  guideAvatar.className = 'guide-avatar';
-  guideAvatar.textContent = preferences.avatar || '🧭';
+  const guideImg = document.createElement('img');
+  guideImg.className = 'guide-avatar-img';
+  guideImg.alt = '';
+  guideImg.dataset.closed = guideAsset(preferences.avatar, 'closed');
+  guideImg.dataset.open = guideAsset(preferences.avatar, 'open');
+  guideImg.src = guideImg.dataset.closed;
   const guideBubble = document.createElement('div');
   guideBubble.className = 'guide-bubble';
   // o país vai em negrito: dividimos o template ao redor do marcador
@@ -656,7 +667,7 @@ function pinCard(f) {
   countryBold.textContent = localize(f);
   guideBubble.append(countryBold);
   if (afterName) guideBubble.append(afterName);
-  guide.append(guideAvatar, guideBubble);
+  guide.append(guideImg, guideBubble);
   cardBody.appendChild(guide);
 
   if (rows.length) {
@@ -743,7 +754,34 @@ function stopSpeaking() {
   if (!('speechSynthesis' in window)) return;
   speakToken++;
   speechSynthesis.cancel();
+  stopGuideTalking();
   setSpeakingUi(false);
+}
+
+// ── Guia falando: alterna boca fechada/aberta enquanto o áudio toca ─────────
+let guideTalkTimer = null;
+let guideTalkSafety = null;
+function startGuideTalking() {
+  const img = document.querySelector('.guide-avatar-img');
+  if (!img) return;
+  clearInterval(guideTalkTimer);
+  img.classList.add('talking');
+  let open = false;
+  guideTalkTimer = setInterval(() => {
+    open = !open;
+    img.src = open ? img.dataset.open : img.dataset.closed;
+  }, 150);
+}
+function stopGuideTalking() {
+  clearTimeout(guideTalkSafety);
+  guideTalkSafety = null;
+  clearInterval(guideTalkTimer);
+  guideTalkTimer = null;
+  const img = document.querySelector('.guide-avatar-img');
+  if (img) {
+    img.classList.remove('talking');
+    img.src = img.dataset.closed;
+  }
 }
 
 function speak(textToSay) {
@@ -757,14 +795,23 @@ function speak(textToSay) {
   if (preferredVoice) utterance.voice = preferredVoice;
   const token = ++speakToken;
   const done = () => {
-    if (token === speakToken) setSpeakingUi(false);
-  };
-  utterance.onstart = () => {
-    if (token === speakToken) setSpeakingUi(true);
+    if (token === speakToken) {
+      stopGuideTalking();
+      setSpeakingUi(false);
+    }
   };
   utterance.onend = done;
   utterance.onerror = done;
-  speechSynthesis.speak(utterance);
+  // a boca começa a se mover junto com o áudio; timer de segurança para o
+  // caso do navegador nunca disparar onend
+  startGuideTalking();
+  clearTimeout(guideTalkSafety);
+  guideTalkSafety = setTimeout(done, Math.max(5000, textToSay.length * 90));
+  try {
+    speechSynthesis.speak(utterance);
+  } catch {
+    // Sem TTS disponível: o guia ainda 'fala' com a animação até o timer.
+  }
 }
 speakStop.addEventListener('click', stopSpeaking);
 if (!('speechSynthesis' in window)) cardSpeak.style.display = 'none';
@@ -1199,6 +1246,10 @@ window.__adventureDebug = {
     maybeStartWorldFinale();
   },
   finale: () => maybeStartWorldFinale(),
+  guide: {
+    start: () => startGuideTalking(),
+    stop: () => stopGuideTalking(),
+  },
 };
 
 // ── Menu ☰ / Configurações ───────────────────────────────────────────────────

@@ -13,9 +13,9 @@ from PIL import Image, ImageFilter
 def is_greenish(r, g, b, sat_min=0.06):
     """Verde em hue (65°–175°), independente do brilho — pega vinheta e brilho."""
     hue, light, sat = colorsys.rgb_to_hls(r / 255, g / 255, b / 255)
-    return 0.18 <= hue <= 0.486 and sat >= sat_min
+    return 0.16 <= hue <= 0.50 and sat >= sat_min
 
-def key_out(src, dst, strong_sat=0.30, interior_sat=0.50):
+def key_out(src, dst, strong_sat=0.30, interior_sat=0.30):
     im = Image.open(src).convert('RGBA')
     w, h = im.size
     pixels = im.load()
