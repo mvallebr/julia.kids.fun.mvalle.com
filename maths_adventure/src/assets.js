@@ -20,6 +20,21 @@ export const ASSETS = {
   'sprite-girl': url('sprite-girl.webp'),
   'sprite-boy': url('sprite-boy.webp'),
   'sprite-maria': url('sprite-maria.webp'),
+  // ciclos de caminhada (frames fatiados das folhas 2xN)
+  ...Object.fromEntries([
+    ...Array.from({ length: 7 }, (_, i) => [`walk-girl-${i + 1}`, url(`walk-girl-${i + 1}.webp`)]),
+    ...Array.from({ length: 5 }, (_, i) => [`walk-boy-${i + 1}`, url(`walk-boy-${i + 1}.webp`)]),
+  ]),
+  // sprites de cena dos amigos (moradores do caminho)
+  'friend-scene-bumble': url('friend-scene-bumble.webp'),
+  'friend-scene-zephyr': url('friend-scene-zephyr.webp'),
+  'friend-scene-glim': url('friend-scene-glim.webp'),
+  'friend-scene-sunny': url('friend-scene-sunny.webp'),
+  'friend-scene-bubble': url('friend-scene-bubble.webp'),
+  'friend-scene-kaya': url('friend-scene-kaya.webp'),
+  'friend-scene-cog': url('friend-scene-cog.webp'),
+  'friend-scene-flurry': url('friend-scene-flurry.webp'),
+  'friend-scene-twinkle': url('friend-scene-twinkle.webp'),
   'friend-bumble': url('friend-bumble.webp'),
   'friend-zephyr': url('friend-zephyr.webp'),
   'friend-glim': url('friend-glim.webp'),

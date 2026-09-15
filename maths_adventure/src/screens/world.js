@@ -6,7 +6,7 @@ import { el, burst, burstAt, confetti, toast, typewriter, clearContainer } from 
 import { sounds } from '../audio.js';
 import { uiText, lang } from '../i18n.js';
 import { asset, preload, WORLD_STICKER } from '../assets.js';
-import { WORLDS, WORLD_CONTEXT, EXPLORE_SECRETS, FRIENDS, nodesFor } from '../story.js';
+import { WORLDS, WORLD_CONTEXT, EXPLORE_SECRETS, FRIENDS, PATHS, nodesFor } from '../story.js';
 import { generateChallenge } from '../generators.js';
 import { seededRandom } from '../rng.js';
 import {
@@ -15,6 +15,10 @@ import {
 } from '../state.js';
 import { showEncounter } from '../widgets/encounters.js';
 import { openPresentFlow } from '../widgets/present.js';
+
+// Quantos frames de caminhada existem por herói (folhas fatiadas em assets).
+const WALK_FRAMES = { girl: 7, boy: 5 };
+const FRIEND_T = 0.3; // posição do amigo ao longo do caminho do mundo
 
 // Gera o desafio estável do encontro (semente por jogador+id, spec §25).
 function challengeFor(encounter, world, player) {
@@ -73,54 +77,125 @@ export function openWorldScreen(root, context) {
   bg.style.backgroundImage = `url('${asset(world.asset)}')`;
   screen.appendChild(bg);
 
-  // Camada do caminho dourado: fita brilhante + partículas (assinatura, spec §6).
-  const pathLayer = el('div', 'ma-path');
-  pathLayer.innerHTML = `
-    <svg viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">
-      <path d="M -2 24 C 20 26, 30 18, 50 20 S 85 24, 102 16" fill="none" stroke="url(#ma-gold)" stroke-width="2.6" stroke-linecap="round" opacity=".85"/>
-      <path d="M -2 24 C 20 26, 30 18, 50 20 S 85 24, 102 16" fill="none" stroke="#fff8dc" stroke-width=".7" stroke-dasharray="1.5 2.5" stroke-linecap="round" opacity=".8" class="ma-path-dash"/>
-      <defs>
-        <linearGradient id="ma-gold" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0" stop-color="#ffe27a"/>
-          <stop offset=".5" stop-color="#ffd166"/>
-          <stop offset="1" stop-color="#ffb347"/>
-        </linearGradient>
-      </defs>
-    </svg>`;
-  for (let index = 0; index < 7; index += 1) {
-    const dot = el('span', 'ma-path-spark');
-    dot.style.left = `${8 + index * 13 + Math.random() * 6}%`;
-    dot.style.top = `${58 + Math.random() * 26}%`;
-    dot.style.animationDelay = `${Math.random() * 2.4}s`;
-    pathLayer.appendChild(dot);
+  // ── Caminho do mundo: waypoints mapeados sobre o caminho PINTADO na arte ──
+  // (spec melhorias: o herói anda sobre o caminho desenhado, com profundidade)
+  const path = PATHS[worldId];
+  const pathLengths = [];
+  let totalLength = 0;
+  for (let index = 0; index < path.length - 1; index += 1) {
+    const dx = path[index + 1][0] - path[index][0];
+    const dy = (path[index + 1][1] - path[index][1]) * 1.6; // vertical pesa mais (profundidade)
+    const length = Math.sqrt(dx * dx + dy * dy);
+    pathLengths.push(length);
+    totalLength += length;
   }
-  screen.appendChild(pathLayer);
+  function pointAt(t) {
+    const clamped = Math.max(0, Math.min(1, t));
+    let target = clamped * totalLength;
+    let index = 0;
+    while (index < pathLengths.length - 1 && target > pathLengths[index]) {
+      target -= pathLengths[index];
+      index += 1;
+    }
+    const f = pathLengths[index] ? Math.min(1, target / pathLengths[index]) : 0;
+    const [ax, ay] = path[index];
+    const [bx, by] = path[index + 1];
+    const x = ax + (bx - ax) * f;
+    const y = ay + (by - ay) * f;
+    // escala pela profundidade: longe (y pequeno) = menor, perto = maior
+    const s = Math.max(0.42, Math.min(1.15, 0.45 + ((y - 42) / 58) * 0.68));
+    return { x, y, s };
+  }
 
-  // Personagem.
+  // Faíscas ambientes do mundo (sem faixa SVG: o caminho já está pintado).
+  for (let index = 0; index < 6; index += 1) {
+    const dot = el('span', 'ma-path-spark');
+    dot.style.left = `${8 + index * 15 + Math.random() * 6}%`;
+    dot.style.top = `${62 + Math.random() * 24}%`;
+    dot.style.animationDelay = `${Math.random() * 2.4}s`;
+    screen.appendChild(dot);
+  }
+  screen.appendChild(el('div', 'ma-path')); // mantém assinatura visual mínima
+
+  // Personagem: img + sombra elíptica no chão
   const character = el('div', `ma-character ${state.character || 'girl'}`);
   const sprite = el('img', 'ma-sprite');
   sprite.src = asset(`sprite-${state.character || 'girl'}`);
   sprite.alt = '';
   character.appendChild(sprite);
   screen.appendChild(character);
+  const shadow = el('div', 'ma-char-shadow');
+  screen.appendChild(shadow);
 
-  // Amigo do mundo: fica visível em sua parada.
-  const friend = FRIENDS[Object.keys(FRIENDS).find((id) => FRIENDS[id].world === worldId)];
-  const friendSprite = friend.id === 'maria'
-    ? asset('sprite-maria')
-    : null;
-  const friendNode = el('div', 'ma-world-friend hidden');
-  if (friendSprite) {
-    const image = el('img');
-    image.src = friendSprite;
-    image.alt = lang(friend.name, language);
-    friendNode.appendChild(image);
-  } else {
-    const image = el('img', 'ma-world-friend-portrait');
-    image.src = asset(friend.asset);
-    image.alt = lang(friend.name, language);
-    friendNode.appendChild(image);
+  const heroName = state.character || 'girl';
+  const frameCount = WALK_FRAMES[heroName] || 5;
+  const walkFrames = Array.from({ length: frameCount }, (_, index) => asset(`walk-${heroName}-${index + 1}`));
+  const idleSrc = asset(`sprite-${heroName}`);
+
+  // Personagem: âncora nos pés (left/top = ponto do caminho; escala = profundidade)
+  let heroT = 0.02; // parâmetro ao longo do caminho (0..1)
+  let facing = 1; // 1 = direita, -1 = esquerda
+  function placeHero(point) {
+    character.style.left = `${point.x}%`;
+    character.style.top = `${point.y}%`;
+    character.style.width = `${Math.round(118 * point.s)}px`;
+    character.style.transform = `translate(-50%, -100%) scaleX(${facing})`;
+    shadow.style.left = `${point.x}%`;
+    shadow.style.top = `${point.y}%`;
+    shadow.style.width = `${Math.round(96 * point.s)}px`;
+    shadow.style.height = `${Math.round(18 * point.s)}px`;
+    shadow.style.opacity = String(0.28 * point.s + 0.08);
   }
+
+  let walkTimer = null;
+  function moveCharacterTo(t, done) {
+    walking = true;
+    banner.classList.add('hidden');
+    const from = heroT;
+    const distance = Math.abs(t - from);
+    const duration = Math.max(1200, distance * 16000); // caminhadas mais longas
+    const startedAt = performance.now();
+    character.classList.add('walking');
+    let frame = 0;
+    clearInterval(walkTimer);
+    walkTimer = setInterval(() => {
+      frame = (frame + 1) % walkFrames.length;
+      sprite.src = walkFrames[frame];
+    }, 130);
+    const start = pointAt(from);
+    facing = t >= from ? 1 : -1;
+    const step = (now) => {
+      if (destroyed) return;
+      const progress = Math.min(1, (now - startedAt) / duration);
+      const currentT = from + (t - from) * progress;
+      heroT = currentT;
+      placeHero(pointAt(currentT));
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        clearInterval(walkTimer);
+        sprite.src = idleSrc;
+        if (done) done();
+      }
+    };
+    requestAnimationFrame(step);
+  }
+
+  // Amigo do mundo: MORADORA do cenário — fica parado no caminho (com um
+  // brilho indicando interação) e a conversa começa quando o herói chega.
+  const friend = FRIENDS[Object.keys(FRIENDS).find((id) => FRIENDS[id].world === worldId)];
+  const friendPoint = pointAt(FRIEND_T);
+  const friendNode = el('div', 'ma-world-friend');
+  const friendImage = el('img');
+  friendImage.src = friend.id === 'maria' ? asset('sprite-maria') : asset(`friend-scene-${friend.id}`);
+  friendImage.alt = lang(friend.name, language);
+  friendNode.appendChild(friendImage);
+  const friendTag = el('div', 'ma-friend-tag', lang(friend.name, language));
+  friendNode.appendChild(friendTag);
+  friendNode.style.left = `${friendPoint.x + 3.5}%`;
+  friendNode.style.top = `${friendPoint.y}%`;
+  friendNode.style.width = `${Math.round(104 * friendPoint.s)}px`;
+  friendNode.style.zIndex = String(Math.round(friendPoint.y));
   screen.appendChild(friendNode);
 
   // HUD: voltar, missões, colecionáveis, som.
@@ -154,13 +229,12 @@ export function openWorldScreen(root, context) {
   const stage = el('div', 'ma-stage');
   screen.appendChild(stage);
   root.appendChild(screen);
+  placeHero(pointAt(heroT));
 
   // Checkpoint é por mundo: entrando num mundo diferente, começa do início.
   let nodeIndex = state.worldId === worldId
     ? Math.min(state.nodeIndex || 0, nodes.length - 1)
     : 0;
-  let position = 0.06; // fração horizontal na cena
-  let walking = false;
   let destroyed = false;
   const timers = [];
 
@@ -174,35 +248,6 @@ export function openWorldScreen(root, context) {
       if (draft.worldStatus[worldId] !== 'completed') draft.worldStatus[worldId] = 'in-progress';
     });
   }
-
-  function moveCharacterTo(fraction, done) {
-    walking = true;
-    banner.classList.add('hidden');
-    const startX = position;
-    const distance = Math.abs(fraction - startX);
-    const duration = Math.max(900, distance * 9000);
-    const startedAt = performance.now();
-    character.classList.add('walking');
-    const step = (now) => {
-      if (destroyed) return;
-      const progress = Math.min(1, (now - startedAt) / duration);
-      position = startX + (fraction - startX) * progress;
-      character.style.left = `${6 + position * 86}%`;
-      if (progress < 1) {
-        requestAnimationFrame(step);
-      } else {
-        walking = false;
-        character.classList.remove('walking');
-        if (done) done();
-      }
-    };
-    requestAnimationFrame(step);
-  }
-
-  function placeCharacter() {
-    character.style.left = `${6 + position * 86}%`;
-  }
-  placeCharacter();
 
   function showBanner(text, sticky = false) {
     banner.textContent = text;
@@ -358,12 +403,13 @@ export function openWorldScreen(root, context) {
   }
 
   function runFriend(node) {
+    // O amigo JÁ está no cenário desde a chegada; aqui registramos a
+    // descoberta e a interação começa (diálogo no próximo nó).
     setState((draft) => {
       if (discoverFriend(draft, node.id)) refreshQuests(draft);
     });
     const isNew = getState().friends.includes(node.id);
-    friendNode.classList.remove('hidden');
-    friendNode.style.left = `${6 + (position + 0.08) * 86}%`;
+    friendTag.classList.add('show');
     sounds.badge();
     burstAt(friendNode, 20);
     if (isNew) onFriend?.(node.id);
@@ -372,8 +418,6 @@ export function openWorldScreen(root, context) {
 
   function runFinale() {
     const { badges } = completeWorldDraft();
-    friendNode.classList.remove('hidden');
-    friendNode.style.left = '70%';
     confetti(120, 2400);
     sounds.mega();
     const card = el('div', 'ma-world-complete');
@@ -461,6 +505,7 @@ export function openWorldScreen(root, context) {
     destroy() {
       destroyed = true;
       timers.forEach(clearTimeout);
+      clearInterval(walkTimer);
       screen.remove();
     },
   };

@@ -23,7 +23,7 @@ import {
   solvedCount,
   seedFor,
 } from '../src/state.js';
-import { FRIENDS, WORLD_NODES, WORLD_ORDER, encountersFor } from '../src/story.js';
+import { FRIENDS, WORLD_NODES, WORLD_ORDER, PATHS, encountersFor } from '../src/story.js';
 
 const memoryStorage = () => {
   const backing = new Map();
@@ -149,14 +149,39 @@ test('missão cuja métrica já passou não fica presa ativa', () => {
   }
 });
 
-test('cada mundo tem exatamente 10 encontros (spec §5)', () => {
+test('cada mundo tem exatamente 5 encontros (10 → 5 na revisão da Julia)', () => {
   for (const worldId of WORLD_ORDER) {
-    assert.equal(encountersFor(worldId).length, 10, `10 encontros em ${worldId}`);
+    assert.equal(encountersFor(worldId).length, 5, `5 encontros em ${worldId}`);
     const ids = encountersFor(worldId).map((encounter) => encounter.id);
-    assert.equal(new Set(ids).size, 10, `ids únicos em ${worldId}`);
+    assert.equal(new Set(ids).size, 5, `ids únicos em ${worldId}`);
   }
   const total = WORLD_ORDER.reduce((sum, worldId) => sum + encountersFor(worldId).length, 0);
-  assert.equal(total, 100);
+  assert.equal(total, 50);
+});
+
+test('caminho pintado mapeado para cada mundo (waypoints x/y)', () => {
+  for (const worldId of WORLD_ORDER) {
+    const path = PATHS[worldId];
+    assert.ok(Array.isArray(path) && path.length >= 5, `path com waypoints em ${worldId}`);
+    for (const [x, y] of path) {
+      assert.ok(x >= 0 && x <= 100 && y >= 30 && y <= 100, `waypoint (${x},${y}) em ${worldId}`);
+    }
+    // caminho tem deslocamento real (a direção varia por mundo:
+    // ex. Reino das Nuvens caminha para a esquerda, rumo ao castelo)
+    const dx = Math.abs(path[path.length - 1][0] - path[0][0]);
+    const dy = Math.abs(path[path.length - 1][1] - path[0][1]);
+    assert.ok(dx + dy >= 25, `${worldId} tem deslocamento`);
+  }
+});
+
+test('widget especial rotativo entre mundos (chaves/pedras/pares)', () => {
+  const widgets = WORLD_ORDER.map((worldId) => encountersFor(worldId).map((e) => e.widget));
+  const specials = WORLD_ORDER.map((worldId) => encountersFor(worldId).find((e) => e.id === `${worldId}-special-1`));
+  assert.deepEqual(specials.map((s) => s.widget), ['keys', 'ordering', 'matching', 'keys', 'ordering', 'matching', 'keys', 'ordering', 'matching', 'keys']);
+  for (const widgetsList of widgets) {
+    assert.ok(widgetsList.includes('pathChoice'), 'encruzilhada presente');
+    assert.ok(widgetsList.includes('shop'), 'loja presente');
+  }
 });
 
 test(' sequência de nós do mundo é coerente (amigos, presentes, final)', () => {

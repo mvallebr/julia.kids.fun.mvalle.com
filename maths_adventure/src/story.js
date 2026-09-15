@@ -298,32 +298,52 @@ export const WORLD_ARRIVE = {
   stars: { pt: '⭐ Você chegou ao Reino das Estrelas! Quase lá — o palácio já dá pra ver!', en: '⭐ You arrived at the Star Kingdom! Almost there — the palace is in sight!' },
 };
 
+// ── Caminho pintado de cada fundo, mapeado em waypoints (x%, y%) ─────────────
+// O personagem anda SOBRE o caminho desenhado na arte (spec melhorias):
+// interpolação entre waypoints + escala pela profundidade (y).
+export const PATHS = {
+  forest: [[22, 98], [40, 90], [55, 80], [66, 74], [76, 66], [84, 60], [90, 57]],
+  candy: [[35, 100], [45, 88], [53, 78], [60, 68], [68, 60], [76, 55]],
+  clouds: [[48, 100], [56, 85], [58, 72], [52, 60], [44, 50], [35, 42]],
+  crystals: [[30, 100], [42, 90], [55, 80], [68, 70], [78, 62], [85, 58]],
+  golden: [[42, 100], [52, 88], [60, 76], [66, 65], [70, 56], [73, 50]],
+  ocean: [[35, 100], [48, 88], [58, 76], [66, 64], [71, 55], [75, 50]],
+  lostcity: [[30, 100], [42, 90], [55, 78], [68, 66], [78, 58], [86, 52]],
+  clockwork: [[40, 100], [50, 85], [55, 72], [58, 60], [62, 50], [66, 44]],
+  winter: [[8, 100], [25, 90], [42, 80], [56, 70], [66, 62], [74, 55]],
+  stars: [[2, 95], [22, 90], [34, 82], [43, 74], [49, 66], [54, 58], [60, 52], [66, 48]],
+};
+
+// widget especial rotativo por mundo (índice % 3): variedade com 5 desafios
+const SPECIAL_BY_INDEX = [
+  { widget: 'keys', template: 'divFacts' },
+  { widget: 'ordering', template: 'completeSequence' },
+  { widget: 'matching', template: 'mulFacts' },
+];
+
 function worldNodes(worldId) {
   const friend = FRIENDS_BY_WORLD[worldId];
+  const world = WORLDS[worldId];
+  const special = SPECIAL_BY_INDEX[WORLD_ORDER.indexOf(worldId) % SPECIAL_BY_INDEX.length];
   const nodes = [];
-  // Chegada: caminhada curta + fala de boas-vindas do mundo.
-  nodes.push({ type: 'walk', to: 0.12 }, { type: 'arrive', place: 'gate' });
-  nodes.push({
-    type: 'dialogue',
-    speaker: 'narrator',
-    lines: [WORLD_ARRIVE[worldId]],
-  });
 
-  // Amigo no início do mundo (Maria logo na primeira parada, spec §16/§32).
-  nodes.push({ type: 'walk', to: 0.28 }, { type: 'arrive', place: 'friend' });
+  // ── chegada ──
+  nodes.push({ type: 'walk', to: 0.1 });
+  nodes.push({ type: 'arrive', place: 'gate' });
+  nodes.push({ type: 'dialogue', speaker: 'narrator', lines: [WORLD_ARRIVE[worldId]] });
+
+  // ── caminhada longa até o amigo, que está NO cenário ──
+  nodes.push({ type: 'walk', to: 0.3 });
+  nodes.push({ type: 'arrive', place: 'friend' });
   nodes.push({ type: 'friend', id: friend.id });
-  nodes.push({
-    type: 'dialogue',
-    speaker: friend.id,
-    lines: [friend.intro],
-  });
+  nodes.push({ type: 'dialogue', speaker: friend.id, lines: [friend.intro] });
 
-  // Encontro 1: pedido de ajuda do amigo (multiplicação contextual ou contagem).
+  // desafio 1: pedido de ajuda do amigo
   nodes.push({
     type: 'encounter',
     id: `${worldId}-help-friend`,
     widget: 'numeric',
-    template: worldId === 'forest' ? 'priceTimesQuantity' : 'priceTimesQuantity',
+    template: 'priceTimesQuantity',
     fixed: worldId === 'forest'
       ? { price: 3, quantity: 5, item: WORLD_CONTEXT.forest.item, currency: WORLD_CONTEXT.forest.currency }
       : undefined,
@@ -331,38 +351,38 @@ function worldNodes(worldId) {
   nodes.push({
     type: 'dialogue',
     speaker: friend.id,
-    lines: [{
-      pt: 'Você conseguiu! Obrigada, obrigada! 🎉',
-      en: 'You did it! Thank you, thank you! 🎉',
-    }],
+    lines: [{ pt: 'Você conseguiu! Obrigada, obrigada! 🎉', en: 'You did it! Thank you, thank you! 🎉' }],
   });
   nodes.push({ type: 'reward', id: `${worldId}-present-1`, hint: 'friend' });
 
-  // Parada de exploração livre (spec §9.2/§35).
+  // ── exploração livre ──
   nodes.push({ type: 'explore', place: 'clearing', collectibles: 2, secrets: 2 });
 
-  // Encontros 2–4 variados.
-  nodes.push({ type: 'walk', to: 0.46 }, { type: 'arrive', place: 'crossing' });
-  nodes.push({ type: 'encounter', id: `${worldId}-fork-1`, widget: 'pathChoice', template: WORLDS[worldId].templates[0] });
-  nodes.push({ type: 'encounter', id: `${worldId}-door-1`, widget: 'numeric', template: WORLDS[worldId].templates[1] });
-  nodes.push({ type: 'walk', to: 0.6 }, { type: 'arrive', place: 'shop' });
+  // ── caminhada + encruzilhada ──
+  nodes.push({ type: 'walk', to: 0.5 });
+  nodes.push({ type: 'arrive', place: 'crossing' });
+  nodes.push({ type: 'encounter', id: `${worldId}-fork-1`, widget: 'pathChoice', template: world.templates[1] });
+
+  // ── lojinha ──
+  nodes.push({ type: 'walk', to: 0.64 });
+  nodes.push({ type: 'arrive', place: 'shop' });
   nodes.push({ type: 'encounter', id: `${worldId}-shop-1`, widget: 'shop', template: 'priceTimesQuantity' });
-  nodes.push({ type: 'encounter', id: `${worldId}-keys-1`, widget: 'keys', template: WORLDS[worldId].templates[3] });
   nodes.push({ type: 'reward', id: `${worldId}-present-2`, hint: 'path' });
 
-  // Segunda exploração + quatro encontros variados (10 no total por mundo).
-  nodes.push({ type: 'explore', place: 'grove', collectibles: 2, secrets: 1 });
-  nodes.push({ type: 'walk', to: 0.7 }, { type: 'arrive', place: 'chest' });
-  nodes.push({ type: 'encounter', id: `${worldId}-chest-1`, widget: 'numeric', template: WORLDS[worldId].templates[1] });
-  nodes.push({ type: 'walk', to: 0.78 }, { type: 'arrive', place: 'bridge' });
-  nodes.push({ type: 'encounter', id: `${worldId}-fork-2`, widget: 'pathChoice', template: WORLDS[worldId].templates[2] });
-  nodes.push({ type: 'encounter', id: `${worldId}-bridge-1`, widget: 'choice', template: WORLDS[worldId].templates[4] });
-  nodes.push({ type: 'encounter', id: `${worldId}-order-1`, widget: 'ordering', template: 'completeSequence' });
-  nodes.push({ type: 'encounter', id: `${worldId}-match-1`, widget: 'matching', template: WORLDS[worldId].templates[0] });
+  // ── ponte ──
+  nodes.push({ type: 'walk', to: 0.78 });
+  nodes.push({ type: 'arrive', place: 'bridge' });
+  nodes.push({ type: 'encounter', id: `${worldId}-bridge-1`, widget: 'choice', template: world.templates[4] });
+
+  // ── desafio especial rotativo ──
+  nodes.push({ type: 'walk', to: 0.92 });
+  nodes.push({ type: 'arrive', place: 'stones' });
+  nodes.push({ type: 'encounter', id: `${worldId}-special-1`, widget: special.widget, template: special.template });
   nodes.push({ type: 'reward', id: `${worldId}-present-3`, hint: 'path' });
 
-  // Final do mundo: último trecho + festa de conclusão (spec §23).
-  nodes.push({ type: 'walk', to: 0.95 }, { type: 'arrive', place: 'gate-exit' });
+  // ── despedida + festa ──
+  nodes.push({ type: 'walk', to: 1 });
+  nodes.push({ type: 'arrive', place: 'gate-exit' });
   nodes.push({
     type: 'dialogue',
     speaker: friend.id,

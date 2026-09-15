@@ -108,18 +108,36 @@ const CSS = `
 .ma-path-spark { position: absolute; width: 6px; height: 6px; border-radius: 50%; background: #fff6d8; box-shadow: 0 0 10px 3px rgba(255,224,130,.85); animation: maSpark 2.6s ease-in-out infinite; }
 @keyframes maSpark { 0%, 100% { opacity: 0; transform: scale(.4); } 50% { opacity: 1; transform: scale(1.25); } }
 .ma-character {
-  position: absolute; bottom: 17%; width: clamp(84px, 12vw, 150px); z-index: 5;
-  transform: translateX(-50%); transition: none;
-  filter: drop-shadow(0 10px 12px rgba(0,0,0,.35));
+  position: absolute; z-index: 5;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 6px 8px rgba(0,0,0,.28));
 }
 .ma-character img { width: 100%; display: block; }
-.ma-character.walking img { animation: maBob .5s ease-in-out infinite; }
-@keyframes maBob { 0%, 100% { transform: translateY(0) rotate(-2deg); } 50% { transform: translateY(-7px) rotate(2deg); } }
-.ma-world-friend { position: absolute; bottom: 16%; width: clamp(90px, 13vw, 160px); transform: translateX(-50%); z-index: 4; transition: left 1s ease, opacity .6s; filter: drop-shadow(0 10px 14px rgba(0,0,0,.4)); animation: maFloat 2.4s ease-in-out infinite; }
-.ma-world-friend.hidden { opacity: 0; pointer-events: none; }
-.ma-world-friend img { width: 100%; display: block; }
-.ma-world-friend-portrait { border-radius: 50%; border: 3px solid #ffd166; box-shadow: 0 0 24px rgba(255,209,102,.7); }
-@keyframes maFloat { 0%, 100% { transform: translateX(-50%) translateY(0); } 50% { transform: translateX(-50%) translateY(-10px); } }
+.ma-char-shadow {
+  position: absolute; z-index: 4; transform: translate(-50%, -50%);
+  border-radius: 50%; pointer-events: none;
+  background: radial-gradient(ellipse at center, rgba(20,14,4,.55), rgba(20,14,4,0) 68%);
+  filter: blur(2px);
+}
+.ma-world-friend {
+  position: absolute; z-index: 4;
+  transform-origin: 50% 100%;
+  filter: drop-shadow(0 8px 10px rgba(0,0,0,.32));
+}
+.ma-world-friend img { width: 100%; display: block; animation: maFriendBob 2.8s ease-in-out infinite; }
+@keyframes maFriendBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-7px); } }
+.ma-friend-tag {
+  position: absolute; left: 50%; top: -14px; transform: translateX(-50%);
+  padding: 4px 12px; border-radius: 999px; white-space: nowrap;
+  background: linear-gradient(135deg, #ffd166, #ffb347); color: #5a3b00;
+  font: 800 12px 'Fredoka', sans-serif;
+  box-shadow: 0 4px 10px rgba(255,209,102,.5);
+  opacity: 0; transition: opacity .4s;
+}
+.ma-friend-tag::before {
+  content: '✨ '; 
+}
+.ma-friend-tag.show { opacity: 1; }
 
 /* ── HUD do mundo ── */
 .ma-hud { position: absolute; top: 12px; left: 12px; right: 12px; z-index: 20; display: flex; align-items: flex-start; gap: 10px; pointer-events: none; }
@@ -401,7 +419,7 @@ const CSS = `
 
 /* Reduz movimento (spec §28) */
 @media (prefers-reduced-motion: reduce) {
-  .ma-character.walking img, .ma-world-friend, .ma-path-spark, .ma-path-dash,
+  .ma-world-friend img, .ma-path-spark,
   .ma-present.shake, .ma-map-node.current, .ma-map-palace.ready, .ma-fork-target,
   .ma-spot, .ma-hint, .ma-crown-art { animation: none !important; }
   .ma-burst { display: none; }

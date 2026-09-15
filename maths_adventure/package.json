@@ -6,7 +6,7 @@
   "scripts": {
     "build": "esbuild src/main.js --bundle --minify --outfile=lib/bundle.js",
     "dev": "esbuild src/main.js --bundle --outfile=lib/bundle.js --watch",
-    "test": "node --test test/"
+    "test": "node --test test/*.test.js"
   },
   "license": "ISC",
   "dependencies": {
