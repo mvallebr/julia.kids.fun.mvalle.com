@@ -127,6 +127,7 @@ const CSS = `
   background: radial-gradient(ellipse at center, rgba(20,14,4,.55), rgba(20,14,4,0) 68%);
   filter: blur(2px);
 }
+.ma-world-friend.hidden { opacity: 0; pointer-events: none; }
 .ma-world-friend {
   position: absolute; z-index: 4;
   transform-origin: 50% 100%;

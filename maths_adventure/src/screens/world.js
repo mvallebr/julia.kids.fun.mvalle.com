@@ -192,7 +192,7 @@ export function openWorldScreen(root, context) {
   // brilho indicando interação) e a conversa começa quando o herói chega.
   const friend = FRIENDS[Object.keys(FRIENDS).find((id) => FRIENDS[id].world === worldId)];
   const friendPoint = pointAt(FRIEND_T);
-  const friendNode = el('div', 'ma-world-friend');
+  const friendNode = el('div', 'ma-world-friend hidden');
   const friendImage = el('img');
   friendImage.src = friend.id === 'maria' ? asset('sprite-maria') : asset(`friend-scene-${friend.id}`);
   friendImage.alt = lang(friend.name, language);
@@ -204,6 +204,15 @@ export function openWorldScreen(root, context) {
   friendNode.style.width = `${Math.round(104 * friendPoint.s)}px`;
   friendNode.style.zIndex = String(Math.round(friendPoint.y));
   scene.appendChild(friendNode);
+
+  function showFriend() {
+    friendNode.classList.remove('hidden');
+    friendTag.classList.add('show');
+  }
+  function hideFriend() {
+    friendNode.classList.add('hidden');
+    friendTag.classList.remove('show');
+  }
 
   // HUD: voltar, missões, colecionáveis, som.
   const hud = el('div', 'ma-hud');
@@ -473,6 +482,7 @@ export function openWorldScreen(root, context) {
     if (!node) return;
     switch (node.type) {
       case 'walk':
+        hideFriend();
         moveCharacterTo(node.to, () => advance(), { fade: Boolean(node.fade) });
         break;
       case 'arrive':
@@ -480,22 +490,21 @@ export function openWorldScreen(root, context) {
         later(() => advance(), 900);
         break;
       case 'dialogue':
+        if (node.speaker === friend.id && node.bye) showFriend();
         showDialogue(node.speaker, node.lines, () => {
-          if (node.bye) {
-            // a amiga se despede e 'vai junto' — sai de cena com o herói
-            friendNode.style.opacity = '0';
-            friendTag.classList.remove('show');
-          }
+          if (node.bye) hideFriend();
           advance();
         });
         break;
       case 'explore':
+        hideFriend();
         runExplore(node);
         break;
       case 'encounter':
         runEncounter(node);
         break;
       case 'friend':
+        showFriend();
         runFriend(node);
         break;
       case 'reward':
