@@ -311,6 +311,43 @@
   .card-facts { margin: 0; padding-left: 20px; display: grid; gap: 6px; }
   .card-facts li { font-size: 13.5px; font-weight: 500; line-height: 1.3; }
   .card-facts li::marker { color: #ff9d3f; font-weight: 700; }
+
+  /* ── Guia: o avatar apresenta o país ── */
+  .card-guide { display: flex; gap: 10px; align-items: flex-start; margin: 12px 0 2px; }
+  .guide-avatar {
+    flex: 0 0 auto; display: grid; place-items: center;
+    width: 56px; height: 56px; border-radius: 50%;
+    font-size: 31px; line-height: 1;
+    background: linear-gradient(160deg, #fff8e1, #ffe6a6);
+    border: 3px solid #fff;
+    box-shadow: 0 5px 12px rgba(0,0,0,.2), inset 0 -3px 6px rgba(180,120,0,.15);
+    animation: guideTalk 1.1s ease-in-out infinite;
+    transform-origin: 50% 90%;
+  }
+  @keyframes guideTalk {
+    0%, 100% { transform: rotate(-5deg); }
+    50% { transform: rotate(6deg) translateY(-3px); }
+  }
+  .guide-bubble {
+    position: relative; flex: 1; min-width: 0;
+    background: #fff; border: 2px solid var(--gold, #ffd166);
+    border-radius: 4px 16px 16px 16px;
+    padding: 10px 12px;
+    font-size: 13.5px; font-weight: 600; color: #33406b; line-height: 1.4;
+    box-shadow: 0 5px 12px rgba(0,0,0,.12);
+    animation: bubblePop .35s cubic-bezier(.2, 1.4, .4, 1);
+  }
+  .guide-bubble::before {
+    content: ''; position: absolute; left: -8px; bottom: 10px;
+    width: 12px; height: 12px; background: #fff;
+    border-left: 2px solid var(--gold, #ffd166); border-bottom: 2px solid var(--gold, #ffd166);
+    transform: rotate(45deg);
+  }
+  .guide-bubble b { color: #1f2c66; font-weight: 800; }
+  @keyframes bubblePop { from { transform: scale(.85); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .guide-avatar, .guide-bubble { animation: none; }
+  }
   .card-actions {
     display: flex; gap: 8px;
     margin: 0 14px 14px;
@@ -771,6 +808,6 @@
 </div>
 
 <script src="data/earth-data.js"></script>
-<script src="lib/app.bundle.js?v=20260915a"></script>
+<script src="lib/app.bundle.js?v=20260915b"></script>
 </body>
 </html>

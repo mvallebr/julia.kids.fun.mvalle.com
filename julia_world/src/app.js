@@ -640,6 +640,25 @@ function pinCard(f) {
   head.append(flag, title);
   cardBody.appendChild(head);
 
+  // ── Guia: o avatar da exploradora apresenta o país (pedido da Julia) ──────
+  const guide = document.createElement('div');
+  guide.className = 'card-guide';
+  const guideAvatar = document.createElement('span');
+  guideAvatar.className = 'guide-avatar';
+  guideAvatar.textContent = preferences.avatar || '🧭';
+  const guideBubble = document.createElement('div');
+  guideBubble.className = 'guide-bubble';
+  // o país vai em negrito: dividimos o template ao redor do marcador
+  const templateText = text(language, 'guideIntro', { country: '\u0000' });
+  const [beforeName, afterName = ''] = templateText.split('\u0000');
+  guideBubble.append(beforeName);
+  const countryBold = document.createElement('b');
+  countryBold.textContent = localize(f);
+  guideBubble.append(countryBold);
+  if (afterName) guideBubble.append(afterName);
+  guide.append(guideAvatar, guideBubble);
+  cardBody.appendChild(guide);
+
   if (rows.length) {
     const ul = document.createElement('ul');
     ul.className = 'card-rows';
