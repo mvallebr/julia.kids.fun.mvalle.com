@@ -100,7 +100,15 @@ const CSS = `
 .ma-map-back { background: rgba(20,26,66,.7); border: 1px solid rgba(255,255,255,.22); box-shadow: none; }
 
 /* ── Cena do mundo ── */
-.ma-world-bg { position: absolute; inset: 0; background-size: cover; background-position: center 68%; }
+/* Camada 16:9 do tamanho da imagem de fundo (cover): os waypoints dos
+   personagens são % da IMAGEM, então ficam alinhados ao caminho pintado
+   em qualquer proporção de tela (o excesso sangra fora, cortado). */
+.ma-scene {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: max(100vw, calc(100vh * (16 / 9)));
+  height: max(100vh, calc(100vw * (9 / 16)));
+}
+.ma-world-bg { position: absolute; inset: 0; background-size: 100% 100%; background-position: center; }
 .ma-path { position: absolute; left: 0; right: 0; bottom: 4%; height: 34%; pointer-events: none; opacity: .9; }
 .ma-path svg { position: absolute; inset: 0; width: 100%; height: 100%; }
 .ma-path-dash { animation: maDash 3.2s linear infinite; }

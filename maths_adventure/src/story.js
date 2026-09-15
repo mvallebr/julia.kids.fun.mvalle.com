@@ -381,16 +381,18 @@ function worldNodes(worldId) {
   nodes.push({ type: 'reward', id: `${worldId}-present-3`, hint: 'path' });
 
   // ── despedida + festa ──
-  nodes.push({ type: 'walk', to: 1 });
-  nodes.push({ type: 'arrive', place: 'gate-exit' });
   nodes.push({
     type: 'dialogue',
     speaker: friend.id,
+    bye: true,
     lines: [{
       pt: 'Você resolveu todos os desafios! Vou te acompanhar até a comemoração!',
       en: 'You solved every challenge! I will come with you to the celebration!',
     }],
   });
+  // caminham juntos e o herói some atrás da vegetação (fim do path pintado)
+  nodes.push({ type: 'walk', to: 1, fade: true });
+  nodes.push({ type: 'arrive', place: 'gate-exit' });
   nodes.push({ type: 'finale' });
   return nodes;
 }

@@ -73,9 +73,11 @@ export function openWorldScreen(root, context) {
   const state = getState();
 
   const screen = el('div', 'ma-world-screen');
+  // cena 16:9 alinhada à imagem de fundo: waypoints em % da IMAGEM
+  const scene = el('div', 'ma-scene');
   const bg = el('div', 'ma-world-bg');
   bg.style.backgroundImage = `url('${asset(world.asset)}')`;
-  screen.appendChild(bg);
+  scene.appendChild(bg);
 
   // ── Caminho do mundo: waypoints mapeados sobre o caminho PINTADO na arte ──
   // (spec melhorias: o herói anda sobre o caminho desenhado, com profundidade)
@@ -113,9 +115,8 @@ export function openWorldScreen(root, context) {
     dot.style.left = `${8 + index * 15 + Math.random() * 6}%`;
     dot.style.top = `${62 + Math.random() * 24}%`;
     dot.style.animationDelay = `${Math.random() * 2.4}s`;
-    screen.appendChild(dot);
+    scene.appendChild(dot);
   }
-  screen.appendChild(el('div', 'ma-path')); // mantém assinatura visual mínima
 
   // Personagem: img + sombra elíptica no chão
   const character = el('div', `ma-character ${state.character || 'girl'}`);
@@ -123,9 +124,9 @@ export function openWorldScreen(root, context) {
   sprite.src = asset(`sprite-${state.character || 'girl'}`);
   sprite.alt = '';
   character.appendChild(sprite);
-  screen.appendChild(character);
+  scene.appendChild(character);
   const shadow = el('div', 'ma-char-shadow');
-  screen.appendChild(shadow);
+  scene.appendChild(shadow);
 
   const heroName = state.character || 'girl';
   const frameCount = WALK_FRAMES[heroName] || 5;
@@ -148,7 +149,7 @@ export function openWorldScreen(root, context) {
   }
 
   let walkTimer = null;
-  function moveCharacterTo(t, done) {
+  function moveCharacterTo(t, done, opts = {}) {
     walking = true;
     banner.classList.add('hidden');
     const from = heroT;
@@ -156,6 +157,7 @@ export function openWorldScreen(root, context) {
     const duration = Math.max(1200, distance * 16000); // caminhadas mais longas
     const startedAt = performance.now();
     character.classList.add('walking');
+    character.style.opacity = '1';
     let frame = 0;
     clearInterval(walkTimer);
     walkTimer = setInterval(() => {
@@ -170,11 +172,16 @@ export function openWorldScreen(root, context) {
       const currentT = from + (t - from) * progress;
       heroT = currentT;
       placeHero(pointAt(currentT));
+      if (opts.fade) {
+        // some suavemente na vegetação no trecho final do caminho
+        character.style.opacity = String(progress < 0.55 ? 1 : Math.max(0, 1 - (progress - 0.55) / 0.45));
+      }
       if (progress < 1) {
         requestAnimationFrame(step);
       } else {
         clearInterval(walkTimer);
         sprite.src = idleSrc;
+        if (!opts.fade) character.style.opacity = '1';
         if (done) done();
       }
     };
@@ -196,7 +203,7 @@ export function openWorldScreen(root, context) {
   friendNode.style.top = `${friendPoint.y}%`;
   friendNode.style.width = `${Math.round(104 * friendPoint.s)}px`;
   friendNode.style.zIndex = String(Math.round(friendPoint.y));
-  screen.appendChild(friendNode);
+  scene.appendChild(friendNode);
 
   // HUD: voltar, missões, colecionáveis, som.
   const hud = el('div', 'ma-hud');
@@ -228,6 +235,7 @@ export function openWorldScreen(root, context) {
   screen.appendChild(banner);
   const stage = el('div', 'ma-stage');
   screen.appendChild(stage);
+  screen.appendChild(scene);
   root.appendChild(screen);
   placeHero(pointAt(heroT));
 
@@ -465,14 +473,21 @@ export function openWorldScreen(root, context) {
     if (!node) return;
     switch (node.type) {
       case 'walk':
-        moveCharacterTo(node.to, () => advance());
+        moveCharacterTo(node.to, () => advance(), { fade: Boolean(node.fade) });
         break;
       case 'arrive':
         showBanner({ gate: `🚪 ${lang(world.title, language)}`, friend: '👋', clearing: '🔍', grove: '🔍', crossing: '🛤️', shop: '🏪', bridge: '🌉', chest: '🧰', 'gate-exit': '🎉' }[node.place] || '✨');
         later(() => advance(), 900);
         break;
       case 'dialogue':
-        showDialogue(node.speaker, node.lines, () => advance());
+        showDialogue(node.speaker, node.lines, () => {
+          if (node.bye) {
+            // a amiga se despede e 'vai junto' — sai de cena com o herói
+            friendNode.style.opacity = '0';
+            friendTag.classList.remove('show');
+          }
+          advance();
+        });
         break;
       case 'explore':
         runExplore(node);
