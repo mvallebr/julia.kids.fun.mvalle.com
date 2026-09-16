@@ -1,0 +1,4 @@
+node_modules/
+assets/raw/
+assets/sprites/
+__pycache__/
