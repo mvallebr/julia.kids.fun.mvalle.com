@@ -136,7 +136,7 @@ export function openWorldScreen(root, context) {
   const idleSrc = walkFrames[0]; // pose parada = primeiro frame (direção consistente)
 
   // Personagem: âncora nos pés (left/top = ponto do caminho; escala = profundidade)
-  let heroT = 0.02; // parâmetro ao longo do caminho (0..1)
+  let heroT = 0.02; // parâmetro ao longo do caminho (0..1); ajustado no checkpoint
   let facing = ART_FACING[heroName] ?? 1; // espelhamento atual do sprite
   function placeHero(point) {
     character.style.left = `${point.x}%`;
@@ -250,7 +250,6 @@ export function openWorldScreen(root, context) {
   screen.appendChild(stage);
   screen.appendChild(scene);
   root.appendChild(screen);
-  placeHero(pointAt(heroT));
 
   // Checkpoint é por mundo: entrando num mundo diferente, começa do início.
   let nodeIndex = state.worldId === worldId
@@ -258,6 +257,15 @@ export function openWorldScreen(root, context) {
     : 0;
   let destroyed = false;
   const timers = [];
+
+  // retomada de checkpoint: herói começa no fim do último trecho caminhado
+  for (let i = Math.min(nodeIndex, nodes.length) - 1; i >= 0; i -= 1) {
+    if (nodes[i].type === 'walk') {
+      heroT = Math.max(0.02, Math.min(1, nodes[i].to));
+      break;
+    }
+  }
+  placeHero(pointAt(heroT));
 
   const later = (fn, delay) => timers.push(setTimeout(fn, delay));
 

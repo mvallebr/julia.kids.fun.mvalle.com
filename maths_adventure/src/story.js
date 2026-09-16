@@ -302,7 +302,7 @@ export const WORLD_ARRIVE = {
 // O personagem anda SOBRE o caminho desenhado na arte (spec melhorias):
 // interpolação entre waypoints + escala pela profundidade (y).
 export const PATHS = {
-  forest: [[22, 98], [40, 90], [55, 80], [66, 74], [76, 66], [84, 60], [90, 57]],
+  forest: [[22, 98], [40, 90], [55, 80], [66, 75], [76, 70], [86, 65], [96, 61]],
   candy: [[35, 100], [45, 88], [53, 78], [60, 68], [68, 60], [76, 55]],
   clouds: [[48, 100], [56, 85], [58, 72], [52, 60], [44, 50], [35, 42]],
   crystals: [[30, 100], [42, 90], [55, 80], [68, 70], [78, 62], [85, 58]],
