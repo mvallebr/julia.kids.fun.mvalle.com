@@ -16,8 +16,10 @@ import {
 import { showEncounter } from '../widgets/encounters.js';
 import { openPresentFlow } from '../widgets/present.js';
 
-// Quantos frames de caminhada existem por herói (folhas fatiadas em assets).
+// Quantos frames de caminhada existem por herói + direção da ARTE
+// (menina desenhada virada para a direita; menino para a esquerda).
 const WALK_FRAMES = { girl: 7, boy: 5 };
+const ART_FACING = { girl: 1, boy: -1 };
 const FRIEND_T = 0.3; // posição do amigo ao longo do caminho do mundo
 
 // Gera o desafio estável do encontro (semente por jogador+id, spec §25).
@@ -131,11 +133,11 @@ export function openWorldScreen(root, context) {
   const heroName = state.character || 'girl';
   const frameCount = WALK_FRAMES[heroName] || 5;
   const walkFrames = Array.from({ length: frameCount }, (_, index) => asset(`walk-${heroName}-${index + 1}`));
-  const idleSrc = asset(`sprite-${heroName}`);
+  const idleSrc = walkFrames[0]; // pose parada = primeiro frame (direção consistente)
 
   // Personagem: âncora nos pés (left/top = ponto do caminho; escala = profundidade)
   let heroT = 0.02; // parâmetro ao longo do caminho (0..1)
-  let facing = 1; // 1 = direita, -1 = esquerda
+  let facing = ART_FACING[heroName] ?? 1; // espelhamento atual do sprite
   function placeHero(point) {
     character.style.left = `${point.x}%`;
     character.style.top = `${point.y}%`;
@@ -165,7 +167,9 @@ export function openWorldScreen(root, context) {
       sprite.src = walkFrames[frame];
     }, 130);
     const start = pointAt(from);
-    facing = t >= from ? 1 : -1;
+    // espelho = direção do passo × orientação da arte de cada herói
+    const dir = t >= from ? 1 : -1;
+    facing = dir * (ART_FACING[heroName] ?? 1);
     const step = (now) => {
       if (destroyed) return;
       const progress = Math.min(1, (now - startedAt) / duration);

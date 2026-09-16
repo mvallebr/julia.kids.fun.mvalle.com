@@ -50,6 +50,8 @@ const CSS = `
   cursor: pointer; transition: transform .18s, border-color .2s, box-shadow .2s;
 }
 .ma-select-hero img { width: auto; height: clamp(150px, 24vw, 210px); object-fit: contain; filter: drop-shadow(0 12px 18px rgba(0,0,0,.45)); }
+/* ambos os retratos virados para a direita, rumo ao caminho da arte de fundo */
+.ma-select-hero.girl img { transform: scaleX(-1); }
 .ma-select-hero:hover { transform: translateY(-6px) scale(1.04); border-color: #ffd166; box-shadow: 0 18px 44px rgba(255,209,102,.35); }
 
 /* ── Introdução da história ── */
