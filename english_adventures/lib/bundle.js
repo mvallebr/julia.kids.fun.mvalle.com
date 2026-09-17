@@ -433,13 +433,17 @@
 /* leitor de passagem */
 .ma-passage { width: min(720px, 94vw); max-height: 88vh; }
 .ma-passage-text {
-  width: 100%; max-height: 34vh; overflow-y: auto;
+  /* flex-shrink:0 \u2014 sem isso o painel flex comprime o texto at\xE9 virar 1 linha
+     quando as op\xE7\xF5es grandes ocupam a altura; o painel rola como fallback. */
+  flex-shrink: 0; width: 100%; min-height: 24vh; max-height: 32vh; overflow-y: auto;
   background: #fffaf0; color: #2c3554; border-radius: 18px;
   padding: 16px 18px; font-size: clamp(15px, 2.3vw, 17.5px); line-height: 1.65;
   font-weight: 500; white-space: pre-line; text-align: left;
   box-shadow: inset 0 0 0 2px #f0e2bd;
 }
 .ma-passage-text.collapsed { display: none; }
+/* op\xE7\xF5es mais enxutas dentro da passagem: 4 alternativas + texto precisam caber */
+.ma-passage .ma-quiz-orb { padding: 10px 14px; gap: 9px; }
 .ma-passage-progress { font-weight: 800; color: #ffe9b8; font-size: 13.5px; }
 .ma-passage-question { width: 100%; display: flex; flex-direction: column; gap: 12px; align-items: center; }
 .ma-quiz-options { display: flex; flex-direction: column; gap: 10px; width: 100%; }
