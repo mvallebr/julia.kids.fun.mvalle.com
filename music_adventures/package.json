@@ -1,0 +1,15 @@
+{
+  "name": "music-adventures",
+  "version": "1.0.0",
+  "description": "Music Adventures - treino de ouvido e canto afinado para a Julia",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --minify --outfile=lib/bundle.js",
+    "dev": "esbuild src/main.js --bundle --outfile=lib/bundle.js --watch",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.28.2"
+  }
+}
