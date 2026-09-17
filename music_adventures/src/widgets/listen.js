@@ -48,7 +48,31 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
   }
   panel.appendChild(targetRow);
 
-  // botões de nota
+  // botões de nota: tocar é SEMPRE exploração livre (nunca penaliza);
+  // a resposta só é registrada no modo 🎯.
+  const modeRow = el('div', 'mu-mode-row');
+  const hearTab = el('button', 'mu-mode-tab active', uiText(language, 'hearMode'));
+  hearTab.type = 'button';
+  const answerTab = el('button', 'mu-mode-tab', uiText(language, 'answerMode'));
+  answerTab.type = 'button';
+  modeRow.appendChild(hearTab);
+  modeRow.appendChild(answerTab);
+  panel.appendChild(modeRow);
+
+  let mode = 'hear'; // 'hear' = explorar sons à vontade; 'answer' = registrar resposta
+  function setMode(next) {
+    mode = next;
+    hearTab.classList.toggle('active', mode === 'hear');
+    answerTab.classList.toggle('active', mode === 'answer');
+    if (phase === 'answer') {
+      statusLine.textContent = mode === 'hear'
+        ? uiText(language, 'tapToHear')
+        : uiText(language, 'yourAnswer');
+    }
+  }
+  hearTab.addEventListener('click', () => { sounds.tap(); setMode('hear'); });
+  answerTab.addEventListener('click', () => { sounds.tap(); setMode('answer'); });
+
   const noteRow = el('div', 'mu-note-row');
   const noteButtons = new Map();
   for (const degree of options) {
@@ -58,15 +82,18 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
     const midi = degreeToMidi(degree);
     button.innerHTML = `<span class="mu-note-sol">${midiSolfege(midi)}</span><span class="mu-note-name">${midiName(midi)}</span>`;
     button.addEventListener('click', () => {
-      if (phase !== 'answer') return;
+      if (phase === 'solved') return;
       playDegree(degree, 0.4);
-      gradeInput(degree, button);
+      button.classList.add('playing');
+      setTimeout(() => button.classList.remove('playing'), 380);
+      if (mode === 'answer' && phase === 'answer') gradeInput(degree, button);
     });
     noteButtons.set(degree, button);
     noteRow.appendChild(button);
   }
   panel.appendChild(noteRow);
 
+  const actionRow = el('div', 'mu-action-row');
   const replayButton = el('button', 'mu-btn ghost', uiText(language, 'listenAgain'));
   replayButton.type = 'button';
   replayButton.addEventListener('click', () => {
@@ -74,7 +101,25 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
     sounds.tap();
     playTarget();
   });
-  panel.appendChild(replayButton);
+  actionRow.appendChild(replayButton);
+
+  // toca todas as notas disponíveis em ordem crescente (escala de opções)
+  const playAllButton = el('button', 'mu-btn ghost', uiText(language, 'playAllNotes'));
+  playAllButton.type = 'button';
+  playAllButton.addEventListener('click', () => {
+    if (phase === 'solved') return;
+    sounds.tap();
+    options.forEach((degree, index) => {
+      setTimeout(() => {
+        playDegree(degree, 0.42);
+        const button = noteButtons.get(degree);
+        button.classList.add('playing');
+        setTimeout(() => button.classList.remove('playing'), 380);
+      }, index * 480);
+    });
+  });
+  actionRow.appendChild(playAllButton);
+  panel.appendChild(actionRow);
 
   screen.appendChild(panel);
   host.appendChild(screen);
@@ -124,7 +169,10 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
     setTimeout(() => {
       if (phase === 'listen') {
         phase = 'answer';
-        statusLine.textContent = uiText(language, 'yourAnswer');
+        // respeita o modo atual: explorar primeiro é o padrão
+        statusLine.textContent = mode === 'hear'
+          ? uiText(language, 'tapToHear')
+          : uiText(language, 'yourAnswer');
         // repinta as já acertadas
         for (let index = 0; index < inputIndex; index += 1) {
           highlight(targetRow.children[index], DEGREE_COLORS[melody[index]]);
@@ -139,8 +187,11 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
     onSave?.(stars);
     sounds.star();
     confetti(60 * stars, 1800);
+    phase = 'solved';
     statusLine.textContent = stars >= 3 ? uiText(language, 'greatEar') : uiText(language, 'correct');
-    replayButton.remove();
+    // modos e exploração não fazem sentido com o nível resolvido
+    modeRow.remove();
+    actionRow.remove();
     const nextButton = el('button', 'mu-btn', uiText(language, 'nextLevel'));
     nextButton.type = 'button';
     nextButton.addEventListener('click', () => { sounds.tap(); onFinish(stars, level + 1); });

@@ -74,6 +74,19 @@ const CSS = `
   background: transparent; transition: background .2s, border-color .2s;
 }
 .mu-note-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; width: 100%; }
+
+/* abas Ouvir / Responder */
+.mu-mode-row {
+  display: flex; gap: 8px; padding: 5px; border-radius: 999px;
+  background: rgba(16,10,32,.55); border: 1.5px solid rgba(255,209,102,.35);
+}
+.mu-mode-tab {
+  border: 0; cursor: pointer; border-radius: 999px; padding: 9px 20px;
+  font-weight: 800; font-size: 14.5px; color: rgba(255,247,234,.7);
+  background: transparent; transition: background .18s, color .18s;
+}
+.mu-mode-tab.active { background: linear-gradient(180deg, #ffe08a, #e0b04c); color: #3d2c10; box-shadow: 0 3px 0 #9a7420; }
+.mu-action-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .mu-note-btn {
   --note-color: #ffd166;
   display: flex; flex-direction: column; align-items: center; gap: 2px;
@@ -86,6 +99,7 @@ const CSS = `
 .mu-note-btn:active { transform: translateY(1px); box-shadow: 0 2px 0 rgba(0,0,0,.35); }
 .mu-note-sol { font-size: 20px; font-weight: 800; text-transform: capitalize; }
 .mu-note-name { font-size: 11.5px; font-weight: 700; opacity: .8; }
+.mu-note-btn.playing { transform: translateY(-4px) scale(1.06); filter: brightness(1.18); box-shadow: 0 0 24px color-mix(in srgb, var(--note-color) 70%, #fff); }
 .shake { animation: muShake .5s ease; }
 .wiggle { animation: muShake .5s ease; }
 @keyframes muShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
