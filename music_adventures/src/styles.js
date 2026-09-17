@@ -112,6 +112,15 @@ const CSS = `
 }
 .mu-axis-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 12px; font-weight: 700; color: rgba(255,247,234,.75); }
 .mu-axis-note { padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.09); }
+.mu-results-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
+.mu-result-chip {
+  padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 800; color: #241430;
+  background: #ffd166;
+}
+.mu-result-chip.good { background: #7ad97a; }
+.mu-result-chip.ok { background: #ffd166; }
+.mu-result-chip.off { background: #ff8fa3; }
+.mu-result-chip.miss { background: rgba(255,255,255,.25); color: rgba(255,247,234,.8); }
 .mu-controls { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; }
 .mu-sing { min-width: 220px; }
 .mu-sing.recording { background: linear-gradient(180deg, #ff8fa3, #e0506b); color: #fff; box-shadow: 0 6px 0 #8a2740, 0 0 30px rgba(255,110,140,.6); animation: muPulse 1s ease-in-out infinite; }

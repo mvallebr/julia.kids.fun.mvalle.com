@@ -57,6 +57,10 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
   const ctx = canvas.getContext('2d');
   panel.appendChild(canvas);
 
+  // resultado por nota: esperado → cantado (aparece ao fim de cada música)
+  const resultsRow = el('div', 'mu-results-row');
+  panel.appendChild(resultsRow);
+
   // legenda do eixo (nomes das notas)
   const axisRow = el('div', 'mu-axis-row');
   const axisMidis = [degreeToMidi(0), degreeToMidi(2), degreeToMidi(4), degreeToMidi(5), degreeToMidi(7)];
@@ -93,7 +97,7 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
     return height - 10 - ((midi - bottom) / (top - bottom)) * (height - 20);
   }
 
-  function drawResult(grades) {
+  function drawResult(grades, actualMidis = []) {
     resizeCanvas();
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
@@ -103,8 +107,35 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
       const x = px(starts[index]);
       const w = px(starts[index] + song.beats[index] * beatSeconds) - x - 6;
       const y = py(midi);
-      ctx.fillStyle = colors[grades[index]] || colors.miss;
+      const grade = grades[index] || 'miss';
+      ctx.fillStyle = colors[grade] || colors.miss;
       roundRect(x, y - 14, Math.max(18, w), 28, 8);
+      // nota esperada dentro do bloco
+      ctx.fillStyle = 'rgba(20,16,36,.85)';
+      ctx.font = '700 11px Fredoka, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(midiSolfege(midi), x + Math.max(18, w) / 2, y + 4);
+      // nota REAL cantada, logo abaixo do bloco
+      const actual = actualMidis[index];
+      if (actual != null) {
+        const arrow = actual > midi ? '↑' : actual < midi ? '↓' : '✓';
+        ctx.fillStyle = '#6bd6ff';
+        ctx.font = '800 12px Fredoka, sans-serif';
+        ctx.fillText(`${arrow} ${midiSolfege(actual)}`, x + Math.max(18, w) / 2, y + 26);
+      }
+    });
+    renderResultChips(grades, actualMidis);
+  }
+
+  // chips "esperado → cantado" abaixo do canvas (informação exata por nota)
+  function renderResultChips(grades, actualMidis) {
+    resultsRow.innerHTML = '';
+    targets.forEach((midi, index) => {
+      const grade = grades[index] || 'miss';
+      const actual = actualMidis[index];
+      const chip = el('span', `mu-result-chip ${grade}`,
+        actual != null ? `${midiSolfege(midi)} → ${midiSolfege(actual)}` : `${midiSolfege(midi)} → ?`);
+      resultsRow.appendChild(chip);
     });
   }
 
@@ -245,31 +276,56 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
   }
 
   let liveTrace = [];
+  let hzSamples = targets.map(() => []);
+  // Contagem de entrada: a criança aperta o botão e precisa de tempo para
+  // começar a cantar — sem isso a primeira nota sempre virava "perdida".
+  const LEAD_IN_BEATS = 2;
+  const leadIn = LEAD_IN_BEATS * beatSeconds;
+
   function startRecording(button) {
     recording = true;
     liveTrace = [];
     samples.forEach((list) => { list.length = 0; });
+    hzSamples.forEach((list) => { list.length = 0; });
     button.classList.add('recording');
     button.textContent = `🎤 ${uiText(language, 'listening')}`;
     phase = 'singing';
     const startedAt = performance.now();
     let lastSample = 0;
+    let lastCount = null;
     const loop = () => {
       if (destroyed || !recording) return;
-      const elapsed = (performance.now() - startedAt) / 1000;
+      // tempo da MÚSICA: 0 é o início da primeira nota (a entrada fica antes)
+      const elapsed = (performance.now() - startedAt) / 1000 - leadIn;
       const { hz } = detectPitch();
-      liveTrace.push([elapsed, hz]);
-      // amostra por nota: só pega o miolo do bloco (pula 20% das bordas)
-      targets.forEach((midi, index) => {
-        const noteStart = starts[index];
-        const noteEnd = noteStart + song.beats[index] * beatSeconds;
-        const innerStart = noteStart + (noteEnd - noteStart) * 0.2;
-        const innerEnd = noteEnd - (noteEnd - noteStart) * 0.15;
-        if (elapsed >= innerStart && elapsed <= innerEnd && Number.isFinite(hz)) {
-          samples[index].push(centsOff(hz, midi));
+
+      // contagem regressiva durante a entrada
+      if (elapsed < 0) {
+        const count = Math.ceil(-elapsed / beatSeconds);
+        if (count !== lastCount) {
+          lastCount = count;
+          statusLine.textContent = `${count}…`;
         }
-      });
-      drawLive(elapsed, hz);
+      } else if (lastCount !== 0) {
+        lastCount = 0;
+        statusLine.textContent = uiText(language, 'nowSing');
+      }
+
+      if (elapsed >= 0) {
+        liveTrace.push([elapsed, hz]);
+        // amostra por nota: só pega o miolo do bloco (pula bordas)
+        targets.forEach((midi, index) => {
+          const noteStart = starts[index];
+          const noteEnd = noteStart + song.beats[index] * beatSeconds;
+          const innerStart = noteStart + (noteEnd - noteStart) * 0.2;
+          const innerEnd = noteEnd - (noteEnd - noteStart) * 0.15;
+          if (elapsed >= innerStart && elapsed <= innerEnd && Number.isFinite(hz)) {
+            samples[index].push(centsOff(hz, midi));
+            hzSamples[index].push(hz);
+          }
+        });
+        drawLive(elapsed, hz);
+      }
       if (elapsed >= totalSeconds + 0.4) {
         stopRecording();
         return;
@@ -283,7 +339,7 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
       raf = requestAnimationFrame(loop);
     };
     raf = requestAnimationFrame(loop);
-    singTimer = setTimeout(() => stopRecording(), (totalSeconds + 0.6) * 1000);
+    singTimer = setTimeout(() => stopRecording(), (leadIn + totalSeconds + 0.6) * 1000);
   }
 
   function stopRecording() {
@@ -295,9 +351,16 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
     const button = controls.querySelector('.mu-sing');
     button?.classList.remove('recording');
     const grades = samples.map((list) => gradeNote(list));
-    drawResult(grades);
+    // nota REAL cantada em cada bloco: mediana das frequências → nota mais próxima
+    const actualMidis = hzSamples.map((list, index) => {
+      if (!list.length) return null;
+      const sorted = [...list].sort((a, b) => a - b);
+      const medianHz = sorted[Math.floor(sorted.length / 2)];
+      return nearestMidi(medianHz);
+    });
+    drawResult(grades, actualMidis);
     const stars = gradeSong(grades);
-    finish(grades, stars);
+    finish(grades, actualMidis, stars);
   }
 
   function highlightBlock(index) {
