@@ -1,0 +1,37 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  body { margin: 0; background: #111; font-family: monospace; }
+  .world { position: relative; width: 760px; height: 428px; background-size: cover; background-position: center; overflow: hidden; border-bottom: 2px solid #000; }
+  .world h2 { position: absolute; z-index: 5; margin: 4px 8px; color: #0f0; font-size: 14px; text-shadow: 0 1px 2px #000; }
+  svg.path { position: absolute; inset: 0; width: 100%; height: 100%; }
+  svg.path polyline { fill: none; stroke: #00ff88; stroke-width: 2; }
+  svg.path circle { fill: #ff3355; stroke: #fff; stroke-width: 1.2; }
+  svg.path circle.friend { fill: #33bbff; }
+</style>
+</head>
+<body>
+<div id="out"></div>
+<script type="module">
+  import { PATHS, WORLD_ORDER } from './src/story.js';
+  import { asset } from './src/assets.js';
+  const out = document.getElementById('out');
+  for (const id of WORLD_ORDER) {
+    const path = PATHS[id];
+    const sec = document.createElement('div');
+    sec.className = 'world';
+    sec.style.backgroundImage = `url('${asset(`bg-${id}`)}')`;
+    sec.innerHTML = `<h2>${id}</h2>
+      <svg class="path" viewBox="0 0 100 100" preserveAspectRatio="none">
+        <polyline points="${path.map(([x, y]) => `${x},${y}`).join(' ')}" vector-effect="non-scaling-stroke"/>
+        ${path.map(([x, y]) => `<circle cx="${x}" cy="${y}" r="1.6" vector-effect="non-scaling-stroke"/>`).join('')}
+        <circle class="friend" cx="${path[Math.floor(path.length * 0.3)][0]}" cy="${path[Math.floor(path.length * 0.3)][1]}" r="2" vector-effect="non-scaling-stroke"/>
+      </svg>`;
+    out.appendChild(sec);
+  }
+  window.__ready = true;
+</script>
+</body>
+</html>
