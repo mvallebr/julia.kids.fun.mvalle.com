@@ -60,7 +60,14 @@ test('escada de ouro: stake cresce com o índice da questão', () => {
 });
 
 test('marcos garantem o ouro nos índices certos', () => {
-  assert.deepEqual([3, 9, 12].every((index) => isMilestone(index)), true);
+  // MILESTONE_AFTER is derived from CHAPTERS — milestones land at the end of
+  // every 2-chapter difficulty cycle (cap 2, 4, 6). All of those indices must
+  // secure the bankroll; neighbouring indices must not.
+  assert.ok(isMilestone(6), 'end of cap 2 should be a milestone');
+  assert.ok(isMilestone(14), 'end of cap 4 should be a milestone');
+  assert.ok(isMilestone(24), 'end of cap 6 should be a milestone');
+  assert.equal(isMilestone(3), false, 'mid-chapter 1 should not be a milestone');
+  assert.equal(isMilestone(7), false, 'just after milestone should not be one');
   const state = emptyState();
   state.gold = 1700; // 100+200+500+1000... parcial
   secureMilestone(state);

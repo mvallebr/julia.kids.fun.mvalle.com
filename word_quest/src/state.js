@@ -6,8 +6,21 @@
 export const STORAGE_KEY = 'mundo-da-julia.wordquest.v1';
 
 export const LADDER = [100, 200, 500, 1000, 2000, 5000, 10000, 25000, 50000, 100000, 250000, 500000, 1000000];
-// capítulos: 3 questões cada; o índice global da questão define o degrau
-export const MILESTONE_AFTER = [3, 9, 12, 18]; // fim dos capítulos 2, 4, 5, 6
+// Milestone positions are computed dynamically from CHAPTERS in chapters.js so
+// the gold is secured at the end of each 2-chapter difficulty cycle (easy,
+// medium, hard): after chapters 2, 4 and 6. The castle at chapter 7 also
+// secures the entire bankroll regardless.
+import { CHAPTERS } from './chapters.js';
+function buildMilestones() {
+  let total = 0;
+  const out = [];
+  for (let index = 0; index < CHAPTERS.length - 1; index += 1) {
+    total += CHAPTERS[index].questions;
+    if ((index + 1) % 2 === 0) out.push(total);
+  }
+  return out;
+}
+export const MILESTONE_AFTER = buildMilestones();
 
 export function emptyState() {
   return {
@@ -48,9 +61,14 @@ export function normalizeState(value = {}) {
   state.questionIndex = Math.max(0, Math.floor(source.questionIndex) || 0);
   state.gold = Math.max(0, Math.floor(source.gold) || 0);
   state.secured = Math.max(0, Math.floor(source.secured) || 0);
-  const lifelines = source.lifelines && typeof source.lifelines === 'object' ? source.lifelines : {};
+  // Start from defaults so a fresh player still gets one of each tool. Only
+  // overwrite when the source explicitly carries that key (so a corrupted
+  // partial save doesn't accidentally zero them out).
   for (const key of Object.keys(state.lifelines)) {
-    state.lifelines[key] = Math.max(0, Math.min(9, Math.floor(lifelines[key]) || 0));
+    const src = source.lifelines && typeof source.lifelines === 'object' ? source.lifelines[key] : undefined;
+    state.lifelines[key] = src == null
+      ? state.lifelines[key]
+      : Math.max(0, Math.min(9, Math.floor(src) || 0));
   }
   state.crystals = Math.max(0, Math.floor(source.crystals) || 0);
   state.chapterDone = (Array.isArray(source.chapterDone) ? source.chapterDone : [])

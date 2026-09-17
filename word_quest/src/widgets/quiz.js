@@ -22,8 +22,25 @@ export function showQuizQuestion(host, opts) {
   let locked = false;
   let selectedText = null;
   let resolved = false;
+  let destroyed = false;
+  const timers = [];
+  const schedule = (fn, delay) => {
+    const id = setTimeout(() => {
+      timers.splice(timers.indexOf(id), 1);
+      if (destroyed) return;
+      fn();
+    }, delay);
+    timers.push(id);
+    return id;
+  };
+  const destroy = () => {
+    if (destroyed) return;
+    destroyed = true;
+    while (timers.length) clearTimeout(timers.pop());
+    overlay.remove();
+  };
   const resolveOnce = (fn) => (...args) => {
-    if (resolved) return;
+    if (resolved || destroyed) return;
     resolved = true;
     fn(...args);
   };
@@ -34,6 +51,9 @@ export function showQuizQuestion(host, opts) {
   const panel = el('div', 'wq-quiz wq-panel-dark');
   overlay.appendChild(panel);
   host.appendChild(overlay);
+
+  // expose destroy to the caller so it can cancel timers when leaving the screen
+  host._wqDestroyCurrent = destroy;
 
   const countLine = el('div', 'wq-q-count');
   const stakeLine = el('div', 'wq-stake');
@@ -86,12 +106,13 @@ export function showQuizQuestion(host, opts) {
   }
 
   lockButton.addEventListener('click', () => {
-    if (locked || !selectedText) return;
+    if (locked || !selectedText || destroyed) return;
     locked = true;
     lockButton.textContent = uiText(language, 'locked');
     lockButton.classList.add('suspense');
     sounds.tap();
-    setTimeout(() => {
+    schedule(() => {
+      if (destroyed) return;
       lockButton.classList.remove('suspense');
       lockButton.disabled = true;
       const chosen = visible.find((option) => option.text === selectedText);
@@ -112,10 +133,7 @@ export function showQuizQuestion(host, opts) {
       panel.insertBefore(goldLine, lifelinesBox);
       panel.insertBefore(explainBox, lifelinesBox);
       (correct ? sounds.correct : sounds.wrong)();
-      setTimeout(() => {
-        overlay.remove();
-        opts.onAnswer(correct, selectedText);
-      }, 3600);
+      schedule(() => answerOnce(correct), 3600);
     }, 1300);
   });
 
@@ -173,8 +191,17 @@ export function showQuizQuestion(host, opts) {
     node.innerHTML = `<span class="name">${icon} ${nameFn()}</span><span class="desc">${descFn()}</span><span class="count">× ${lifelines[kind] ?? 0}</span>`;
     node.addEventListener('click', () => {
       if (locked || (lifelines[kind] ?? 0) <= 0) return;
+      const ok = opts.onLifeline ? !!opts.onLifeline(kind) : true;
+      if (!ok) {
+        sounds.wrong();
+        return;
+      }
       lifelines[kind] -= 1;
       node.querySelector('.count').textContent = `× ${lifelines[kind]}`;
+      if (lifelines[kind] <= 0) {
+        node.classList.add('spent');
+        node.disabled = true;
+      }
       const message = effect();
       if (message) showMessage(message);
       sounds.tap();

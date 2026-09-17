@@ -3,7 +3,7 @@
 // repetição espaçada.
 
 import { el, clearContainer } from './ui.js';
-import { sounds } from './audio.js';
+import { sounds, setMuted } from './audio.js';
 import { uiText, lang } from './i18n.js';
 import { asset, preload } from './assets.js';
 import { ensureStyles } from './styles.js';
@@ -22,6 +22,7 @@ const launcherConfig = query.get('from') === 'launcher' ? query : null;
 
 let player = (launcherConfig?.get('name') || '').trim() || 'explorer';
 let state = loadState(localStorage, player);
+setMuted(!state.sound);
 let screen = null;
 
 function setState(mutate) {
@@ -100,6 +101,17 @@ function renderMap() {
     journalChip.type = 'button';
     journalChip.addEventListener('click', () => { sounds.tap(); renderJournal(); });
     hud.appendChild(journalChip);
+    const soundChip = el('button', 'wq-chip clickable', state.sound ? '🔊' : '🔇');
+    soundChip.type = 'button';
+    soundChip.title = uiText('en', 'muteTitle');
+    soundChip.addEventListener('click', () => {
+      const next = !state.sound;
+      setState((draft) => { draft.sound = next; });
+      setMuted(!next);
+      soundChip.textContent = next ? '🔊' : '🔇';
+      sounds.tap();
+    });
+    hud.appendChild(soundChip);
     const menuChip = el('button', 'wq-chip clickable', uiText('en', 'exitToLauncher'));
     menuChip.type = 'button';
     menuChip.addEventListener('click', exitToLauncher);
@@ -159,6 +171,17 @@ function enterChapter(chapterIndex) {
     backChip.title = uiText('en', 'backToMap');
     backChip.addEventListener('click', () => { sounds.tap(); renderMap(); });
     topHud.appendChild(backChip);
+    const soundChip = el('button', 'wq-chip clickable', state.sound ? '🔊' : '🔇');
+    soundChip.type = 'button';
+    soundChip.title = uiText('en', 'muteTitle');
+    soundChip.addEventListener('click', () => {
+      const next = !state.sound;
+      setState((draft) => { draft.sound = next; });
+      setMuted(!next);
+      soundChip.textContent = next ? '🔊' : '🔇';
+      sounds.tap();
+    });
+    topHud.appendChild(soundChip);
     const exitChip = el('button', 'wq-chip clickable', '🏠');
     exitChip.type = 'button';
     exitChip.title = uiText('en', 'exitToLauncher');
@@ -200,6 +223,17 @@ function runChapterQuiz(chapterIndex) {
     backChip.title = uiText('en', 'backToMap');
     backChip.addEventListener('click', () => { sounds.tap(); renderMap(); });
     topHud.appendChild(backChip);
+    const soundChipQuiz = el('button', 'wq-chip clickable', state.sound ? '🔊' : '🔇');
+    soundChipQuiz.type = 'button';
+    soundChipQuiz.title = uiText('en', 'muteTitle');
+    soundChipQuiz.addEventListener('click', () => {
+      const next = !state.sound;
+      setState((draft) => { draft.sound = next; });
+      setMuted(!next);
+      soundChipQuiz.textContent = next ? '🔊' : '🔇';
+      sounds.tap();
+    });
+    topHud.appendChild(soundChipQuiz);
     const exitChip = el('button', 'wq-chip clickable', '🏠');
     exitChip.type = 'button';
     exitChip.title = uiText('en', 'exitToLauncher');
@@ -227,6 +261,12 @@ function runChapterQuiz(chapterIndex) {
     let localIndex = 0;
 
     function showCurrent(avoidPrompt = '') {
+      // cancel any pending timers from the previous quiz overlay (lock-in suspense
+      // and the 3.6s post-reveal delay) so they cannot fire onAnswer after we move on.
+      if (quizHost._wqDestroyCurrent) {
+        quizHost._wqDestroyCurrent();
+        quizHost._wqDestroyCurrent = null;
+      }
       clearContainer(quizHost);
       const globalIndex = state.questionIndex;
       const question = nextQuestion({
@@ -283,11 +323,17 @@ function runChapterQuiz(chapterIndex) {
       });
 
       if (isDragon) {
-        hearts = Math.max(0, hearts - (correct ? 1 : 0));
+        // Dragon Challenge: errors cost hearts, correct answers keep them.
+        // If the player loses all hearts the dragon drains their gold.
+        hearts = Math.max(0, hearts - (correct ? 0 : 1));
         if (heartsRow) {
           [...heartsRow.children].forEach((heart, index) => {
             heart.classList.toggle('lost', index >= hearts);
           });
+        }
+        if (hearts === 0) {
+          sounds.wrong();
+          setState((draft) => { failQuestion(draft); });
         }
       }
 
@@ -307,9 +353,10 @@ function runChapterQuiz(chapterIndex) {
     }
 
     function finishChapter(chapterRef) {
-      const milestone = chapterRef.milestone;
+      // handleAnswer already called secureMilestone when the milestone question
+      // was answered. Skip the duplicate here so we don't fire two back-to-back
+      // "milestone secured" toasts.
       setState((draft) => {
-        if (milestone) secureMilestone(draft);
         if (!draft.chapterDone.includes(chapterRef.id)) draft.chapterDone.push(chapterRef.id);
         draft.chapter = Math.min(CHAPTERS.length - 1, WORLD_ORDER_INDEX(chapterRef.id) + 1);
       });
@@ -321,7 +368,17 @@ function runChapterQuiz(chapterIndex) {
 
     showCurrent();
 
-    return { destroy() { screenEl.remove(); } };
+    return {
+      destroy() {
+        // Cancel any pending quiz timers (lock-in suspense + reveal delay) so they
+        // can't call onAnswer after the user has already left for the map/menu.
+        if (quizHost._wqDestroyCurrent) {
+          quizHost._wqDestroyCurrent();
+          quizHost._wqDestroyCurrent = null;
+        }
+        screenEl.remove();
+      },
+    };
   });
 }
 

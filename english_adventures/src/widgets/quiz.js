@@ -17,6 +17,29 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
   const overlay = el('div', 'ma-enc-overlay');
   const panel = el('div', 'ma-enc ma-quiz');
 
+  const timers = [];
+  let destroyed = false;
+  const schedule = (fn, delay) => {
+    const id = setTimeout(() => {
+      const idx = timers.indexOf(id);
+      if (idx >= 0) timers.splice(idx, 1);
+      if (destroyed) return;
+      fn();
+    }, delay);
+    timers.push(id);
+    return id;
+  };
+  const safeSolved = () => { if (!destroyed) onSolved(); };
+  const safeWrong = () => { if (!destroyed) onWrong?.(); };
+
+  // expose cleanup so the parent screen can cancel timers when the user leaves
+  host._eaDestroyQuiz = () => {
+    if (destroyed) return;
+    destroyed = true;
+    while (timers.length) clearTimeout(timers.pop());
+    overlay.remove();
+  };
+
   if (challenge.passage) {
     const ref = el('button', 'ma-passage-ref', '📖 Re-read the text');
     ref.type = 'button';
@@ -41,7 +64,7 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
     burstAt(panel, 30);
     panel.appendChild(el('div', 'ma-enc-success', uiText(language, pick(GOOD))));
     panel.appendChild(el('div', 'ma-explain', `💡 ${challenge.explanation}`));
-    setTimeout(() => { overlay.remove(); onSolved(); }, 2600);
+    schedule(() => { overlay.remove(); safeSolved(); }, 2600);
   }
 
   function fail(node, correctTexts) {
@@ -61,7 +84,7 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
   const markWrong = (node) => {
     if (!node) return;
     node.classList.add('wrong');
-    setTimeout(() => node.classList.remove('wrong'), 650);
+    schedule(() => node.classList.remove('wrong'), 650);
   };
 
   // ── escolha A–E (uma ou duas corretas) ──
@@ -89,7 +112,7 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
             if (allCorrect) {
               solved.value = true;
               row.classList.add('right');
-              celebrate(panel, language, () => { overlay.remove(); onSolved(); });
+              celebrate(panel, language, () => { overlay.remove(); safeSolved(); });
             } else {
               markWrong(row);
               selected.clear();
@@ -103,10 +126,10 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
         if (option.correct) {
           solved.value = true;
           orb.classList.add('right');
-          celebrate(panel, language, () => { overlay.remove(); onSolved(); });
+          celebrate(panel, language, () => { overlay.remove(); safeSolved(); });
         } else {
           orb.classList.add('wrong');
-          setTimeout(() => orb.classList.remove('wrong'), 650);
+          schedule(() => orb.classList.remove('wrong'), 650);
           onWrong?.();
         }
       });
@@ -129,10 +152,10 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
           solved.value = true;
           branch.classList.add('right');
           overlay.classList.add('solved');
-          celebrate(branch, language, onSolved);
+          celebrate(branch, language, safeSolved);
         } else {
           branch.classList.add('wrong');
-          setTimeout(() => branch.classList.remove('wrong'), 700);
+          schedule(() => branch.classList.remove('wrong'), 700);
           onWrong?.();
         }
       });
@@ -161,7 +184,7 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
           celebrate(panel, language, onSolved);
         } else {
           key.classList.add('wrong');
-          setTimeout(() => key.classList.remove('wrong'), 650);
+          schedule(() => key.classList.remove('wrong'), 650);
           onWrong?.();
         }
       });
@@ -197,7 +220,7 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
           }
         } else {
           stone.classList.add('wrong');
-          setTimeout(() => stone.classList.remove('wrong'), 650);
+          schedule(() => stone.classList.remove('wrong'), 650);
           onWrong?.();
         }
       });
@@ -245,7 +268,7 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
           }
         } else {
           right.classList.add('wrong');
-          setTimeout(() => right.classList.remove('wrong'), 650);
+          schedule(() => right.classList.remove('wrong'), 650);
           onWrong?.();
         }
       });
@@ -266,5 +289,5 @@ function celebrate(panel, language, onSolved) {
   sounds.correct();
   burstAt(panel, 30);
   panel.appendChild(el('div', 'ma-enc-success', uiText('en', pick(['correct', 'wellDone', 'awesome']))));
-  setTimeout(onSolved, 1400);
+  schedule(safeSolved, 1400);
 }

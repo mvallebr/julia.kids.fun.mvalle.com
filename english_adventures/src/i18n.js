@@ -45,6 +45,11 @@ const COPY = {
   storyBadge: 'Hero of the Golden Path',
   scoring: 'Challenges solved',
   rewardBadge: 'New badge!',
+  rewardSticker: '🟡 New sticker:',
+  rewardCollectible: 'A new collectible has been added!',
+  tapPresent: 'Tap the present',
+  keepTapping: 'Keep tapping!',
+  presentFrom: 'A gift from your friend',
   muteTitle: 'Toggle sounds',
   exitToLauncher: 'Menu',
   storyIntroTitle: '🏰 The Tale of the Golden Academy',
@@ -57,7 +62,6 @@ const COPY = {
   questMeet: 'Meet {n} friends',
   questPresents: 'Open {n} presents',
   questCollect: 'Collect {n} {item}',
-  storyBadge: 'Hero of the Golden Path',
   loading: 'Loading the adventure…',
 };
 

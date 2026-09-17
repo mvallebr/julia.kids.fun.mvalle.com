@@ -3,7 +3,7 @@
 // desafio de inglês → passagem de leitura → recompensa → final).
 
 import { el, burst, burstAt, confetti, toast, typewriter } from '../ui.js';
-import { sounds } from '../audio.js';
+import { sounds, setMuted } from '../audio.js';
 import { uiText, lang } from '../i18n.js';
 import { asset, preload, WORLD_STICKER } from '../assets.js';
 import { WORLDS, WORLD_ORDER, FRIENDS, PATHS, EXPLORE_SECRETS, nodesFor } from '../story.js';
@@ -131,6 +131,7 @@ export function openWorldScreen(root, context) {
   soundChip.addEventListener('click', () => {
     const next = !getState().sound;
     setState((draft) => { draft.sound = next; });
+    setMuted(!next);
     soundChip.textContent = next ? '🔊' : '🔇';
     sounds.tap();
   });
@@ -519,6 +520,13 @@ export function openWorldScreen(root, context) {
       destroyed = true;
       timers.forEach(clearTimeout);
       clearInterval(walkTimer);
+      // cancel any in-flight widget timers (quiz, passage, present, friend) so
+      // they can't fire onAnswer/advance after the user has already left the
+      // world via the back/home chip.
+      if (stage._eaDestroyQuiz) stage._eaDestroyQuiz();
+      if (stage._eaDestroyPassage) stage._eaDestroyPassage();
+      if (stage._eaDestroyPresent) stage._eaDestroyPresent();
+      if (stage._eaDestroyFriend) stage._eaDestroyFriend();
       screen.remove();
     },
   };

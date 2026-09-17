@@ -12,6 +12,27 @@ export function showPassageSet(host, passage, language, onDone) {
   const overlay = el('div', 'ma-enc-overlay ma-passage-overlay');
   const panel = el('div', 'ma-enc ma-passage');
 
+  const timers = [];
+  let destroyed = false;
+  const schedule = (fn, delay) => {
+    const id = setTimeout(() => {
+      const idx = timers.indexOf(id);
+      if (idx >= 0) timers.splice(idx, 1);
+      if (destroyed) return;
+      fn();
+    }, delay);
+    timers.push(id);
+    return id;
+  };
+  // expose cleanup to the world screen so it can cancel the post-answer delay
+  // when the user leaves the world mid-passage.
+  host._eaDestroyPassage = () => {
+    if (destroyed) return;
+    destroyed = true;
+    while (timers.length) clearTimeout(timers.pop());
+    overlay.remove();
+  };
+
   const title = el('div', 'ma-enc-prompt', `📖 ${lang(passage.title, language)}`);
   panel.appendChild(title);
 
@@ -49,8 +70,9 @@ export function showPassageSet(host, passage, language, onDone) {
       const orb = el('button', 'ma-orb ma-quiz-orb');
       orb.type = 'button';
       orb.innerHTML = `<span class="ma-quiz-letter">${LETTERS[optionIndex]}</span><span class="ma-quiz-text">${option}</span>`;
+      const answered = { value: false };
       orb.addEventListener('click', () => {
-        if (answered.value) return;
+        if (answered.value || destroyed) return;
         answered.value = true;
         const correct = optionIndex === question.a;
         if (correct) {
@@ -63,7 +85,8 @@ export function showPassageSet(host, passage, language, onDone) {
         // revela a correta e a explicação (ensinar, spec feedback)
         quizNode.querySelectorAll('.ma-quiz-orb')[question.a]?.classList.add('right');
         quizNode.appendChild(el('div', 'ma-explain', `💡 ${question.why}`));
-        setTimeout(() => {
+        schedule(() => {
+          if (destroyed) return;
           index += 1;
           if (index >= passage.questions.length) {
             overlay.remove();
@@ -76,7 +99,6 @@ export function showPassageSet(host, passage, language, onDone) {
       });
       optionsRow.appendChild(orb);
     });
-    const answered = { value: false };
     quizNode.appendChild(optionsRow);
     panel.appendChild(quizNode);
     renderProgress();
@@ -86,6 +108,8 @@ export function showPassageSet(host, passage, language, onDone) {
   renderQuestion();
   return {
     destroy() {
+      destroyed = true;
+      while (timers.length) clearTimeout(timers.pop());
       overlay.remove();
     },
   };
