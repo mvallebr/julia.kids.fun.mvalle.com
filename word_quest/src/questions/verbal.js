@@ -47,7 +47,15 @@ function optionList(rng, correctTexts, wrongTexts) {
 }
 
 function baseQuestion(skill, tier) {
-  return { skill, tier, band: bandOf(tier), source: 'generated' };
+  const labels = {
+    synonyms: 'Synonyms',
+    antonyms: 'Antonyms',
+    analogies: 'Analogy',
+    'word relationships': 'Odd one out',
+    'vocabulary context': 'In context',
+    spelling: 'Spelling',
+  };
+  return { skill, skillLabel: labels[skill] || skill, tier, band: bandOf(tier), source: 'generated' };
 }
 
 // ── sinônimos ────────────────────────────────────────────────────────────────

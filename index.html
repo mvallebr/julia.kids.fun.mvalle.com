@@ -32,6 +32,8 @@
       border: 1px solid rgba(255,255,255,.16); border-radius: 34px;
       background: rgba(43, 30, 84, .68); backdrop-filter: blur(10px);
       box-shadow: 0 24px 70px rgba(0,0,0,.42);
+      max-height: calc(100dvh - 48px); overflow-y: auto;
+      overscroll-behavior: contain;
     }
     .wave {
       display: inline-block; font-size: 48px; line-height: 1;
@@ -176,7 +178,18 @@
     .panel-section h3 { margin: 0 0 6px; color: #33406b; font-size: 15px; }
     .panel-section p { margin: 0 0 10px; color: #596580; font-size: 13px; line-height: 1.5; }
     @media (prefers-reduced-motion: reduce) { .wave { animation: none; } .app-live:hover { transform: none; } }
-    @media (max-width: 480px) { .card { padding: 30px 20px 22px; } }
+    @media (max-width: 480px) {
+      .card { padding: 26px 18px 20px; border-radius: 26px; }
+      .card h1 { font-size: clamp(30px, 9vw, 40px); margin: 8px 0 8px; }
+      .card .wave { font-size: 40px; }
+      .name-input, .name-label, .saved-label { width: min(100%, 320px); }
+      .app { padding: 13px 18px; font-size: 15.5px; }
+    }
+    @media (max-height: 720px) {
+      .card { padding-top: 18px; padding-bottom: 14px; }
+      .card h1 { margin: 4px 0 6px; }
+      .card .wave { font-size: 36px; }
+    }
   </style>
 </head>
 <body>

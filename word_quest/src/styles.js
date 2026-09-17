@@ -90,9 +90,9 @@ button { font-family: inherit; }
 
 /* quiz */
 .wq-quiz {
-  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
-  width: min(760px, 94vw); max-height: 92vh; overflow-y: auto;
-  padding: 26px 30px 24px; z-index: 30; text-align: center;
+  position: absolute; left: 50%; top: 52%; transform: translate(-50%, -50%);
+  width: min(760px, 94vw); max-height: calc(100dvh - 96px); overflow-y: auto;
+  padding: 26px 30px 24px; z-index: 25; text-align: center;
 }
 .wq-q-count { font-weight: 800; letter-spacing: .1em; font-size: 12px; color: #cbb27a; text-transform: uppercase; }
 .wq-stake { margin-top: 4px; font: 800 clamp(17px, 2.6vw, 22px) 'Fredoka',sans-serif; color: #ffd166; }
@@ -204,8 +204,27 @@ button { font-family: inherit; }
 @media (max-width: 640px) {
   .wq-loc { min-width: 84px; padding: 7px 10px; }
   .wq-loc-name { font-size: 10px; }
-  .wq-quiz { padding: 20px 18px; }
+  .wq-quiz { padding: 18px 16px 16px; width: min(760px, 96vw); max-height: 94dvh; }
+  .wq-quiz .wq-question { margin: 10px 0 4px; font-size: clamp(15.5px, 4.2vw, 19px); }
+  .wq-quiz .wq-question-display { font-size: clamp(20px, 6vw, 30px); margin: 6px 0 0; }
+  .wq-quiz .wq-options { gap: 9px; margin-top: 12px; }
+  .wq-quiz .wq-option { padding: 11px 13px; font-size: 14.5px; border-radius: 12px; }
+  .wq-quiz .wq-option .letter { width: 30px; height: 30px; font-size: 14px; }
+  .wq-quiz .wq-lock { padding: 12px; font-size: 15px; margin-top: 12px; }
+  .wq-quiz .wq-explain { font-size: 13.5px; padding: 10px 12px; }
+  .wq-story { width: min(680px, 96vw); padding: 16px 18px; bottom: 4%; }
+  .wq-story-line { font-size: 14.5px; min-height: 1.8em; }
+  .wq-top { padding: 12px 14px; gap: 8px; }
+  .wq-top .wq-hud { gap: 6px; flex-wrap: wrap; }
+  .wq-top .wq-chip { font-size: 12px; padding: 6px 10px; }
+  .wq-hearts { font-size: 18px; gap: 6px; padding: 6px 12px; top: 70px; }
   .wq-owl { width: 70px; }
+}
+@media (max-height: 600px) {
+  .wq-quiz { max-height: 96dvh; padding: 14px 16px; }
+  .wq-quiz .wq-question { margin: 6px 0 2px; }
+  .wq-quiz .wq-options { gap: 7px; margin-top: 10px; }
+  .wq-quiz .wq-option { padding: 9px 12px; }
 }
 `;
 

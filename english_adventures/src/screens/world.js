@@ -17,7 +17,10 @@ import { showPassageSet } from '../widgets/passage.js';
 import { openPresentFlow } from '../widgets/present.js';
 
 const WALK_FRAMES = { girl: 4, boy: 4 };
-const ART_FACING = { girl: -1, boy: -1 };
+// Both character sprite sheets natively face RIGHT, so artFacing=+1 means
+// walking-right shows them unflipped (forward); walking-left flips them so
+// they keep facing the direction of travel instead of moonwalking.
+const ART_FACING = { girl: 1, boy: 1 };
 const FRIEND_T = 0.3;
 
 export function openWorldScreen(root, context) {
@@ -110,6 +113,16 @@ export function openWorldScreen(root, context) {
     onExit();
   });
   hud.appendChild(backButton);
+  if (typeof onExitToMenu === 'function') {
+    const homeButton = el('button', 'ma-hud-chip ma-home', '🏠');
+    homeButton.type = 'button';
+    homeButton.title = uiText(language, 'exitToLauncher');
+    homeButton.addEventListener('click', () => {
+      sounds.tap();
+      onExitToMenu();
+    });
+    hud.appendChild(homeButton);
+  }
   const collectChip = el('div', 'ma-hud-chip ma-collect', `${world.collectible.emoji} ${state.collectibles[worldId] || 0}`);
   hud.appendChild(collectChip);
   const soundChip = el('button', 'ma-hud-chip ma-sound', state.sound ? '🔊' : '🔇');

@@ -151,8 +151,23 @@ function enterChapter(chapterIndex) {
     const screenEl = el('div', 'wq-screen');
     screenEl.style.backgroundImage = `url('${asset(chapter.bg)}')`;
     screenEl.appendChild(el('div', 'wq-veil'));
+    const topBar = el('div', 'wq-top');
+    const topHud = el('div', 'wq-hud');
+    topHud.appendChild(el('div', 'wq-chip', `💰 ${state.gold.toLocaleString('en-GB')}`));
+    const backChip = el('button', 'wq-chip clickable', '🗺️');
+    backChip.type = 'button';
+    backChip.title = uiText('en', 'backToMap');
+    backChip.addEventListener('click', () => { sounds.tap(); renderMap(); });
+    topHud.appendChild(backChip);
+    const exitChip = el('button', 'wq-chip clickable', '🏠');
+    exitChip.type = 'button';
+    exitChip.title = uiText('en', 'exitToLauncher');
+    exitChip.addEventListener('click', () => { sounds.tap(); exitToLauncher(); });
+    topHud.appendChild(exitChip);
+    topBar.appendChild(topHud);
+    screenEl.appendChild(topBar);
     const story = el('div', 'wq-story wq-parchment');
-    chapter.story.forEach((line) => story.appendChild(el('p', 'wq-story-line', line.en)));
+    chapter.story.forEach((line) => story.appendChild(el('p', 'wq-story-line', typeof line === 'string' ? line : (line.en || ''))));
     if (chapter.doc) {
       story.appendChild(el('div', 'wq-story-line', chapter.doc.frame));
       const docCard = el('div', 'wq-doc-card', chapter.doc.text);
@@ -176,6 +191,23 @@ function runChapterQuiz(chapterIndex) {
     const screenEl = el('div', 'wq-screen');
     screenEl.style.backgroundImage = `url('${asset(chapter.bg)}')`;
     screenEl.appendChild(el('div', 'wq-veil'));
+
+    const topBar = el('div', 'wq-top');
+    const topHud = el('div', 'wq-hud');
+    topHud.appendChild(el('div', 'wq-chip', `💰 ${state.gold.toLocaleString('en-GB')}`));
+    const backChip = el('button', 'wq-chip clickable', '🗺️');
+    backChip.type = 'button';
+    backChip.title = uiText('en', 'backToMap');
+    backChip.addEventListener('click', () => { sounds.tap(); renderMap(); });
+    topHud.appendChild(backChip);
+    const exitChip = el('button', 'wq-chip clickable', '🏠');
+    exitChip.type = 'button';
+    exitChip.title = uiText('en', 'exitToLauncher');
+    exitChip.addEventListener('click', () => { sounds.tap(); exitToLauncher(); });
+    topHud.appendChild(exitChip);
+    topBar.appendChild(topHud);
+    screenEl.appendChild(topBar);
+
     root.appendChild(screenEl);
 
     const quizHost = el('div');
