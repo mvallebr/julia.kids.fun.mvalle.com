@@ -180,8 +180,18 @@ button { font-family: inherit; }
 .wq-chest:hover { transform: translateY(-6px) scale(1.06); }
 .wq-chest.opened { opacity: .4; cursor: default; transform: none; }
 
-/* corujinha flutuante no canto do mapa */
-.wq-owl { position: absolute; left: 6%; bottom: 12%; width: clamp(90px, 12vw, 140px); border-radius: 50%; border: 3px solid rgba(255,209,102,.5); box-shadow: 0 0 30px rgba(255,209,102,.35); animation: wqOwlBob 3s ease-in-out infinite; }
+/* corujinha decorativa no canto do mapa. pointer-events: none para nunca
+   bloquear cliques nos capítulos abaixo dela; bottom-right evita o nó atual
+   (sempre no canto inferior-esquerdo). */
+.wq-owl {
+  position: absolute; right: 3%; bottom: 18%;
+  width: clamp(64px, 8vw, 100px);
+  border-radius: 50%;
+  border: 3px solid rgba(255,209,102,.5);
+  box-shadow: 0 0 30px rgba(255,209,102,.35);
+  pointer-events: none;
+  animation: wqOwlBob 3s ease-in-out infinite;
+}
 @keyframes wqOwlBob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
 
 /* resumo */
