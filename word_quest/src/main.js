@@ -430,10 +430,10 @@ function renderSummary(chapterRef) {
       else enterChapter(WORLD_ORDER_INDEX(nextId));
     });
     panel.appendChild(keep);
-    const menu = el('button', 'wq-btn ghost', uiText('en', 'exitToLauncher'));
+    const menu = el('button', 'wq-btn ghost', `🗺️ ${uiText('en', 'backToMap')}`);
     menu.type = 'button';
     menu.style.marginLeft = '10px';
-    menu.addEventListener('click', exitToLauncher);
+    menu.addEventListener('click', () => { sounds.tap(); renderMap(); });
     panel.appendChild(menu);
     screenEl.appendChild(panel);
     root.appendChild(screenEl);
@@ -444,9 +444,11 @@ function renderSummary(chapterRef) {
 
 // ── journal ──────────────────────────────────────────────────────────────────
 function renderJournal() {
-  const overlay = el('div', 'wq-screen');
-  overlay.style.backgroundImage = `url('${asset('map-hero')}')`;
-  overlay.appendChild(el('div', 'wq-veil'));
+  // Modal-style overlay: dark veil over the live map, panel centered above it.
+  const overlay = el('div', 'wq-journal-overlay');
+  overlay.addEventListener('click', (event) => {
+    if (event.target === overlay) overlay.remove();
+  });
   const panel = el('div', 'wq-journal wq-parchment');
   panel.appendChild(el('h2', 'wq-journal-title', `✒️ ${uiText('en', 'journalTitle')}`));
   const entries = Object.entries(state.journal).sort((a, b) => b[1].lastAt - a[1].lastAt);

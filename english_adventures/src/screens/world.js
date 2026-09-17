@@ -365,6 +365,9 @@ export function openWorldScreen(root, context) {
   }
 
   function runEncounter(node) {
+    // Safety net: drop any orphaned widget overlay before mounting the next one
+    // so a leaking widget can never stack two encounters on top of each other.
+    stage.querySelectorAll('.ma-enc-overlay, .ma-fork, .ma-passage-overlay, .ma-present-overlay').forEach((ghost) => ghost.remove());
     const challenge = buildChallenge({
       worldId,
       worldIndex: WORLD_ORDER.indexOf(worldId),
@@ -392,6 +395,7 @@ export function openWorldScreen(root, context) {
   }
 
   function runPassage(node) {
+    stage.querySelectorAll('.ma-enc-overlay, .ma-fork, .ma-passage-overlay, .ma-present-overlay').forEach((ghost) => ghost.remove());
     const passage = passageFor(WORLD_ORDER.indexOf(worldId));
     showPassageSet(stage, passage, language, () => {
       setState((draft) => {
@@ -440,7 +444,9 @@ export function openWorldScreen(root, context) {
     laterButton.type = 'button';
     laterButton.addEventListener('click', () => {
       sounds.tap();
-      onExitToMenu?.();
+      // "Continue later" keeps the run and returns to the kingdom map, where
+      // progress is checkpointed; the 🏠 HUD chip is the way out to the launcher.
+      onExit?.();
     });
     card.appendChild(laterButton);
     stage.appendChild(card);

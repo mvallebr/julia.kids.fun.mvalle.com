@@ -30,7 +30,7 @@ const COPY = {
   worldComplete: 'World complete!',
   nextWorld: 'Next world',
   continueLater: 'Continue later',
-  galleryTitle: ' friends gallery',
+  galleryTitle: ' Gallery',
   galleryLocked: '???',
   galleryHintLocked: 'Keep adventuring to meet',
   kingTitle: 'King',

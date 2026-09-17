@@ -154,7 +154,8 @@ button { font-family: inherit; }
 .wq-lifeline.spent { opacity: .35; cursor: default; }
 
 /* journal */
-.wq-journal { width: min(760px, 94vw); max-height: 88vh; overflow-y: auto; padding: 26px 28px; }
+.wq-journal-overlay { position: absolute; inset: 0; z-index: 60; display: grid; place-items: center; background: rgba(10, 8, 26, .72); backdrop-filter: blur(2px); padding: 20px; }
+.wq-journal { width: min(640px, 94vw); max-height: 86vh; overflow-y: auto; padding: 26px 28px; }
 .wq-journal-title { margin: 0 0 14px; font: 400 clamp(22px, 4vw, 32px) 'Luckiest Guy','Fredoka',sans-serif; color: #8a5a12; text-align: center; }
 .wq-word-card { padding: 16px 18px; margin-bottom: 12px; border-radius: 14px; background: rgba(255,255,255,.45); border: 1.5px solid #d9c9a3; }
 .wq-word-card h3 { margin: 0; font-size: 20px; color: #3d2c10; }

@@ -129,7 +129,7 @@ export function contextQuestion(tier, rng) {
   };
 }
 
-// ── ortografia (widget de chaves: a fechadura mostra o significado) ─────────
+// ── ortografia (a pista de significado aparece no display) ─────────
 export function spellingQuestion(tier, rng) {
   const entry = pickEntry(SPELLINGS, tier, rng);
   return {
@@ -137,7 +137,7 @@ export function spellingQuestion(tier, rng) {
     kind: 'choice',
     widgetHint: 'keys',
     prompt: 'Which spelling is correct?',
-    display: '?',
+    display: entry.hint ? `“${entry.hint}”` : '?',
     lockLabel: 'correct spelling',
     options: optionList(rng, [entry.correct], entry.wrong),
     explanation: `"${entry.correct}" is the correct British spelling.`,

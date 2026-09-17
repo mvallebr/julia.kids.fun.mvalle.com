@@ -46,6 +46,7 @@ function synonymsQuestion(tier, rng) {
   const wrong = shuffle(rng, entry.d).slice(0, 3);
   return {
     skill: 'synonyms',
+    skillLabel: 'Synonyms',
     targetWords: [entry.w],
     prompt: `Which word is closest in meaning to “${entry.w}”?`,
     display: entry.w,
@@ -64,6 +65,7 @@ function antonymsQuestion(tier, rng) {
   const wrong = shuffle(rng, entry.d).slice(0, 3);
   return {
     skill: 'antonyms',
+    skillLabel: 'Antonyms',
     targetWords: [entry.w],
     prompt: `Which word is the OPPOSITE of “${entry.w}”?`,
     display: entry.w,
@@ -81,6 +83,7 @@ function analogyQuestion(tier, rng) {
   const wrong = shuffle(rng, ANALOGIES.filter((candidate) => candidate !== entry).map((candidate) => candidate.d)).slice(0, 3);
   return {
     skill: 'analogies',
+    skillLabel: 'Analogies',
     targetWords: [],
     prompt: `“${entry.a}” is to “${entry.b}” as “${entry.c}” is to ___?`,
     display: `${entry.a} → ${entry.b}`,
@@ -96,6 +99,7 @@ function oddOneOutQuestion(tier, rng) {
   const entry = list[Math.floor(rng() * list.length)];
   return {
     skill: 'word relationships',
+    skillLabel: 'Odd one out',
     targetWords: [],
     prompt: 'Which word does NOT belong with the others?',
     display: shuffle(rng, entry.members).join('  ·  '),
@@ -111,6 +115,7 @@ function contextQuestion(tier, rng) {
   const entry = list[Math.floor(rng() * list.length)];
   return {
     skill: 'vocabulary_context',
+    skillLabel: 'Vocabulary Context',
     targetWords: [entry.answer],
     prompt: 'Choose the word that best completes the sentence.',
     display: `${entry.before} ______ ${entry.after}`,
@@ -127,6 +132,7 @@ function spellingQuestion(tier, rng) {
   const entry = list[Math.floor(rng() * list.length)];
   return {
     skill: 'spelling',
+    skillLabel: 'Spelling',
     targetWords: [entry.correct],
     prompt: 'Choose the correct spelling.',
     display: '🖌️ Spelling check',

@@ -211,7 +211,7 @@ const CSS = `
 /* ── Encontros: placa mágica ── */
 .ma-enc-overlay { position: absolute; inset: 0; z-index: 30; display: grid; place-items: center; background: rgba(10,8,30,.35); backdrop-filter: blur(1.5px); }
 .ma-enc {
-  width: min(560px, 93vw); max-height: 86vh; overflow-y: auto;
+  width: min(560px, 93vw); max-height: 86vh; overflow-y: auto; overflow-x: hidden;
   display: flex; flex-direction: column; gap: 14px; align-items: center; text-align: center;
   padding: 22px 24px 20px; border-radius: 30px;
   background: linear-gradient(165deg, rgba(48,30,100,.94), rgba(28,18,66,.96));
@@ -272,7 +272,7 @@ const CSS = `
   text-shadow: 0 2px 0 rgba(255,255,255,.5); animation: maTargetPulse 1.6s ease-in-out infinite;
 }
 @keyframes maTargetPulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.07); } }
-.ma-fork-branches { display: flex; gap: clamp(24px, 6vw, 72px); }
+.ma-fork-branches { display: flex; flex-wrap: wrap; justify-content: center; gap: clamp(16px, 4vw, 48px); max-width: 100%; }
 .ma-fork-branch { position: relative; border: 0; background: none; cursor: pointer; padding: 0; }
 .ma-fork-glow { position: absolute; inset: -14px; border-radius: 26px; background: linear-gradient(180deg, rgba(255,224,130,.25), rgba(255,209,102,.05)); filter: blur(2px); }
 .ma-fork-sign {

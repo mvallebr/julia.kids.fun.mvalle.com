@@ -152,7 +152,7 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
           solved.value = true;
           branch.classList.add('right');
           overlay.classList.add('solved');
-          celebrate(branch, language, safeSolved);
+          celebrate(branch, language, () => { overlay.remove(); safeSolved(); });
         } else {
           branch.classList.add('wrong');
           schedule(() => branch.classList.remove('wrong'), 700);
@@ -181,7 +181,7 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
           solved.value = true;
           key.classList.add('right');
           lock.classList.add('open');
-          celebrate(panel, language, onSolved);
+          celebrate(panel, language, () => { overlay.remove(); safeSolved(); });
         } else {
           key.classList.add('wrong');
           schedule(() => key.classList.remove('wrong'), 650);
@@ -216,7 +216,7 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
           burstAt(stone, 8);
           if (nextIndex >= challenge.order.length) {
             localSolved = true;
-            celebrate(panel, language, onSolved);
+            celebrate(panel, language, () => { overlay.remove(); safeSolved(); });
           }
         } else {
           stone.classList.add('wrong');
@@ -264,7 +264,7 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
           burstAt(right, 8);
           if (matches >= pairs.length && !solved.value) {
             solved.value = true;
-            celebrate(panel, language, onSolved);
+            celebrate(panel, language, () => { overlay.remove(); safeSolved(); });
           }
         } else {
           right.classList.add('wrong');
@@ -284,10 +284,10 @@ export function showQuiz(host, challenge, language, { onSolved, onWrong }) {
   return overlay;
 }
 
-function celebrate(panel, language, onSolved) {
+function celebrate(panel, language, finish) {
   void language;
   sounds.correct();
   burstAt(panel, 30);
   panel.appendChild(el('div', 'ma-enc-success', uiText('en', pick(['correct', 'wellDone', 'awesome']))));
-  schedule(safeSolved, 1400);
+  setTimeout(finish, 1400);
 }
