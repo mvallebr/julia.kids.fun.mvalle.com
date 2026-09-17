@@ -30,7 +30,6 @@ const COPY = {
   backToMap: 'Back to map',
   enter: 'Enter',
   completed: 'Completed',
-  play: 'Play',
   muteTitle: 'Toggle sounds',
   askFamilyPause: 'Pause here and ask someone playing with you what they think. Then choose your final answer!',
   owlIntro: 'The owl hoots softly: ',

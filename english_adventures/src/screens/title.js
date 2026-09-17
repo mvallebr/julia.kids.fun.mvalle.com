@@ -9,7 +9,7 @@ export function openTitleScreen(root, context) {
   const { getState, setState, language, onPlay, onExit } = context;
   const state = getState();
   const screen = el('div', 'ma-title-screen');
-  screen.style.backgroundImage = `url('${asset('bg-title')}')`;
+  screen.style.backgroundImage = `url('${asset('bg-title-ea')}')`;
 
   const card = el('div', 'ma-title-card');
   card.appendChild(el('h1', 'ma-title-logo', `✨ ${uiText(language, 'title')}`));

@@ -71,6 +71,13 @@ button { font-family: inherit; }
   position: absolute; left: 50%; bottom: 8%; transform: translateX(-50%);
   width: min(680px, 92vw); padding: 22px 26px; z-index: 30; text-align: center;
 }
+.wq-doc-card {
+  margin-top: 12px; padding: 16px 18px; border-radius: 12px; text-align: left;
+  white-space: pre-line; font-size: clamp(14px, 2.1vw, 16px); font-weight: 500;
+  line-height: 1.55; color: #3d2c10;
+  background: repeating-linear-gradient(180deg, #fdf6e3, #fdf6e3 30px, #f7edd4 31px);
+  border: 1.5px solid #c9b487; box-shadow: inset 0 0 24px rgba(160, 130, 70, .18);
+}
 .wq-story-line { margin: 10px 0 0; font-size: clamp(15px, 2.4vw, 19px); font-weight: 600; line-height: 1.55; color: #3d2c10; min-height: 2.6em; }
 .wq-story .wq-btn { margin-top: 16px; }
 .wq-story-art { width: min(420px, 80vw); border-radius: 20px; box-shadow: 0 20px 50px rgba(0,0,0,.6); display: block; margin: 0 auto 14px; }

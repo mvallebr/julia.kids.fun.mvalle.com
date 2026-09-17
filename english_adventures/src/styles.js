@@ -479,8 +479,11 @@ const CSS = `
 
 /* Telas pequenas: mundo continua jogável, mapa empilha menos denso (spec §26) */
 @media (max-width: 640px) {
-  .ma-map-node { min-width: 72px; padding: 7px 9px; }
-  .ma-map-node-name { font-size: 9px; }
+  .ma-map-node { min-width: 60px; padding: 5px 7px; border-radius: 14px; border-width: 2px; }
+  .ma-map-node-emoji { font-size: 17px; }
+  .ma-map-node-name { font-size: 8px; }
+  .ma-map-node-status { font-size: 7.5px; }
+  .ma-map-palace { font-size: 22px; }
   .ma-quest { font-size: 11px; }
   .ma-quests { max-width: 46vw; }
   .ma-dialogue { flex-direction: row; padding: 11px 13px; }
