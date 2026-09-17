@@ -6,7 +6,7 @@ import { sounds } from '../audio.js';
 import { uiText, lang } from '../i18n.js';
 import { WORLDS, WORLD_ORDER, FRIENDS } from '../story.js';
 import { isWorldUnlocked, solvedCount } from '../state.js';
-import { preload } from '../assets.js';
+import { asset, preload } from '../assets.js';
 
 const NODE_POSITIONS = [
   { x: 7, y: 78 }, { x: 14, y: 60 }, { x: 21, y: 76 }, { x: 28, y: 56 },
@@ -26,6 +26,9 @@ export function openMapScreen(root, context) {
   const { getState, language, onEnterWorld, onOpenFriends, onOpenPalace, onExit } = context;
   const state = getState();
   const screen = el('div', 'ma-map-screen');
+  screen.style.backgroundImage = `url('${asset('bg-kingdom-map')}')`;
+  screen.style.backgroundSize = 'cover';
+  screen.style.backgroundPosition = 'center center';
   const sky = el('div', 'ma-map-sky');
   screen.appendChild(sky);
 

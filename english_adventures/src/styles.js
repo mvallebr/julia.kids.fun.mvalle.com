@@ -16,8 +16,8 @@ const CSS = `
 }
 .ma-title-screen { display: grid; place-items: center; }
 .ma-title-screen::after, .ma-map-screen::after {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: linear-gradient(180deg, rgba(20,12,50,.55), rgba(20,12,50,.06) 40%, rgba(15,8,40,.5));
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background: linear-gradient(180deg, rgba(20,12,50,.35), rgba(20,12,50,.04) 40%, rgba(15,8,40,.32));
 }
 .ma-title-card, .ma-select, .ma-story-intro { position: relative; z-index: 2; text-align: center; padding: 26px; max-width: min(560px, 94vw); }
 .ma-title-logo {
@@ -63,10 +63,11 @@ const CSS = `
 .ma-story-hint.hidden { display: none; }
 
 /* ── Mapa do reino ── */
-.ma-map-sky { position: absolute; inset: 0; background:
-  radial-gradient(1000px 600px at 70% -10%, rgba(120,84,220,.5), transparent 60%),
-  radial-gradient(800px 500px at 10% 110%, rgba(255,154,61,.25), transparent 55%),
-  linear-gradient(165deg, #141037, #241457 55%, #3a1c6e); }
+.ma-map-sky { position: absolute; inset: 0; pointer-events: none; z-index: 0;
+  background:
+  radial-gradient(1100px 600px at 70% -10%, rgba(120,84,220,.32), transparent 65%),
+  radial-gradient(900px 500px at 10% 110%, rgba(255,154,61,.18), transparent 55%),
+  linear-gradient(180deg, rgba(20,16,55,.18), rgba(15,10,40,.28)); }
 .ma-map-title { position: relative; z-index: 2; margin: 18px 0 4px; text-align: center; font: 400 clamp(22px, 4.2vw, 36px) 'Luckiest Guy','Fredoka',sans-serif; color: #ffe27a; text-shadow: 0 3px 0 #b8860b, 0 8px 20px rgba(0,0,0,.5); }
 .ma-map { position: absolute; inset: 64px 20px 92px; z-index: 1; }
 .ma-map-path { position: absolute; inset: 0; width: 100%; height: 100%; filter: drop-shadow(0 0 6px rgba(255,209,102,.55)); }

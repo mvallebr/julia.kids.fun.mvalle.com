@@ -22,6 +22,7 @@ export const ASSETS = {
   'bg-summit': url('bg-summit.webp'),
   'bg-academy': url('bg-academy.webp'),
   'bg-title-ea': url('bg-title-ea.webp'),
+  'bg-kingdom-map': url('map-kingdom.webp'),
   'sprite-girl': url('sprite-girl.webp'),
   'sprite-boy': url('sprite-boy.webp'),
   // sprites de cena dos amigos + aliases de retrato
