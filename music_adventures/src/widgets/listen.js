@@ -17,6 +17,7 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
 
   let mistakes = 0;
   let phase = 'listen'; // listen → answer → solved
+  let destroyed = false;
   let inputIndex = 0;
   const answer = [];
 
@@ -111,6 +112,7 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
     sounds.tap();
     options.forEach((degree, index) => {
       setTimeout(() => {
+        if (destroyed) return;
         playDegree(degree, 0.42);
         const button = noteButtons.get(degree);
         button.classList.add('playing');
@@ -130,6 +132,15 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
     dot.textContent = '♪';
   }
 
+  function resetDots() {
+    for (let index = 0; index < melody.length; index += 1) {
+      const dot = targetRow.children[index];
+      dot.style.background = 'transparent';
+      dot.style.borderColor = 'rgba(255,255,255,.5)';
+      dot.textContent = '?';
+    }
+  }
+
   function gradeInput(degree, button) {
     const expected = melody[inputIndex];
     const dot = targetRow.children[inputIndex];
@@ -139,16 +150,20 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
       inputIndex += 1;
       if (inputIndex >= melody.length) {
         phase = 'solved';
-        setTimeout(() => finish(), 650);
+        setTimeout(() => { if (!destroyed) finish(); }, 650);
       }
     } else {
+      // Erro = treino de memória musical: limpa o progresso e repete a
+      // MELODIA COMPLETA (as notas esperadas não mudam).
       mistakes += 1;
       button.classList.add('shake');
       setTimeout(() => button.classList.remove('shake'), 500);
-      dot.classList.add('wiggle');
-      setTimeout(() => dot.classList.remove('wiggle'), 500);
       sounds.wrong();
       toast(uiText(language, 'tryAgain'), 'retry');
+      inputIndex = 0;
+      phase = 'listen'; // bloqueia registro durante o intervalo
+      resetDots();
+      setTimeout(() => { if (phase === 'listen' && !destroyed) playTarget(); }, 1000);
     }
   }
 
@@ -167,6 +182,7 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
       }, 340);
     });
     setTimeout(() => {
+      if (destroyed) return;
       if (phase === 'listen') {
         phase = 'answer';
         // respeita o modo atual: explorar primeiro é o padrão
@@ -204,7 +220,12 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
   }
 
   playTarget();
-  return { destroy() { screen.remove(); } };
+  return {
+      destroy() {
+        destroyed = true;
+        screen.remove();
+      },
+    };
 }
 
 // reexporta para uso no main (contador de opções por nível)
