@@ -117,6 +117,11 @@
       box-shadow: 0 10px 26px rgba(212, 80, 143, .4);
     }
     .app-music:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .app-language {
+      background: linear-gradient(135deg, #2f9e6e, #58cc72);
+      box-shadow: 0 10px 26px rgba(47, 158, 110, .4);
+    }
+    .app-language:hover { transform: translateY(-2px); filter: brightness(1.06); }
     .app-maths {
       background: linear-gradient(135deg, #8a5bdb, #b9a4f5);
       box-shadow: 0 10px 26px rgba(138, 93, 219, .38);
@@ -242,11 +247,11 @@
         <span data-i18n="music">Aventuras Musicais</span>
         <span class="emoji" style="margin-left:auto" aria-hidden="true">🎤</span>
       </a>
-      <button class="app app-soon" type="button" disabled>
+      <a class="app app-language" href="language_adventures/index.html" id="appLanguage">
         <span class="emoji" aria-hidden="true">🗣️</span>
         <span data-i18n="languageAdv">Aventuras de Idiomas</span>
-        <span class="soon-badge" data-i18n="soon">EM BREVE</span>
-      </button>
+        <span class="emoji" style="margin-left:auto" aria-hidden="true">🧩</span>
+      </a>
       <a class="app app-wordquest" href="word_quest/index.html" id="appWordQuest">
         <span class="emoji" aria-hidden="true">🗺️</span>
         <span data-i18n="wordQuest">The Word Quest</span>
@@ -446,6 +451,7 @@
       $('appWorld').href = `julia_world/index.html?${params}`;
       $('appMaths').href = `maths_adventure/index.html?${params}`;
       $('appEnglish').href = `english_adventures/index.html?${params}`;
+      $('appLanguage').href = `language_adventures/index.html?${params}`;
       $('appMusic').href = `music_adventures/index.html?${params}`;
       $('appNotebook').href = `notebook/index.html?${params}`;
       $('appWordQuest').href = `word_quest/index.html?${params}`;
@@ -543,6 +549,7 @@
     $('appWorld').addEventListener('click', requireProfile);
     $('appMaths').addEventListener('click', requireProfile);
     $('appEnglish').addEventListener('click', requireProfile);
+    $('appLanguage').addEventListener('click', requireProfile);
     $('appMusic').addEventListener('click', requireProfile);
     $('appWordQuest').addEventListener('click', requireProfile);
     $('appNotebook').addEventListener('click', requireProfile);
