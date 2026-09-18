@@ -164,7 +164,8 @@ test('caminho pintado mapeado para cada mundo (waypoints x/y)', () => {
     const path = PATHS[worldId];
     assert.ok(Array.isArray(path) && path.length >= 5, `path com waypoints em ${worldId}`);
     for (const [x, y] of path) {
-      assert.ok(x >= 0 && x <= 100 && y >= 30 && y <= 100, `waypoint (${x},${y}) em ${worldId}`);
+      // y pode passar de 100: o início da trilha pode ficar levemente fora da tela
+      assert.ok(x >= 0 && x <= 100 && y >= 30 && y <= 106, `waypoint (${x},${y}) em ${worldId}`);
     }
     // caminho tem deslocamento real (a direção varia por mundo:
     // ex. Reino das Nuvens caminha para a esquerda, rumo ao castelo)
