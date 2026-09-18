@@ -49,30 +49,46 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
   }
   panel.appendChild(targetRow);
 
-  // botões de nota: tocar é SEMPRE exploração livre (nunca penaliza);
-  // a resposta só é registrada no modo 🎯.
-  const modeRow = el('div', 'mu-mode-row');
-  const hearTab = el('button', 'mu-mode-tab active', uiText(language, 'hearMode'));
-  hearTab.type = 'button';
-  const answerTab = el('button', 'mu-mode-tab', uiText(language, 'answerMode'));
-  answerTab.type = 'button';
-  modeRow.appendChild(hearTab);
-  modeRow.appendChild(answerTab);
-  panel.appendChild(modeRow);
+  // Sem modos: tocar nota = ouvir (nunca penaliza). A nota ouvida aparece
+  // como fantasma na bolinha; um botão GRANDE ✓ confirma a escolha.
+  let ghost = null; // grau selecionado, aguardando confirmação
 
-  let mode = 'hear'; // 'hear' = explorar sons à vontade; 'answer' = registrar resposta
-  function setMode(next) {
-    mode = next;
-    hearTab.classList.toggle('active', mode === 'hear');
-    answerTab.classList.toggle('active', mode === 'answer');
-    if (phase === 'answer') {
-      statusLine.textContent = mode === 'hear'
-        ? uiText(language, 'tapToHear')
-        : uiText(language, 'yourAnswer');
+  const confirmButton = el('button', 'mu-btn mu-confirm hidden');
+  confirmButton.type = 'button';
+  confirmButton.addEventListener('click', () => {
+    if (phase !== 'answer' || ghost == null) return;
+    sounds.tap();
+    const chosen = ghost;
+    ghost = null;
+    confirmButton.classList.add('hidden');
+    gradeInput(chosen, noteButtons.get(chosen));
+  });
+  panel.appendChild(confirmButton);
+
+  function setGhost(degree) {
+    ghost = degree;
+    const midi = degreeToMidi(degree);
+    // fantasma na próxima bolinha vazia
+    const dot = targetRow.children[inputIndex];
+    if (dot) {
+      dot.style.background = DEGREE_COLORS[degree];
+      dot.style.opacity = '0.45';
+      dot.textContent = '♪';
+    }
+    confirmButton.textContent = `✓ ${uiText(language, 'placeNote')}: ${midiSolfege(midi)}`;
+    confirmButton.classList.remove('hidden');
+  }
+
+  function clearGhost() {
+    ghost = null;
+    confirmButton.classList.add('hidden');
+    const dot = targetRow.children[inputIndex];
+    if (dot) {
+      dot.style.background = 'transparent';
+      dot.style.opacity = '1';
+      dot.textContent = '?';
     }
   }
-  hearTab.addEventListener('click', () => { sounds.tap(); setMode('hear'); });
-  answerTab.addEventListener('click', () => { sounds.tap(); setMode('answer'); });
 
   const noteRow = el('div', 'mu-note-row');
   const noteButtons = new Map();
@@ -87,7 +103,15 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
       playDegree(degree, 0.4);
       button.classList.add('playing');
       setTimeout(() => button.classList.remove('playing'), 380);
-      if (mode === 'answer' && phase === 'answer') gradeInput(degree, button);
+      if (phase !== 'answer') return;
+      if (ghost === degree) {
+        // segundo toque na mesma nota = confirma
+        ghost = null;
+        confirmButton.classList.add('hidden');
+        gradeInput(degree, button);
+      } else {
+        setGhost(degree);
+      }
     });
     noteButtons.set(degree, button);
     noteRow.appendChild(button);
@@ -136,6 +160,7 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
     for (let index = 0; index < melody.length; index += 1) {
       const dot = targetRow.children[index];
       dot.style.background = 'transparent';
+      dot.style.opacity = '1';
       dot.style.borderColor = 'rgba(255,255,255,.5)';
       dot.textContent = '?';
     }
@@ -185,10 +210,7 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
       if (destroyed) return;
       if (phase === 'listen') {
         phase = 'answer';
-        // respeita o modo atual: explorar primeiro é o padrão
-        statusLine.textContent = mode === 'hear'
-          ? uiText(language, 'tapToHear')
-          : uiText(language, 'yourAnswer');
+        statusLine.textContent = uiText(language, 'tapToHear');
         // repinta as já acertadas
         for (let index = 0; index < inputIndex; index += 1) {
           highlight(targetRow.children[index], DEGREE_COLORS[melody[index]]);
@@ -205,9 +227,8 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
     confetti(60 * stars, 1800);
     phase = 'solved';
     statusLine.textContent = stars >= 3 ? uiText(language, 'greatEar') : uiText(language, 'correct');
-    // modos e exploração não fazem sentido com o nível resolvido
-    modeRow.remove();
-    actionRow.remove();
+    clearGhost();
+    confirmButton.remove();
     const nextButton = el('button', 'mu-btn', uiText(language, 'nextLevel'));
     nextButton.type = 'button';
     nextButton.addEventListener('click', () => { sounds.tap(); onFinish(stars, level + 1); });

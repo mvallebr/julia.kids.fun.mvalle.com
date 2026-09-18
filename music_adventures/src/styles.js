@@ -74,18 +74,6 @@ const CSS = `
   background: transparent; transition: background .2s, border-color .2s;
 }
 .mu-note-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; width: 100%; }
-
-/* abas Ouvir / Responder */
-.mu-mode-row {
-  display: flex; gap: 8px; padding: 5px; border-radius: 999px;
-  background: rgba(16,10,32,.55); border: 1.5px solid rgba(255,209,102,.35);
-}
-.mu-mode-tab {
-  border: 0; cursor: pointer; border-radius: 999px; padding: 9px 20px;
-  font-weight: 800; font-size: 14.5px; color: rgba(255,247,234,.7);
-  background: transparent; transition: background .18s, color .18s;
-}
-.mu-mode-tab.active { background: linear-gradient(180deg, #ffe08a, #e0b04c); color: #3d2c10; box-shadow: 0 3px 0 #9a7420; }
 .mu-action-row { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; }
 .mu-note-btn {
   --note-color: #ffd166;
@@ -100,6 +88,8 @@ const CSS = `
 .mu-note-sol { font-size: 20px; font-weight: 800; text-transform: capitalize; }
 .mu-note-name { font-size: 11.5px; font-weight: 700; opacity: .8; }
 .mu-note-btn.playing { transform: translateY(-4px) scale(1.06); filter: brightness(1.18); box-shadow: 0 0 24px color-mix(in srgb, var(--note-color) 70%, #fff); }
+.mu-confirm { background: linear-gradient(180deg, #9fe8a8, #57c46a) !important; color: #143314 !important; box-shadow: 0 6px 0 #2c7a44, 0 14px 30px rgba(0,0,0,.45) !important; animation: muConfirmPulse 1.2s ease-in-out infinite; }
+@keyframes muConfirmPulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 .shake { animation: muShake .5s ease; }
 .wiggle { animation: muShake .5s ease; }
 @keyframes muShake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
@@ -112,15 +102,7 @@ const CSS = `
 }
 .mu-axis-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; font-size: 12px; font-weight: 700; color: rgba(255,247,234,.75); }
 .mu-axis-note { padding: 3px 9px; border-radius: 999px; background: rgba(255,255,255,.09); }
-.mu-results-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; }
-.mu-result-chip {
-  padding: 5px 12px; border-radius: 999px; font-size: 13px; font-weight: 800; color: #241430;
-  background: #ffd166;
-}
-.mu-result-chip.good { background: #7ad97a; }
-.mu-result-chip.ok { background: #ffd166; }
-.mu-result-chip.off { background: #ff8fa3; }
-.mu-result-chip.miss { background: rgba(255,255,255,.25); color: rgba(255,247,234,.8); }
+
 .mu-controls { display: flex; gap: 12px; flex-wrap: wrap; justify-content: center; align-items: center; }
 .mu-sing { min-width: 220px; }
 .mu-sing.recording { background: linear-gradient(180deg, #ff8fa3, #e0506b); color: #fff; box-shadow: 0 6px 0 #8a2740, 0 0 30px rgba(255,110,140,.6); animation: muPulse 1s ease-in-out infinite; }

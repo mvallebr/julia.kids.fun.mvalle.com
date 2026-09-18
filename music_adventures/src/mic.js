@@ -61,7 +61,7 @@ export function detectPitchFromBuffer(buffer, sampleRate) {
   let rms = 0;
   for (let i = 0; i < size; i += 1) rms += buffer[i] * buffer[i];
   rms = Math.sqrt(rms / size);
-  if (rms < 0.01) return { hz: NaN, clarity: 0 }; // silêncio
+  if (rms < 0.008) return { hz: NaN, clarity: 0 }; // silêncio
 
   const minLag = Math.floor(sampleRate / 1100); // ~1100 Hz teto
   const maxLag = Math.floor(sampleRate / 75);   // ~75 Hz piso
@@ -85,7 +85,7 @@ export function detectPitchFromBuffer(buffer, sampleRate) {
     correlations[lag] = normalized;
     if (normalized > globalMax) globalMax = normalized;
   }
-  if (globalMax < 0.9) return { hz: NaN, clarity: globalMax };
+  if (globalMax < 0.85) return { hz: NaN, clarity: globalMax };
 
   // 2ª passada: o FUNDAMENTAL é o primeiro pico local que chega perto do
   // máximo global — lags múltiplos do período têm correlação quase igual e

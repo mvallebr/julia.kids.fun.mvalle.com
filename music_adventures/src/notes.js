@@ -104,9 +104,15 @@ export function generateListenMelody(length, noteChoices, rng = Math.random) {
 export const TOLERANCE_GOOD = 60;
 export const TOLERANCE_OK = 100;
 
+// Crianças often cantar a nota certa em outra oitava — isso NÃO é erro de
+// afinação. Normaliza o desvio para [-600, +600) antes de avaliar.
+export function normalizeOctaveCents(cents) {
+  return (((cents + 600) % 1200) + 1200) % 1200 - 600;
+}
+
 export function gradeNote(deviations) {
   // deviations: lista de centsOff medidos durante a nota (ignora silêncio).
-  const valid = deviations.filter((cents) => Number.isFinite(cents));
+  const valid = deviations.filter((cents) => Number.isFinite(cents)).map(normalizeOctaveCents);
   if (!valid.length) return 'miss';
   // Mediana: imune a picos de ruído/consoantes.
   const sorted = [...valid].sort((a, b) => a - b);

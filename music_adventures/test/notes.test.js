@@ -4,7 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   degreeToMidi, midiToHz, hzToMidi, midiName, midiSolfege, centsOff, nearestMidi,
-  generateListenMelody, listenOptions, gradeNote, gradeSong, gradeListen,
+  generateListenMelody, listenOptions, gradeNote, gradeSong, gradeListen, normalizeOctaveCents,
   LISTEN_LEVELS, SING_LEVELS, SING_SONGS, nextLockedLevel, totalStars,
 } from '../src/notes.js';
 
@@ -75,6 +75,16 @@ test('gradeSong: 3 estrelas ≥90%, 2 estrelas ≥65%, senão 1', () => {
   assert.equal(gradeSong([]), 1);
   // longa: 9 de 10 boas = .9 → 3
   assert.equal(gradeSong(['good', 'good', 'good', 'good', 'good', 'good', 'good', 'good', 'good', 'off']), 3);
+});
+
+test('oitava não conta como erro (criança canta agudo/grave)', () => {
+  assert.equal(normalizeOctaveCents(1200), 0);
+  assert.equal(normalizeOctaveCents(-1200), 0);
+  assert.equal(normalizeOctaveCents(1200 + 30), 30);
+  assert.equal(normalizeOctaveCents(-1200 - 40), -40);
+  // nota certa em oitava diferente = afinada
+  assert.equal(gradeNote([1200, 1195, 1205]), 'good');
+  assert.equal(gradeNote([-1200, -1190]), 'good');
 });
 
 test('gradeListen: sem erro = 3 estrelas; margem generosa = 2', () => {

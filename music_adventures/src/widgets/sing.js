@@ -57,10 +57,6 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
   const ctx = canvas.getContext('2d');
   panel.appendChild(canvas);
 
-  // resultado por nota: esperado → cantado (aparece ao fim de cada música)
-  const resultsRow = el('div', 'mu-results-row');
-  panel.appendChild(resultsRow);
-
   // legenda do eixo (nomes das notas)
   const axisRow = el('div', 'mu-axis-row');
   const axisMidis = [degreeToMidi(0), degreeToMidi(2), degreeToMidi(4), degreeToMidi(5), degreeToMidi(7)];
@@ -97,45 +93,56 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
     return height - 10 - ((midi - bottom) / (top - bottom)) * (height - 20);
   }
 
+  const RESULT_FACES = { good: '😄', ok: '🙂', off: '😵', miss: '👂' };
+
   function drawResult(grades, actualMidis = []) {
     resizeCanvas();
     const width = canvas.clientWidth;
     const height = canvas.clientHeight;
     ctx.clearRect(0, 0, width, height);
-    const colors = { good: '#7ad97a', ok: '#ffd166', off: '#ff8fa3', miss: 'rgba(255,255,255,.25)' };
+    const colors = { good: '#7ad97a', ok: '#ffd166', off: '#ff8fa3', miss: 'rgba(255,255,255,.22)' };
     targets.forEach((midi, index) => {
       const x = px(starts[index]);
-      const w = px(starts[index] + song.beats[index] * beatSeconds) - x - 6;
+      const bw = Math.max(20, px(starts[index] + song.beats[index] * beatSeconds) - x - 6);
       const y = py(midi);
       const grade = grades[index] || 'miss';
+      // bloco na altura esperada, colorido pelo resultado
       ctx.fillStyle = colors[grade] || colors.miss;
-      roundRect(x, y - 14, Math.max(18, w), 28, 8);
-      // nota esperada dentro do bloco
-      ctx.fillStyle = 'rgba(20,16,36,.85)';
-      ctx.font = '700 11px Fredoka, sans-serif';
+      roundRect(x, y - 15, bw, 30, 9);
+      // carinha grande dentro do bloco: leitura instantânea para criança
+      ctx.font = '17px Fredoka, sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText(midiSolfege(midi), x + Math.max(18, w) / 2, y + 4);
-      // nota REAL cantada, logo abaixo do bloco
+      ctx.fillText(RESULT_FACES[grade] || RESULT_FACES.miss, x + bw / 2, y + 6);
+      // nota esperada, pequena, acima do bloco
+      ctx.fillStyle = 'rgba(255,247,234,.85)';
+      ctx.font = '700 10px Fredoka, sans-serif';
+      ctx.fillText(midiSolfege(midi), x + bw / 2, y - 20);
+      // marcador da nota REAL cantada, na altura real
       const actual = actualMidis[index];
       if (actual != null) {
-        const arrow = actual > midi ? '↑' : actual < midi ? '↓' : '✓';
+        const ay = py(actual);
+        const cx = x + bw / 2;
+        ctx.strokeStyle = 'rgba(107,214,255,.7)';
+        ctx.lineWidth = 2;
+        ctx.setLineDash([4, 4]);
+        ctx.beginPath();
+        ctx.moveTo(cx, y + (actual > midi ? 15 : -15));
+        ctx.lineTo(cx, ay + (actual > midi ? -14 : 14));
+        ctx.stroke();
+        ctx.setLineDash([]);
         ctx.fillStyle = '#6bd6ff';
-        ctx.font = '800 12px Fredoka, sans-serif';
-        ctx.fillText(`${arrow} ${midiSolfege(actual)}`, x + Math.max(18, w) / 2, y + 26);
+        ctx.beginPath();
+        ctx.arc(cx, ay, 8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#10203a';
+        ctx.font = '800 10px Fredoka, sans-serif';
+        ctx.fillText(midiSolfege(actual), cx, ay + 3.5);
+        if (Math.abs(actual - midi) >= 12) {
+          ctx.fillStyle = '#6bd6ff';
+          ctx.font = '800 11px Fredoka, sans-serif';
+          ctx.fillText(actual > midi ? '8↑' : '8↓', cx + 16, ay + 4);
+        }
       }
-    });
-    renderResultChips(grades, actualMidis);
-  }
-
-  // chips "esperado → cantado" abaixo do canvas (informação exata por nota)
-  function renderResultChips(grades, actualMidis) {
-    resultsRow.innerHTML = '';
-    targets.forEach((midi, index) => {
-      const grade = grades[index] || 'miss';
-      const actual = actualMidis[index];
-      const chip = el('span', `mu-result-chip ${grade}`,
-        actual != null ? `${midiSolfege(midi)} → ${midiSolfege(actual)}` : `${midiSolfege(midi)} → ?`);
-      resultsRow.appendChild(chip);
     });
   }
 
@@ -258,20 +265,12 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
       replay.addEventListener('click', () => { sounds.tap(); playTargetThenArm(); });
       controls.appendChild(replay);
     }
-    const singButton = el('button', 'mu-btn mu-sing', `🎤 ${uiText(language, 'holdToSing')}`);
+    const singButton = el('button', 'mu-btn mu-sing', uiText(language, 'startSinging'));
     singButton.type = 'button';
-    const start = (event) => {
-      event.preventDefault();
+    singButton.addEventListener('click', () => {
       if (phase !== 'ready') return;
       startRecording(singButton);
-    };
-    const stop = () => {
-      if (recording) stopRecording();
-    };
-    singButton.addEventListener('pointerdown', start);
-    singButton.addEventListener('pointerup', stop);
-    singButton.addEventListener('pointerleave', stop);
-    singButton.addEventListener('pointercancel', stop);
+    });
     controls.appendChild(singButton);
   }
 
@@ -299,12 +298,13 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
       const elapsed = (performance.now() - startedAt) / 1000 - leadIn;
       const { hz } = detectPitch();
 
-      // contagem regressiva durante a entrada
+      // contagem regressiva: número GRANDE no canvas + status
       if (elapsed < 0) {
         const count = Math.ceil(-elapsed / beatSeconds);
         if (count !== lastCount) {
           lastCount = count;
           statusLine.textContent = `${count}…`;
+          drawCountdown(count);
         }
       } else if (lastCount !== 0) {
         lastCount = 0;
@@ -363,6 +363,30 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
     finish(grades, actualMidis, stars);
   }
 
+  function drawCountdown(count) {
+    resizeCanvas();
+    const width = canvas.clientWidth;
+    const height = canvas.clientHeight;
+    ctx.clearRect(0, 0, width, height);
+    targets.forEach((midi, index) => {
+      const x = px(starts[index]);
+      const w = px(starts[index] + song.beats[index] * beatSeconds) - x - 6;
+      ctx.fillStyle = 'rgba(255,255,255,.16)';
+      roundRect(x, py(midi) - 14, Math.max(18, w), 28, 8);
+      ctx.fillStyle = 'rgba(255,247,234,.85)';
+      ctx.font = '700 11px Fredoka, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(midiSolfege(midi), x + Math.max(18, w) / 2, py(midi) + 4);
+    });
+    ctx.fillStyle = '#ffe08a';
+    ctx.font = "400 96px 'Luckiest Guy','Fredoka',sans-serif";
+    ctx.textAlign = 'center';
+    ctx.shadowColor = 'rgba(0,0,0,.55)';
+    ctx.shadowBlur = 14;
+    ctx.fillText(String(count), width / 2, height / 2 + 34);
+    ctx.shadowBlur = 0;
+  }
+
   function highlightBlock(index) {
     drawIdle();
     const width = canvas.clientWidth;
@@ -384,7 +408,7 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
     // placeholder vazio: highlightBlock desenha tudo
   }
 
-  function finish(grades, stars) {
+  function finish(grades, actualMidis, stars) {
     // grava as estrelas no instante da conclusão (não no clique de sair)
     onSave?.(stars);
     burstAt(panel, 40 + stars * 20);
@@ -392,7 +416,8 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
     else sounds.correct();
     const good = grades.filter((g) => g === 'good').length;
     const ok = grades.filter((g) => g === 'ok').length;
-    statusLine.textContent = uiText(language, 'score', { good, ok });
+    const miss = grades.filter((g) => g === 'miss').length;
+    statusLine.textContent = `😄 ${good}  ·  🙂 ${ok}` + (miss ? `  ·  👂 ${miss}` : '');
     controls.innerHTML = '';
     const nextButton = el('button', 'mu-btn', uiText(language, 'nextLevel'));
     nextButton.type = 'button';
