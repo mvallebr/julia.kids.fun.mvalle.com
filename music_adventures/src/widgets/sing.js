@@ -36,6 +36,7 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
 
   const screen = el('div', 'mu-screen');
   screen.style.backgroundImage = "url('assets/img/bg-sing.webp')";
+  screen.style.backgroundPosition = 'center 30%';
   screen.appendChild(el('div', 'mu-veil'));
 
   const hud = el('div', 'mu-hud');
@@ -47,6 +48,8 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
   screen.appendChild(hud);
 
   const panel = el('div', 'mu-panel');
+  // painel ancorado embaixo: a arte (menina no palco) continua visível
+  panel.style.top = '60%';
   panel.appendChild(el('div', 'mu-title', uiText(language, 'sing')));
 
   const statusLine = el('div', 'mu-status', uiText(language, 'listenFirst'));

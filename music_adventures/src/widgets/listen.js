@@ -23,6 +23,7 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
 
   const screen = el('div', 'mu-screen');
   screen.style.backgroundImage = "url('assets/img/bg-listen.webp')";
+  screen.style.backgroundPosition = 'center 18%';
   screen.appendChild(el('div', 'mu-veil'));
 
   // ── HUD ──
@@ -35,6 +36,8 @@ export function openListenLevel(host, { level, config, language, onFinish, onSav
   screen.appendChild(hud);
 
   const panel = el('div', 'mu-panel');
+  // painel ancorado embaixo: a coruja detetive (parte de cima da arte) fica visível
+  panel.style.top = '62%';
   panel.appendChild(el('div', 'mu-title', uiText(language, 'listen')));
 
   const statusLine = el('div', 'mu-status', uiText(language, 'listenFirst'));

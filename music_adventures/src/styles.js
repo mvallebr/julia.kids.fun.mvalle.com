@@ -4,6 +4,7 @@ const STYLE_ID = 'music-adventures-styles';
 
 const CSS = `
 #mu { font-family: 'Fredoka','Segoe UI',system-ui,sans-serif; color: #fff7ea; }
+.hidden { display: none !important; }
 
 .mu-screen { position: absolute; inset: 0; overflow: hidden; background-size: cover; background-position: center; }
 .mu-veil { position: absolute; inset: 0; background: linear-gradient(180deg, rgba(28,16,48,.42), rgba(28,16,48,.12) 40%, rgba(20,10,38,.55)); pointer-events: none; }
