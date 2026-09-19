@@ -85,25 +85,32 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
   requestAnimationFrame(resizeCanvas);
 
   // mapeia (segundo, hz) → pixel do canvas
+  function width() { return canvas.clientWidth || 600; }
+  function height() { return canvas.clientHeight || 240; }
   function px(time) {
-    return 8 + (time / totalSeconds) * (canvas.clientWidth - 16);
+    return 8 + (time / totalSeconds) * (width() - 16);
   }
   function py(midi) {
     // escala: dó4 (grau 0) embaixo, sol4 no topo — janela confortável
     const bottom = degreeToMidi(0, baseOctave) - 2; // lá3
     const top = degreeToMidi(7, baseOctave) + 2;    // mi5
-    const height = canvas.clientHeight;
-    return height - 10 - ((midi - bottom) / (top - bottom)) * (height - 20);
+    const h = height();
+    return h - 10 - ((midi - bottom) / (top - bottom)) * (h - 20);
   }
 
   const RESULT_FACES = { good: '😄', ok: '🙂', off: '😵', miss: '👂' };
 
   function drawResult(grades, actualMidis = []) {
     resizeCanvas();
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    ctx.clearRect(0, 0, width, height);
-    const colors = { good: '#7ad97a', ok: '#ffd166', off: '#ff8fa3', miss: 'rgba(255,255,255,.22)' };
+    const w = width();
+    const h = height();
+    ctx.clearRect(0, 0, w, h);
+    const colors = {
+      good: '#7ad97a',
+      ok: '#ffd166',
+      off: '#ff8fa3',
+      miss: '#6b5a78', // lilás-acinzentado — visível no canvas escuro (era .22 de branco)
+    };
     targets.forEach((midi, index) => {
       const x = px(starts[index]);
       const bw = Math.max(20, px(starts[index] + song.beats[index] * beatSeconds) - x - 6);
@@ -113,7 +120,7 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
       ctx.fillStyle = colors[grade] || colors.miss;
       roundRect(x, y - 15, bw, 30, 9);
       // carinha grande dentro do bloco: leitura instantânea para criança
-      ctx.font = '17px Fredoka, sans-serif';
+      ctx.font = '700 17px Fredoka, sans-serif';
       ctx.textAlign = 'center';
       ctx.fillText(RESULT_FACES[grade] || RESULT_FACES.miss, x + bw / 2, y + 6);
       // nota esperada, pequena, acima do bloco
@@ -151,9 +158,9 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
 
   function drawLive(recorderTime, hz) {
     resizeCanvas();
-    const width = canvas.clientWidth;
-    const height = canvas.clientHeight;
-    ctx.clearRect(0, 0, width, height);
+    const w = width();
+    const h = height();
+    ctx.clearRect(0, 0, w, h);
     // blocos-alvo
     targets.forEach((midi, index) => {
       const x = px(starts[index]);
@@ -165,12 +172,11 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
       ctx.textAlign = 'center';
       ctx.fillText(midiSolfege(midi), x + Math.max(18, w) / 2, py(midi) + 4);
     });
-    // trilha da voz até agora
     if (!recording) return;
+    // trilha da voz até agora
     ctx.strokeStyle = '#6bd6ff';
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
-    ctx.beginPath();
     let started = false;
     for (const [time, hzValue] of liveTrace) {
       if (!Number.isFinite(hzValue)) { started = false; continue; }
@@ -181,7 +187,6 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
     }
     if (started) {
       ctx.stroke();
-      // ponto brilhante na cabeça da trilha
       const last = liveTrace[liveTrace.length - 1];
       if (last && Number.isFinite(last[1])) {
         ctx.fillStyle = '#6bd6ff';
@@ -189,8 +194,17 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
         ctx.arc(px(last[0]), py(hzToMidiLocal(last[1])), 7, 0, Math.PI * 2);
         ctx.fill();
       }
+    } else if (liveTrace.length > 3) {
+      // está gravando mas não captou nenhuma voz ainda: feedback visível
+      const pulse = 1 + 0.12 * Math.sin(recorderTime * 4);
+      ctx.font = `${Math.round(54 * pulse)}px 'Fredoka',sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = 'rgba(107,214,255,.78)';
+      ctx.fillText('🎤', w / 2, h / 2 + 18);
+      ctx.font = '700 12px Fredoka, sans-serif';
+      ctx.fillStyle = 'rgba(255,247,234,.7)';
+      ctx.fillText('estou ouvindo…', w / 2, h / 2 + 50);
     }
-    void height; void recorderTime; // usado via liveTrace
   }
 
   function roundRect(x, y, w, h, r) {
@@ -414,23 +428,43 @@ export function openSingLevel(host, { level, song, tempo, language, micReady, on
   function finish(grades, actualMidis, stars) {
     // grava as estrelas no instante da conclusão (não no clique de sair)
     onSave?.(stars);
-    burstAt(panel, 40 + stars * 20);
-    if (stars >= 2) { sounds.star(); confetti(60 * stars, 1800); }
-    else sounds.correct();
     const good = grades.filter((g) => g === 'good').length;
     const ok = grades.filter((g) => g === 'ok').length;
     const miss = grades.filter((g) => g === 'miss').length;
-    statusLine.textContent = `😄 ${good}  ·  🙂 ${ok}` + (miss ? `  ·  👂 ${miss}` : '');
+    const noVoice = actualMidis.every((m) => m == null);
+    burstAt(panel, 40 + stars * 20);
+    let retryLabel;
+    if (stars >= 3) {
+      sounds.fanfare();
+      confetti(80 * stars, 1800);
+      statusLine.textContent = `🎉 ${uiText(language, 'greatEar')} (${good} 😄)`;
+      retryLabel = uiText(language, 'replay');
+    } else if (stars === 2) {
+      sounds.star();
+      confetti(60 * stars, 1800);
+      statusLine.textContent = `😊 ${good} boas · ${ok} quase`;
+      retryLabel = uiText(language, 'replay');
+    } else if (noVoice) {
+      // microfone não ouviu nada: não fingir acerto
+      sounds.wrong();
+      statusLine.textContent = '🎤 Não te ouvi. Aperta 🎤 Cantar e canta junto.';
+      retryLabel = uiText(language, 'replay');
+    } else {
+      sounds.wrong();
+      statusLine.textContent = `👂 ${miss} nota${miss === 1 ? '' : 's'} perdida${miss === 1 ? '' : 's'} · tenta de novo`;
+      retryLabel = uiText(language, 'replay');
+    }
     controls.innerHTML = '';
-    const nextButton = el('button', 'mu-btn', uiText(language, 'nextLevel'));
-    nextButton.type = 'button';
-    nextButton.addEventListener('click', () => { sounds.tap(); cleanup(); onFinish(stars, level + 1); });
-    controls.appendChild(nextButton);
-    const againButton = el('button', 'mu-btn ghost', uiText(language, 'replay'));
+    const againButton = el('button', 'mu-btn primary', retryLabel);
     againButton.type = 'button';
-    againButton.style.marginLeft = '10px';
     againButton.addEventListener('click', () => { sounds.tap(); cleanup(); onFinish(stars, level); });
     controls.appendChild(againButton);
+    if (stars >= 2 && level < 999) {
+      const nextButton = el('button', 'mu-btn ghost', uiText(language, 'nextLevel'));
+      nextButton.type = 'button';
+      nextButton.addEventListener('click', () => { sounds.tap(); cleanup(); onFinish(stars, level + 1); });
+      controls.appendChild(nextButton);
+    }
   }
 
   function cleanup() {
