@@ -3,6 +3,39 @@
 // aditivos. Low-poly intencional: leve para tablet (spec Partes E/F).
 
 import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+
+// ── cache de modelos GLB (carregados sob demanda) ─────────────────────────────
+const gltfLoader = new GLTFLoader();
+const glbPromises = new Map(); // filename → Promise<THREE.Group>
+const glbScenes = new Map(); // filename → THREE.Group (preenchido por preloadModels)
+const ASSETS = './assets/';
+
+export function loadGlb(filename) {
+  if (!glbPromises.has(filename)) {
+    glbPromises.set(filename, new Promise((resolve, reject) => {
+      gltfLoader.load(
+        ASSETS + filename,
+        (gltf) => resolve(gltf.scene),
+        undefined,
+        (err) => reject(err),
+      );
+    }));
+  }
+  return glbPromises.get(filename);
+}
+
+// pre-carrega todos os modelos externos. Após await, glbScenes está populado e makeOwl/makeAdult/etc podem usar síncrono.
+export async function preloadModels() {
+  const files = ['owl.glb', 'npc.glb', 'trees.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
+  const resolved = await Promise.all(files.map(loadGlb));
+  files.forEach((f, i) => glbScenes.set(f, resolved[i]));
+}
+
+// Helper: retorna source scene (não clonado) do GLB cacheado, ou null se preload falhou.
+function glbSource(filename) {
+  return glbScenes.get(filename) || null;
+}
 
 // ── helpers básicos ──────────────────────────────────────────────────────────
 const matCache = new Map();
@@ -624,6 +657,31 @@ function owlFaceTexture(variant = 0) {
 }
 
 export function makeOwl(variant = 0) {
+  // Preferir GLB (qualidade stylized PBR). Fallback procedural se preload falhou.
+  const src = glbSource('owl.glb');
+  if (src) {
+    const g = new THREE.Group();
+    // clone recursivo: cada owl precisa de sua própria instância (Object3D não pode ter 2 parents)
+    const owl = src.clone(true);
+    owl.traverse((c) => {
+      if (c.isMesh) {
+        c.castShadow = true;
+        c.receiveShadow = true;
+      }
+    });
+    // GLB tem ~0.40m de largura; procedural usava ~0.34m. Escala 0.85 pra ficar próximo.
+    owl.scale.setScalar(0.85);
+    g.add(owl);
+    // animação simples de flutuar (não temos asas separadas no GLB)
+    g.userData.animate = (t, flying) => {
+      const baseY = flying ? 1.6 : 1.62;
+      g.position.y = baseY + Math.sin(t * (flying ? 6 : 2.4)) * (flying ? 0.18 : 0.04);
+      g.rotation.z = Math.sin(t * (flying ? 4 : 1.5)) * (flying ? 0.18 : 0.04);
+      g.rotation.y = Math.sin(t * 1.2) * 0.08;
+    };
+    return g;
+  }
+  // ── fallback procedural (igual ao original, se GLB falhou) ──────────────────
   const g = new THREE.Group();
   const bodyColor = variant === 0 ? 0xd9c9a8 : 0x8a7156;
   const body = new THREE.Mesh(new THREE.SphereGeometry(0.17, 14, 12), mat(bodyColor));
@@ -666,6 +724,23 @@ export function makeOwl(variant = 0) {
 }
 
 export function makeAdult(dress, face = 'mustache') {
+  // Preferir GLB. Fallback procedural se preload falhou.
+  const src = glbSource('npc.glb');
+  if (src) {
+    const g = new THREE.Group();
+    const npc = src.clone(true);
+    npc.traverse((c) => {
+      if (c.isMesh) {
+        c.castShadow = true;
+        c.receiveShadow = true;
+      }
+    });
+    // GLB do Sketchfab exportado pelo Blender manteve Z-up; converter pra Y-up
+    npc.rotation.x = -Math.PI / 2;
+    g.add(npc);
+    return g;
+  }
+  // ── fallback procedural (igual ao original) ────────────────────────────────
   const g = new THREE.Group();
   const torso = new THREE.Mesh(new THREE.CapsuleGeometry(0.3, 0.62, 4, 12), mat(dress));
   torso.position.y = 1.05;
@@ -1085,18 +1160,39 @@ export function buildWoods(scene) {
   }
 
   // árvores (corredor livre |x| < 4.5; fundo maior longe)
+  // tenta GLB pack; se preloadModels não rodou, fallback procedural
+  const treeSrc = glbSource('trees.glb');
   const tree = (x, z, scale = 1, collider = true) => {
     const group = new THREE.Group();
-    const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.36 * scale, 2.4 * scale, 8), mat(0x5d4326));
-    trunk.position.y = 1.2 * scale;
-    trunk.castShadow = true;
-    group.add(trunk);
-    const greens = [0x2e6b34, 0x3a7d3e, 0x4a9148];
-    for (const [oy, r, c] of [[2.5, 1.2, greens[0]], [3.3, 0.95, greens[1]], [3.95, 0.62, greens[2]]]) {
-      const crown = new THREE.Mesh(new THREE.SphereGeometry(r * scale, 10, 9), mat(c));
-      crown.position.set((Math.random() - 0.5) * 0.5 * scale, oy * scale, (Math.random() - 0.5) * 0.5 * scale);
-      crown.castShadow = true;
-      group.add(crown);
+    if (treeSrc) {
+      // clone recursivo; pack inteiro vira UMA "super tree" (todas as variações juntas).
+      // Pra ter variedade entre árvores, aplicamos random rotation/scale por instância.
+      const t = treeSrc.clone(true);
+      t.traverse((c) => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+        }
+      });
+      // Pack tem ~5m de largura quando exportado. Procedural tinha ~3m de altura. Vamos
+      // normalizar pelo bbox e dar uma escala inicial que combine.
+      t.scale.setScalar(scale * 0.7);
+      // pequena rotação aleatória pra variedade (pack contém várias árvores sobrepostas)
+      t.rotation.y = Math.random() * Math.PI * 2;
+      group.add(t);
+    } else {
+      // ── fallback procedural ─────────────────────────────────────────────────
+      const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.36 * scale, 2.4 * scale, 8), mat(0x5d4326));
+      trunk.position.y = 1.2 * scale;
+      trunk.castShadow = true;
+      group.add(trunk);
+      const greens = [0x2e6b34, 0x3a7d3e, 0x4a9148];
+      for (const [oy, r, c] of [[2.5, 1.2, greens[0]], [3.3, 0.95, greens[1]], [3.95, 0.62, greens[2]]]) {
+        const crown = new THREE.Mesh(new THREE.SphereGeometry(r * scale, 10, 9), mat(c));
+        crown.position.set((Math.random() - 0.5) * 0.5 * scale, oy * scale, (Math.random() - 0.5) * 0.5 * scale);
+        crown.castShadow = true;
+        group.add(crown);
+      }
     }
     group.position.set(x, 0, z);
     scene.add(group);

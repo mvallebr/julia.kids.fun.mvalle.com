@@ -11,7 +11,7 @@ import { uiText, lang } from './i18n.js';
 import { ensureAudio, setMuted, sounds } from './audio.js';
 import { loadState, saveState, CHARACTERS, MAP_PIECES } from './state.js';
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount } from './quest.js';
-import { buildSchool, buildWoods, makeKid, makeOwl, makeAdult, blobShadow } from './world.js';
+import { buildSchool, buildWoods, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
 import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES } from './content.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
 
@@ -787,6 +787,13 @@ async function boot() {
 
   if (!state.character) state.character = await chooseCharacter();
   saveState(localStorage, player, state);
+
+  // pre-carrega os modelos 3D externos (GLBs do Sketchfab CC-BY) antes de montar a cena
+  try {
+    await preloadModels();
+  } catch (error) {
+    console.warn('Falha ao carregar modelos 3D externos; usando fallback procedural.', error);
+  }
 
   buildScene(state.zone);
   animate();
