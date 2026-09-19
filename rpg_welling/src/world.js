@@ -886,8 +886,9 @@ export function makeAdult(dress, face = 'mustache') {
         c.receiveShadow = true;
       }
     });
-    // GLB do Sketchfab exportado pelo Blender manteve Z-up; converter pra Y-up
-    npc.rotation.x = -Math.PI / 2;
+    // npc.glb guarda a altura no -Z (medido: z ∈ [-1.68, 0], braços no X).
+    // rotation.x = +PI/2 mapeia -Z → +Y: levanta exato do chão, sem offset.
+    npc.rotation.x = Math.PI / 2;
     g.add(npc);
     return g;
   }
