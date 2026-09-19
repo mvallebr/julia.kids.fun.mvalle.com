@@ -7,8 +7,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 
 // ── cache de modelos GLB (carregados sob demanda) ─────────────────────────────
 const gltfLoader = new GLTFLoader();
-const glbPromises = new Map(); // filename → Promise<THREE.Group>
-const glbScenes = new Map(); // filename → THREE.Group (preenchido por preloadModels)
+const glbPromises = new Map(); // filename → Promise<{scene, animations}>
+const glbScenes = new Map(); // filename → {scene, animations} (preenchido por preloadModels)
 const ASSETS = './assets/';
 
 export function loadGlb(filename) {
@@ -16,7 +16,7 @@ export function loadGlb(filename) {
     glbPromises.set(filename, new Promise((resolve, reject) => {
       gltfLoader.load(
         ASSETS + filename,
-        (gltf) => resolve(gltf.scene),
+        (gltf) => resolve({ scene: gltf.scene, animations: gltf.animations || [] }),
         undefined,
         (err) => reject(err),
       );
@@ -25,14 +25,18 @@ export function loadGlb(filename) {
   return glbPromises.get(filename);
 }
 
-// pre-carrega todos os modelos externos. Após await, glbScenes está populado e makeOwl/makeAdult/etc podem usar síncrono.
+// pre-carrega todos os modelos externos. Após await, glbScenes está populado e makeKid/makeOwl/etc podem usar síncrono.
 export async function preloadModels() {
-  const files = ['owl.glb', 'npc.glb', 'trees.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
-  const resolved = await Promise.all(files.map(loadGlb));
-  files.forEach((f, i) => glbScenes.set(f, resolved[i]));
+  const files = ['kid-animated.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
+  const results = await Promise.allSettled(files.map(loadGlb));
+  files.forEach((f, i) => {
+    const r = results[i];
+    if (r.status === 'fulfilled') glbScenes.set(f, r.value);
+    else console.warn(`preloadModels: falha ao carregar ${f}`, r.reason);
+  });
 }
 
-// Helper: retorna source scene (não clonado) do GLB cacheado, ou null se preload falhou.
+// Helper: retorna o bundle {scene, animations} do GLB cacheado, ou null se preload falhou.
 function glbSource(filename) {
   return glbScenes.get(filename) || null;
 }
@@ -505,6 +509,75 @@ function facePlane(parent, texture, size) {
 }
 
 export function makeKid(characterId) {
+  // ── GLB rigged com 18 animações (Mini Chibi Kid, CC-BY) ────────────────────
+  const src = glbSource('kid-animated.glb');
+  if (src && src.animations && src.animations.length) {
+    const g = new THREE.Group();
+    const kid = src.scene.clone(true);
+    kid.traverse((c) => {
+      if (c.isMesh) {
+        c.castShadow = true;
+        c.receiveShadow = true;
+      }
+    });
+    // diferenciar ivy (padrão) de oakley: tingir o boné de azul
+    if (characterId === 'oakley') {
+      kid.traverse((c) => {
+        if (c.isMesh && /cap/i.test(c.name || '') && c.material) {
+          const mats = Array.isArray(c.material) ? c.material : [c.material];
+          for (const m of mats) {
+            if (m.color) m.color.set(0x3d5a9e);
+          }
+        }
+      });
+    }
+    g.add(kid);
+
+    // AnimationMixer: idle ↔ walk com fade suave
+    const mixer = new THREE.AnimationMixer(kid);
+    const findClip = (re, fallbackRe) =>
+      src.animations.find((a) => re.test(a.name)) ||
+      (fallbackRe ? src.animations.find((a) => fallbackRe.test(a.name)) : null);
+    const idleClip = findClip(/rig\|idle/i, /idle/i);
+    const walkClip = findClip(/rig\|walk(?!ing)/i, /walk/i);
+    let idleAction = null;
+    let walkAction = null;
+    let currentAction = null;
+    if (idleClip) {
+      idleAction = mixer.clipAction(idleClip);
+      idleAction.play();
+      currentAction = idleAction;
+    }
+    if (walkClip) {
+      walkAction = mixer.clipAction(walkClip);
+      walkAction.play();
+      walkAction.enabled = false;
+      walkAction.setEffectiveWeight(0);
+    }
+    let lastT = 0;
+    g.userData.animate = (t, speed) => {
+      if (!mixer) return;
+      const dt = Math.max(0, Math.min(0.1, t - lastT));
+      lastT = t;
+      if (idleAction && walkAction) {
+        const moving = speed > 0.5;
+        // fade cruzado idle ↔ walk
+        const target = moving ? walkAction : idleAction;
+        const other = moving ? idleAction : walkAction;
+        if (currentAction !== target) {
+          target.enabled = true;
+          target.setEffectiveTimeScale(1);
+          target.fadeIn(0.18);
+          other.fadeOut(0.18);
+          currentAction = target;
+        }
+      }
+      mixer.update(dt);
+    };
+    return g;
+  }
+
+  // ── fallback procedural (se kid-animated.glb falhou) ───────────────────────
   const g = new THREE.Group();
   const parts = {};
   const skin = mat(0xf6cfa4);
@@ -662,7 +735,7 @@ export function makeOwl(variant = 0) {
   if (src) {
     const g = new THREE.Group();
     // clone recursivo: cada owl precisa de sua própria instância (Object3D não pode ter 2 parents)
-    const owl = src.clone(true);
+    const owl = src.scene.clone(true);
     owl.traverse((c) => {
       if (c.isMesh) {
         c.castShadow = true;
@@ -728,7 +801,7 @@ export function makeAdult(dress, face = 'mustache') {
   const src = glbSource('npc.glb');
   if (src) {
     const g = new THREE.Group();
-    const npc = src.clone(true);
+    const npc = src.scene.clone(true);
     npc.traverse((c) => {
       if (c.isMesh) {
         c.castShadow = true;
@@ -1167,7 +1240,7 @@ export function buildWoods(scene) {
     if (treeSrc) {
       // clone recursivo; pack inteiro vira UMA "super tree" (todas as variações juntas).
       // Pra ter variedade entre árvores, aplicamos random rotation/scale por instância.
-      const t = treeSrc.clone(true);
+      const t = treeSrc.scene.clone(true);
       t.traverse((c) => {
         if (c.isMesh) {
           c.castShadow = true;

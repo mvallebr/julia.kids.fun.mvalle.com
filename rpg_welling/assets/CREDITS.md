@@ -76,6 +76,18 @@ URL: <https://sketchfab.com/3d-models/stylized-bush-9d9ce79d3ae040619e96d5b22c7d
 
 ---
 
+## Kid (personagem principal animado) — `kid-animated.glb`
+
+Modelo **"Mini Chibi Kid (Free Demo)"** de **joaobaltieri** (Sketchfab).
+UID: `6feb5bd7ade54b5fac25a0e1e5fbe729`
+Licença: **CC Attribution** (`by`)
+URL: <https://sketchfab.com/3d-models/mini-chibi-kid-free-demo-6feb5bd7ade54b5fac25a0e1e5fbe729>
+
+> Usado como personagem principal (Ivy/Oakley) com **18 animações**
+> rigadas no esqueleto (walk, run, idle, jump, sitting, blinking,
+> turning). No jogo: idle ↔ walk com fade via AnimationMixer; Oakley
+> recebe o boné tingido de azul pra diferenciar da Ivy.
+
 ## Kid (reservado para uso futuro) — `kid.glb`
 
 Modelo **"The Noble Craftsman"** de **Sketchfab**.
@@ -93,6 +105,7 @@ URL: <https://sketchfab.com/3d-models/the-noble-craftsman-0e8ff87ffaa24731b2474b
 
 | Modelo | Licença | URL autor |
 |---|---|---|
+| kid-animated (Mini Chibi Kid) | CC-BY | <https://sketchfab.com/3d-models/mini-chibi-kid-free-demo-6feb5bd7ade54b5fac25a0e1e5fbe729> |
 | owl (base: Cute Ghost) | CC-BY | <https://sketchfab.com/3d-models/cute-ghost-2c8c03bb0e5049529e653f9011a8fc90> |
 | npc (Business Man) | CC-BY | <https://sketchfab.com/3d-models/business-man-low-polygon-game-character-b6f6740f883b4749abac47af0045a9dd> |
 | trees (Forest Tree Pack) | CC-BY | <https://sketchfab.com/3d-models/low-poly-forest-tree-pack-5ff5a51e74324845a4e4905f182dfb2b> |
