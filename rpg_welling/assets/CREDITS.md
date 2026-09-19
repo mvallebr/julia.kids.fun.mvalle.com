@@ -4,7 +4,15 @@ Os modelos 3D abaixo foram baixados do [Sketchfab](https://sketchfab.com)
 via Blender MCP e integrados ao RPG Welling. Todos estão sob licenças
 Creative Commons que requerem atribuição ao autor original.
 
-As atribuições também são exibidas no jogo na tela "Créditos" (HUD ☰).
+As atribuições também são exibidas no jogo na tela "Créditos" (HUD ℹ️).
+
+> **Ivy e Oakley (personagens principais atuais)**: gerados por IA
+> **localmente** na máquina do autor — concept art via Minimax
+> text-to-image, malha via Tencent **Hunyuan3D-2mini** (open source),
+> textura via **Hunyuan3D-2 paint** (open source), rig e animações
+> feitas em **Blender** via script (`ai/hp3d-rig.py`). Sem assets de
+> terceiros — créditos de modelos externos abaixo referem-se aos GLBs
+> legados ainda em `assets/`.
 
 ---
 
