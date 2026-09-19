@@ -11,7 +11,7 @@ import { uiText, lang } from './i18n.js';
 import { ensureAudio, setMuted, setZoneAmbience, footstep, sounds } from './audio.js';
 import { loadState, saveState, bumpGeneration, CHARACTERS, MAP_PIECES } from './state.js';
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount } from './quest.js';
-import { buildSchool, buildWoods, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
+import { buildSchool, buildWoods, buildHighStreet, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
 import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES } from './content.js';
 import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz } from './vocab.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
@@ -21,7 +21,7 @@ const params = new URLSearchParams(location.search);
 const player = (params.get('name') || 'Exploradora').trim().slice(0, 32);
 const language = ['pt', 'en', 'es'].includes(params.get('language')) ? params.get('language') : 'pt';
 // QA: ?zone=woods pula direto para a mata sem poluir o save real
-const warp = ['woods', 'school'].includes(params.get('zone')) ? params.get('zone') : null;
+const warp = ['woods', 'school', 'highstreet'].includes(params.get('zone')) ? params.get('zone') : null;
 
 let state = loadState(localStorage, player);
 if (warp) {
@@ -44,6 +44,11 @@ const PROMPTS = {
   ivyDoor: { pt: '🌳 Porta de heras', en: '🌳 Ivy door', es: '🌳 Puerta de hiedra' },
   marker: { pt: '🔍 Ler a pedra antiga', en: '🔍 Read the old stone', es: '🔍 Leer la piedra antigua' },
   gate: { pt: '🚪 Portão secreto', en: '🚪 Secret gate', es: '🚪 Puerta secreta' },
+  orderStart: { pt: '🍵 Falar com a Sra. Page (encomenda)', en: '🍵 Talk to Ms Page (errand)', es: '🍵 Hablar con la Sra. Page (encargo)' },
+  orderMint: { pt: '🌿 Colher menta fresca', en: '🌿 Pick fresh mint', es: '🌿 Recoger menta fresca' },
+  orderBun: { pt: '🥐 Pegar o pão de canela', en: '🥐 Get the cinnamon bun', es: '🥐 Tomar el pan de canela' },
+  orderFeather: { pt: '🪶 Pegar a pena azul', en: '🪶 Get the blue feather', es: '🪶 Tomar la pluma azul' },
+  baker: { pt: '🗣️ Falar com o padeiro', en: '🗣️ Talk to the baker', es: '🗣️ Hablar con el panadero' },
 };
 
 const OBJECTIVE_KEYS = {
@@ -61,6 +66,7 @@ let overlayCount = 0; // >0 = menus/diálogos abertos, movimento travado
 let ended = false;
 let restarting = false; // confirmRestart: bloqueia autosave/beforeunload até o reload
 let stepTimer = 0; // cadência dos passos sincronizada com o walk cycle
+let exitCooldown = 0; // anti-retrigger das saídas de zona logo após a transição
 window.__BUNDLE_V = 'n'; // marcador de versão pra debug de cache
 
 function initThree() {
@@ -97,7 +103,9 @@ function buildScene(zoneName) {
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x241f38);
   scene.userData.zone = { colliders: [] };
-  zone = zoneName === 'woods' ? buildWoods(scene) : buildSchool(scene);
+  zone = zoneName === 'woods'
+    ? buildWoods(scene)
+    : zoneName === 'highstreet' ? buildHighStreet(scene) : buildSchool(scene);
   scene.background = new THREE.Color(zone.background);
   scene.fog = new THREE.Fog(zone.fog[0], zone.fog[1], zone.fog[2]);
   setZoneAmbience(zoneName);
@@ -616,15 +624,16 @@ async function addClue(id) {
   await runConversation([{ who: 'owl', text: CLUES[id] }]);
 }
 
-async function gotoZone(zoneName) {
+async function gotoZone(zoneName, spawnOverride = null) {
   overlayCount += 1;
   hidePrompt();
   const veil = fade(root);
   await veil.cover();
   sounds.door();
   buildScene(zoneName);
+  if (spawnOverride && playerObj) playerObj.position.set(spawnOverride[0], 0, spawnOverride[1]);
   state.zone = zoneName;
-  state.position = null;
+  state.position = spawnOverride ? [spawnOverride[0], spawnOverride[1]] : null;
   saveState(localStorage, player, state);
   veil.remove();
   updateHUD();
@@ -692,12 +701,59 @@ async function interact(id) {
     return;
   }
   if (id === 'board') return void runConversation([{ who: 'owl', text: FLAVOR.board }]);
+  if (id === 'baker') {
+    return void runConversation([
+      { who: 'finch', text: { pt: 'Bem-vindas à padaria da High Street! O pão de canela sai quentinho às cinco.', en: 'Welcome to the High Street bakery! The cinnamon buns come out warm at five.', es: '¡Bienvenidas a la panadería de High Street! El pan de canela sale calentito a las cinco.' } },
+      { gloss: 'warm' },
+    ]);
+  }
   if (id === 'signTree') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.signTree }]); }
   if (id === 'marker') return void runConversation([{ who: 'owl', text: FLAVOR.marker }]);
   if (id === 'pieceShelf') return void collectPiece('shelf');
   if (id === 'pieceTrolley') return void collectPiece('trolley');
   if (id === 'clueTable') return void addClue('libraryTable');
   if (id === 'clueOak') return void addClue('oak');
+  // ── quest multi-zona: A Encomenda da Sra. Page ────────────────────────────
+  if (id === 'orderStart') {
+    if (state.flags.orderDone) return void runConversation([{ who: 'page', text: FLAVOR.orderDone }]);
+    if (state.flags.orderStarted) {
+      const got = ['orderMint', 'orderBun', 'orderFeather'].filter((f) => state.flags[f]);
+      if (got.length === 3) {
+        state.flags.orderDone = true;
+        saveState(localStorage, player, state);
+        sounds.magic();
+        confetti(root, 100);
+        return void runConversation([
+          { who: 'page', text: { pt: 'Menta, pão de canela e uma pena azul — chá perfeito! Obrigada, queridas. You are so kind!', en: 'Mint, a cinnamon bun and a blue feather — perfect tea! Thank you, dears. You are so kind!', es: '¡Menta, pan de canela y una pluma azul — té perfecto! Gracias, queridos. You are so kind!' } },
+          { gloss: 'kind' },
+        ]);
+      }
+      const falta = ['orderMint', 'orderBun', 'orderFeather'].filter((f) => !state.flags[f]);
+      const nomes = { orderMint: { pt: 'menta na mata', en: 'mint in the woods', es: 'menta en el bosque' }, orderBun: { pt: 'pão de canela na padaria', en: 'a cinnamon bun at the bakery', es: 'pan de canela en la panadería' }, orderFeather: { pt: 'a pena azul perto do carvalho', en: 'the blue feather by the oak', es: 'la pluma azul junto al roble' } };
+      return void runConversation([{ who: 'page', text: { pt: `Ainda falta: ${falta.map((f) => nomes[f].pt).join(', ')}.`, en: `Still missing: ${falta.map((f) => nomes[f].en).join(', ')}.`, es: `Todavía falta: ${falta.map((f) => nomes[f].es).join(', ')}.` } }]);
+    }
+    state.flags.orderStarted = true;
+    saveState(localStorage, player, state);
+    return void runConversation([
+      { who: 'page', text: { pt: 'Minhas queridas, meu chá das cinco precisa de três coisinhas: menta fresca na mata, um pão de canela da padaria da High Street e uma pena azul do carvalho. Podem trazer?', en: 'My dears, my five-o-clock tea needs three little things: fresh mint in the woods, a cinnamon bun from the High Street bakery and a blue feather from the oak. Could you fetch them?', es: 'Mis queridos, mi té de las cinco necesita tres cositas: menta fresca en el bosque, un pan de canela de la panadería de High Street y una pluma azul del roble. ¿Traen?' } },
+      { gloss: 'fetch' },
+    ]);
+  }
+  for (const [flagId, pt, en, es] of [
+    ['orderMint', 'menta fresca!', 'fresh mint!', '¡menta fresca!'],
+    ['orderBun', 'pão de canela quentinho!', 'a warm cinnamon bun!', '¡pan de canela calentito!'],
+    ['orderFeather', 'uma pena azul brilhante!', 'a shiny blue feather!', '¡una pluma azul brillante!'],
+  ]) {
+    if (id === flagId) {
+      if (state.flags[flagId]) return;
+      state.flags[flagId] = true;
+      saveState(localStorage, player, state);
+      sounds.pickup();
+      confetti(root, 40);
+      const count = ['orderMint', 'orderBun', 'orderFeather'].filter((f) => state.flags[f]).length;
+      return void runConversation([{ who: 'owl', text: { pt: `Achamos: ${pt} — ${count} de 3!`, en: `We found: ${en} — ${count} of 3!`, es: `¡Encontramos: ${es} — 3 de 3!` } }]);
+    }
+  }
   if (id === 'ivyDoor') {
     if (!canAssembleMap(state)) {
       sounds.hoot();
@@ -866,6 +922,18 @@ function animate() {
       if (dist <= candidate.radius && dist < best) {
         best = dist;
         nearestInteractable = candidate;
+      }
+    }
+    // mundo semi-aberto: saídas de zona são pisáveis, com cooldown na chegada
+    exitCooldown = Math.max(0, exitCooldown - dt);
+    if (exitCooldown <= 0) {
+      for (const exit of zone.exits || []) {
+        const dist = Math.hypot(exit.x - playerObj.position.x, exit.z - playerObj.position.z);
+        if (dist <= exit.radius) {
+          exitCooldown = 2.5;
+          void gotoZone(exit.target, exit.spawn);
+          break;
+        }
       }
     }
   }

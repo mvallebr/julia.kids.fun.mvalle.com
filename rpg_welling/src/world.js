@@ -1077,6 +1077,10 @@ export function buildSchool(scene) {
     background: 0x241f38,
     fog: [0x241f38, 34, 90],
     npcSpots: { finch: [-4.3, 0.8], page: [-4.8, -25.1] },
+    // mundo semi-aberto: sair pelo portão da frente leva à High Street
+    exits: [
+      { x: 0, z: 3.0, radius: 1.7, target: 'highstreet', spawn: [0, -14.6] },
+    ],
   };
   scene.userData.zone = zone;
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
@@ -1268,6 +1272,10 @@ export function buildSchool(scene) {
   }
   addInteract('clueTable', 0.5, -21.5, 2.1);
 
+  // quest da encomenda: começo com a Sra. Page e pena azul no carvalho
+  addInteract('orderStart', -5.5, -26.4, 1.8);
+  addInteract('orderFeather', 3.3, -5.6, 1.5);
+
   // pilhas de livros reais (Antique Book Set, CC-BY) na mesa e pelo chão da biblioteca
   const bookSrc = glbSource('books.glb');
   if (bookSrc) {
@@ -1311,6 +1319,111 @@ export function buildSchool(scene) {
 }
 
 // ── Zona 2: trilha na mata (Oxleas) ──────────────────────────────────────────
+export function buildHighStreet(scene) {
+  const zone = {
+    name: 'highstreet',
+    spawn: [0, 16],
+    bounds: { minX: -7, maxX: 7, minZ: -16, maxZ: 16 },
+    colliders: [],
+    interactables: [],
+    hemi: [0xfff2d9, 0x5a5a6e, 1.2],
+    sun: { color: 0xffe2b0, intensity: 1.8, pos: [6, 15, 8] },
+    background: 0x2a2440,
+    fog: [0x2a2440, 26, 70],
+    npcSpots: { baker: [2.2, -6] },
+    // saídas: sul → woods, norte → school (mundo semi-aberto, anda-e-entra)
+    exits: [
+      { x: 0, z: 15.4, radius: 1.6, target: 'woods', spawn: [0, -15.5] },
+      { x: 0, z: -15.4, radius: 1.6, target: 'school', spawn: [0, 1.2] },
+    ],
+  };
+  scene.userData.zone = zone;
+  const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
+
+  // calçada de pedra
+  const roadTexRaw = stoneTexture();
+  roadTexRaw.texture.wrapS = roadTexRaw.texture.wrapT = THREE.RepeatWrapping;
+  roadTexRaw.texture.repeat.set(4, 12);
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(9, 36), pbrFrom(roadTexRaw, [4, 12], 1.5, [0.7, 1.0]));
+  road.rotation.x = -Math.PI / 2;
+  road.position.set(0, 0, 0);
+  road.receiveShadow = true;
+  scene.add(road);
+
+  const addCollider = (x, z, hw, hd) => zone.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
+
+  // lojas: caixas com fachadas coloridas + toldos + placas
+  const shops = [
+    { x: -4.2, z: -8, w: 4.5, color: 0xb56a4a, sign: 'BAKERY', signColor: '#ffd166' },
+    { x: 4.2, z: -8, w: 4.5, color: 0x5a7a9e, sign: 'BOOKSHOP', signColor: '#b8d8ff' },
+    { x: -4.2, z: 2, w: 4.5, color: 0x6a8a5a, sign: 'POST', signColor: '#c9e8c9' },
+    { x: 4.2, z: 2, w: 4.5, color: 0x9e5a7a, sign: 'TEA ROOM', signColor: '#f2c9d8' },
+  ];
+  for (const shop of shops) {
+    const body = new THREE.Mesh(new THREE.BoxGeometry(shop.w, 4.2, 3.4), mat(shop.color));
+    body.position.set(shop.x, 2.1, shop.z);
+    body.castShadow = true;
+    scene.add(body);
+    addCollider(shop.x, shop.z, shop.w / 2, 1.7);
+    // toldo listrado
+    const awning = new THREE.Mesh(new THREE.BoxGeometry(shop.w * 0.9, 0.08, 1.1), mat(0xf2ede0));
+    awning.position.set(shop.x, 2.6, shop.z + (shop.z < 0 ? 2.2 : -2.2));
+    awning.rotation.x = shop.z < 0 ? 0.16 : -0.16;
+    scene.add(awning);
+    // placa com nome
+    const sign = makeLabelSprite(shop.sign);
+    sign.position.set(shop.x, 3.1, shop.z + (shop.z < 0 ? 2.35 : -2.35));
+    sign.scale.set(2.4, 0.6, 1);
+    scene.add(sign);
+  }
+
+  // postes de luz quentes
+  for (const [lx, lz] of [[-3.4, 8], [3.4, 8], [-3.4, -2], [3.4, -2], [-3.4, -12], [3.4, -12]]) {
+    const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 3.4, 8), mat(0x2a2a34));
+    pole.position.set(lx, 1.7, lz);
+    pole.castShadow = true;
+    scene.add(pole);
+    const lampHead = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), glowMat(0xffd88a));
+    lampHead.position.set(lx, 3.5, lz);
+    scene.add(lampHead);
+    const lampLight = new THREE.PointLight(0xffc36a, 4, 6);
+    lampLight.position.set(lx, 3.4, lz);
+    scene.add(lampLight);
+    addCollider(lx, lz, 0.15, 0.15);
+  }
+
+  // bancos
+  for (const [bx, bz, ry] of [[-2.9, 5, Math.PI / 2], [2.9, -4, -Math.PI / 2]]) {
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 1.6), mat(0x6b4a2a));
+    bench.position.set(bx, 0.21, bz);
+    bench.rotation.y = ry;
+    bench.castShadow = true;
+    scene.add(bench);
+    addCollider(bx, bz, 0.3, 0.85);
+  }
+
+  // padaria: balcão da padeira + cheirinho de canela (quest)
+  const bakeryCounter = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 0.7), mat(0x8a5a34));
+  bakeryCounter.position.set(-2.2, 0.45, -5.9);
+  scene.add(bakeryCounter);
+  addInteract('orderBun', -2.2, -5.2, 1.6);
+
+  // NPC padeiro (Business Man re-tintado de avental)
+  if (zone.npcSpots.baker) {
+    const [bx, bz] = zone.npcSpots.baker;
+    const baker = makeAdult(0x8a5a34, 'baker');
+    blobShadow(baker, 0.5);
+    baker.position.set(bx, 0, bz);
+    baker.rotation.y = Math.PI;
+    scene.add(baker);
+    zone.baker = baker;
+  }
+  addInteract('baker', 2.2, -6, 1.7);
+
+  zone.update = () => {};
+  return zone;
+}
+
 export function buildWoods(scene) {
   const zone = {
     name: 'woods',
@@ -1318,6 +1431,10 @@ export function buildWoods(scene) {
     bounds: { minX: -5.2, maxX: 5.2, minZ: -17.4, maxZ: 26.4 },
     colliders: [],
     interactables: [],
+    // sul da mata desemboca na High Street
+    exits: [
+      { x: 0, z: -16.8, radius: 1.6, target: 'highstreet', spawn: [0, 14.6] },
+    ],
     hemi: [0xcfe8c8, 0x24401f, 1.0],
     sun: { color: 0xffd98a, intensity: 1.75, pos: [-7, 16, -4] },
     background: 0x1c3524,
@@ -1366,6 +1483,8 @@ export function buildWoods(scene) {
     cap.position.set(mx, 0.13, mz);
     scene.add(cap);
   }
+  // quest da encomenda: menta fresca junto aos cogumelos
+  addInteract('orderMint', 2.1, -6.4, 1.5);
 
   // árvores (corredor livre |x| < 4.5; fundo maior longe)
   // tenta GLB pack; se preloadModels não rodou, fallback procedural

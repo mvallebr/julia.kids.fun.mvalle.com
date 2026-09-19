@@ -249,4 +249,19 @@ export const GLOSSES = {
     en: 'trust = to believe in someone',
     es: 'trust = confiar',
   },
+  warm: {
+    pt: 'warm = quentinho, morno',
+    en: 'warm = a little hot',
+    es: 'warm = calentito',
+  },
+  kind: {
+    pt: 'kind = gentil, bondade',
+    en: 'kind = nice, generous',
+    es: 'kind = amable',
+  },
+  fetch: {
+    pt: 'fetch = buscar e trazer',
+    en: 'fetch = go get and bring back',
+    es: 'fetch = buscar y traer',
+  },
 };
