@@ -8,7 +8,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { uiText, lang } from './i18n.js';
-import { ensureAudio, setMuted, sounds } from './audio.js';
+import { ensureAudio, setMuted, setZoneAmbience, footstep, sounds } from './audio.js';
 import { loadState, saveState, bumpGeneration, CHARACTERS, MAP_PIECES } from './state.js';
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount } from './quest.js';
 import { buildSchool, buildWoods, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
@@ -59,6 +59,7 @@ let ring = null;
 let overlayCount = 0; // >0 = menus/diálogos abertos, movimento travado
 let ended = false;
 let restarting = false; // confirmRestart: bloqueia autosave/beforeunload até o reload
+let stepTimer = 0; // cadência dos passos sincronizada com o walk cycle
 window.__BUNDLE_V = 'n'; // marcador de versão pra debug de cache
 
 function initThree() {
@@ -98,6 +99,7 @@ function buildScene(zoneName) {
   zone = zoneName === 'woods' ? buildWoods(scene) : buildSchool(scene);
   scene.background = new THREE.Color(zone.background);
   scene.fog = new THREE.Fog(zone.fog[0], zone.fog[1], zone.fog[2]);
+  setZoneAmbience(zoneName);
 
   // composer de pós-processamento (bloom + SMAA): só cria uma vez, atualiza
   // a cena renderizada após rebuilds (a cena nova sobrescreve o scene do RenderPass).
@@ -708,6 +710,12 @@ function animate() {
     const [nx, nz] = moveWithCollision(playerObj.position.x, playerObj.position.z, dx, dz);
     const walked = Math.hypot(nx - playerObj.position.x, nz - playerObj.position.z);
     playerObj.position.set(nx, 0, nz);
+    // passos sincronizados com o walk cycle (~0.4s por passo)
+    stepTimer -= dt;
+    if (moving && walked > 0.0005 && stepTimer <= 0) {
+      footstep(zone?.name || 'school');
+      stepTimer = 0.4;
+    }
     if (moving && walked > 0.0005) {
       const targetAngle = Math.atan2(inputX, inputY);
       let delta = targetAngle - playerObj.rotation.y;
