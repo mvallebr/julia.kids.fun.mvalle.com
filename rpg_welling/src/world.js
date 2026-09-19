@@ -555,7 +555,8 @@ export function makeKid(characterId) {
       (fallbackRe ? ai.animations.find((a) => fallbackRe.test(a.name)) : null);
     const idleClip = findClip(/^idle$/i, /idle/i);
     const walkClip = findClip(/^walk$/i, /walk/i);
-    let idleAction = null, walkAction = null, currentAction = null;
+    const runClip = findClip(/^run$/i, /run/i);
+    let idleAction = null, walkAction = null, runAction = null, currentAction = null;
     if (idleClip) {
       idleAction = mixer.clipAction(idleClip);
       idleAction.play();
@@ -567,19 +568,25 @@ export function makeKid(characterId) {
       walkAction.enabled = false;
       walkAction.setEffectiveWeight(0);
     }
+    if (runClip) {
+      runAction = mixer.clipAction(runClip);
+      runAction.play();
+      runAction.enabled = false;
+      runAction.setEffectiveWeight(0);
+    }
     let lastT = 0;
     g.userData.animate = (t, speed) => {
       const dt = Math.max(0, Math.min(0.1, t - lastT));
       lastT = t;
       if (idleAction && walkAction) {
         const moving = speed > 0.5;
-        const target = moving ? walkAction : idleAction;
-        const other = moving ? idleAction : walkAction;
+        const running = speed > 1.5 && runAction;
+        const target = running ? runAction : (moving ? walkAction : idleAction);
         if (currentAction !== target) {
           target.enabled = true;
           target.setEffectiveTimeScale(1);
-          target.fadeIn(0.18);
-          other.fadeOut(0.18);
+          target.fadeIn(0.15);
+          if (currentAction) currentAction.fadeOut(0.15);
           currentAction = target;
         }
       }
@@ -1335,6 +1342,7 @@ export function buildHighStreet(scene) {
     exits: [
       { x: 0, z: 15.4, radius: 1.6, target: 'woods', spawn: [0, -15.5] },
       { x: 0, z: -15.4, radius: 1.6, target: 'school', spawn: [0, 1.2] },
+      { x: 5.9, z: 0.2, radius: 1.5, target: 'academy', spawn: [0, 10.5] },
     ],
   };
   scene.userData.zone = zone;
@@ -1421,6 +1429,89 @@ export function buildHighStreet(scene) {
   addInteract('baker', 2.2, -6, 1.7);
 
   zone.update = () => {};
+  return zone;
+}
+
+export function buildAcademy(scene) {
+  const zone = {
+    name: 'academy',
+    spawn: [0, 12],
+    bounds: { minX: -6, maxX: 6, minZ: -14, maxZ: 12 },
+    colliders: [],
+    interactables: [],
+    hemi: [0xd9e8ff, 0x2a2a50, 1.1],
+    sun: { color: 0xc9d8ff, intensity: 1.5, pos: [-6, 14, 6] },
+    background: 0x1a1a3e,
+    fog: [0x1a1a3e, 20, 55],
+    npcSpots: { raven: [0, -8] },
+    exits: [
+      { x: 0, z: 11.4, radius: 1.6, target: 'highstreet', spawn: [3.5, 0.2] },
+    ],
+  };
+  scene.userData.zone = zone;
+  const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
+  const addCollider = (x, z, hw, hd) => zone.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
+
+  // pátio de pedra azulada
+  const floorTexRaw = stoneTexture();
+  floorTexRaw.texture.wrapS = floorTexRaw.texture.wrapT = THREE.RepeatWrapping;
+  floorTexRaw.texture.repeat.set(4, 6);
+  const courtyard = new THREE.Mesh(new THREE.PlaneGeometry(13, 28), pbrFrom(floorTexRaw, [4, 6], 1.5, [0.7, 1.0]));
+  courtyard.rotation.x = -Math.PI / 2;
+  courtyard.receiveShadow = true;
+  scene.add(courtyard);
+
+  // prédio da academia rivall (tons azul-aço com detalhes dourados)
+  const building = new THREE.Mesh(new THREE.BoxGeometry(10, 7, 4), mat(0x3d5a80));
+  building.position.set(0, 3.5, -12);
+  building.castShadow = true;
+  scene.add(building);
+  addCollider(0, -12, 5, 2);
+  const tower = new THREE.Mesh(new THREE.CylinderGeometry(1.2, 1.4, 9, 10), mat(0x2f4468));
+  tower.position.set(4, 4.5, -10);
+  tower.castShadow = true;
+  scene.add(tower);
+  addCollider(4, -10, 1.4, 1.4);
+  const roof = new THREE.Mesh(new THREE.ConeGeometry(1.6, 2, 10), mat(0x8a2f2f));
+  roof.position.set(4, 10, -10);
+  scene.add(roof);
+  const emblem = makeTreeEmblem(0.9);
+  emblem.position.set(0, 4.6, -9.95);
+  scene.add(emblem);
+
+  // colunas do pátio
+  for (const [px, pz] of [[-4.5, -4], [4.5, -4], [-4.5, 1], [4.5, 1]]) {
+    const col = new THREE.Mesh(new THREE.CylinderGeometry(0.35, 0.4, 3.6, 10), mat(0x8fa3c0));
+    col.position.set(px, 1.8, pz);
+    col.castShadow = true;
+    scene.add(col);
+    addCollider(px, pz, 0.45, 0.45);
+  }
+
+  // círculo de duelo no centro (onde o feitiço acontece)
+  const duelRing = new THREE.Mesh(new THREE.RingGeometry(1.6, 1.9, 40), glowMat(0x9ecbff, 0.7));
+  duelRing.rotation.x = -Math.PI / 2;
+  duelRing.position.set(0, 0.04, -8);
+  scene.add(duelRing);
+  zone.duelRing = duelRing;
+  addInteract('duel', 0, -8, 2.2);
+  glowSprite(scene, zone, 0x9ecbff, 0.9, 0, 0.4, -8, { opacity: 0.25, amp: 0.12, speed: 1.6 });
+
+  // a rival: Miss Raven (Business Man tingido de azul-aço)
+  if (zone.npcSpots.raven) {
+    const [rx, rz] = zone.npcSpots.raven;
+    const raven = makeAdult(0x8fa3c0, 'raven');
+    blobShadow(raven, 0.5);
+    raven.position.set(rx, 0, rz);
+    raven.rotation.y = Math.PI;
+    scene.add(raven);
+    zone.raven = raven;
+  }
+  addInteract('raven', 0, -7, 1.7);
+
+  zone.update = (dt, t) => {
+    if (zone.duelRing) zone.duelRing.material.opacity = 0.55 + 0.3 * Math.sin(t * 2.4);
+  };
   return zone;
 }
 
@@ -1608,6 +1699,7 @@ export function buildWoods(scene) {
     scene.add(chest);
     // brilho dourado sutil indicando que ali tem coisa
     glowSprite(scene, zone, 0xffd166, 0.7, 4.1, 0.45, -9.4, { opacity: 0.35, amp: 0.15, speed: 2 });
+    addInteract('chest', 4.1, -9.4, 1.6);
   }
 
   const markerMaterial = pbrFrom(stoneTexture(), [1, 1], 1.6, [0.7, 1.0]);

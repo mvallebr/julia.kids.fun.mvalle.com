@@ -11,7 +11,7 @@ import { uiText, lang } from './i18n.js';
 import { ensureAudio, setMuted, setZoneAmbience, footstep, sounds } from './audio.js';
 import { loadState, saveState, bumpGeneration, CHARACTERS, MAP_PIECES } from './state.js';
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount } from './quest.js';
-import { buildSchool, buildWoods, buildHighStreet, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
+import { buildSchool, buildWoods, buildHighStreet, buildAcademy, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
 import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES } from './content.js';
 import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz } from './vocab.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
@@ -21,7 +21,7 @@ const params = new URLSearchParams(location.search);
 const player = (params.get('name') || 'Exploradora').trim().slice(0, 32);
 const language = ['pt', 'en', 'es'].includes(params.get('language')) ? params.get('language') : 'pt';
 // QA: ?zone=woods pula direto para a mata sem poluir o save real
-const warp = ['woods', 'school', 'highstreet'].includes(params.get('zone')) ? params.get('zone') : null;
+const warp = ['woods', 'school', 'highstreet', 'academy'].includes(params.get('zone')) ? params.get('zone') : null;
 
 let state = loadState(localStorage, player);
 if (warp) {
@@ -44,6 +44,7 @@ const PROMPTS = {
   ivyDoor: { pt: '🌳 Porta de heras', en: '🌳 Ivy door', es: '🌳 Puerta de hiedra' },
   marker: { pt: '🔍 Ler a pedra antiga', en: '🔍 Read the old stone', es: '🔍 Leer la piedra antigua' },
   gate: { pt: '🚪 Portão secreto', en: '🚪 Secret gate', es: '🚪 Puerta secreta' },
+  chest: { pt: '🎁 Abrir o baú', en: '🎁 Open the chest', es: '🎁 Abrir el cofre' },
   orderStart: { pt: '🍵 Falar com a Sra. Page (encomenda)', en: '🍵 Talk to Ms Page (errand)', es: '🍵 Hablar con la Sra. Page (encargo)' },
   orderMint: { pt: '🌿 Colher menta fresca', en: '🌿 Pick fresh mint', es: '🌿 Recoger menta fresca' },
   orderBun: { pt: '🥐 Pegar o pão de canela', en: '🥐 Get the cinnamon bun', es: '🥐 Tomar el pan de canela' },
@@ -105,7 +106,9 @@ function buildScene(zoneName) {
   scene.userData.zone = { colliders: [] };
   zone = zoneName === 'woods'
     ? buildWoods(scene)
-    : zoneName === 'highstreet' ? buildHighStreet(scene) : buildSchool(scene);
+    : zoneName === 'highstreet' ? buildHighStreet(scene)
+    : zoneName === 'academy' ? buildAcademy(scene)
+    : buildSchool(scene);
   scene.background = new THREE.Color(zone.background);
   scene.fog = new THREE.Fog(zone.fog[0], zone.fog[1], zone.fog[2]);
   setZoneAmbience(zoneName);
@@ -546,16 +549,110 @@ document.addEventListener('click', (e) => {
   else if (id === 'creditsButton') openCredits();
   else if (id === 'wordsButton' || id === 'wordsClose' || id === 'wordsClose2') openWords();
   else if (id === 'quizClose' || id === 'quizClose2') closeQuiz();
+  else if (id === 'reportButton' || id === 'reportClose' || id === 'reportClose2') openReport();
   else if (e.target.id === 'restartBackdrop') closeRestart();
   else if (e.target.id === 'creditsBackdrop') closeCredits();
   else if (e.target.id === 'wordsBackdrop') closeWords();
   else if (e.target.id === 'quizBackdrop') closeQuiz();
+  else if (e.target.id === 'reportBackdrop') closeReport();
 });
+// ── Relatório de progresso (pra pais e responsáveis) ───────────────────────────
+function openReport() {
+  const total = Object.keys(state.words).length;
+  const mastered = Object.values(state.words).filter((w) => (w.streak || 0) >= 3).length;
+  const due = dueWords(state.words).length;
+  const rows = [
+    ['📖 Palavras conhecidas', String(total)],
+    ['🏆 Palavras dominadas (3+ acertos)', String(mastered)],
+    ['📌 Revisões para hoje', String(due)],
+    ['🗺️ Partes do mapa', `${pieceCount(state)} de 4`],
+    ['🧩 Desafios resolvidos', String(Object.values(state.challenges).filter(Boolean).length)],
+    ['🌍 Zonas descobertas', String(['school', 'woods', 'highstreet'].filter((z) => z === 'school' || state.flags[`visited_${z}`]).length + 0) + ' de 3'],
+  ];
+  $('reportBody').innerHTML = rows.map(([label, val]) =>
+    `<div class="word-row"><span>${label}</span><span style="margin-left:auto;font-weight:700;color:#ffd166">${val}</span></div>`
+  ).join('') + '<p style="font-size:11.5px;color:rgba(255,255,255,.55);margin:10px 0 0">Dominar uma palavra = acertar a revisão da coruja 3 vezes seguidas.</p>';
+  $('reportBackdrop').classList.remove('hidden');
+}
+function closeReport() {
+  $('reportBackdrop').classList.add('hidden');
+}
 function closeWords() {
   $('wordsBackdrop').classList.add('hidden');
 }
 function closeQuiz() {
   $('quizBackdrop').classList.add('hidden');
+}
+
+// ── Duelo de Feitiços vs Prof. Raven (melhor de 3, usando o diário) ────────────
+function runDuel() {
+  const learned = Object.keys(state.words);
+  const picked = [...learned].sort(() => Math.random() - 0.5).slice(0, 3);
+  let score = 0;
+  let idx = 0;
+  overlayCount += 1; // trava movimento durante o duelo
+
+  const nextRound = () => {
+    if (idx >= picked.length) return endDuel();
+    const quiz = buildQuiz(state.words, picked[idx]);
+    if (!quiz) return endDuel();
+    idx += 1;
+    $('quizPrompt').textContent = `⚡ ${quiz.word}?`;
+    const optionsEl = $('quizOptions');
+    optionsEl.innerHTML = '';
+    $('quizFeedback').textContent = `Pergunta ${idx} de ${picked.length} · placar ${score}`;
+    for (const option of quiz.options) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = option.text;
+      btn.addEventListener('click', () => {
+        if (option.correct) {
+          answerCorrect(state.words, quiz.word);
+          score += 1;
+          btn.classList.add('correct');
+          $('quizFeedback').textContent = '✨ Acertou! Feitiço lançado!';
+          sounds.magic();
+        } else {
+          answerWrong(state.words, quiz.word);
+          btn.classList.add('wrong');
+          $('quizFeedback').textContent = `💥 Errou! Era “${quiz.word}”.`;
+          sounds.wrong();
+        }
+        saveState(localStorage, player, state);
+        updateReviewBadge();
+        setTimeout(nextRound, 1100);
+      });
+      optionsEl.appendChild(btn);
+    }
+    $('quizBackdrop').classList.remove('hidden');
+  };
+
+  const endDuel = () => {
+    $('quizBackdrop').classList.add('hidden');
+    overlayCount -= 1;
+    const won = score >= 2;
+    const finish = () => {
+      if (won) {
+        state.flags.duelWon = true;
+        saveState(localStorage, player, state);
+        updateHUD();
+        sounds.fanfare();
+        confetti(root, 140);
+      }
+    };
+    if (won) {
+      runConversation([
+        { who: 'raven', text: { pt: `Impressionante! ${score} de 3 — vocês venceram o duelo! A Academia Owlburt reconhece seu vocabulário. 🏅`, en: `Impressive! ${score} of 3 — you won the duel! Owlburt Academy recognizes your vocabulary. 🏅`, es: `¡Impresionante! ${score} de 3 — ¡ganaron el duelo! La Academia Owlburt reconoce su vocabulario. 🏅` } },
+        { gloss: 'spell' },
+      ]).then(finish);
+    } else {
+      runConversation([
+        { who: 'raven', text: { pt: `${score} de 3… a vitória é minha hoje. Estudem com a coruja e voltem — adoro uma revanche!`, en: `${score} of 3… victory is mine today. Study with the owl and come back — I love a rematch!`, es: `${score} de 3… la victoria es mía hoy. ¡Estudien con el búho y vuelvan — me encanta una revancha!` } },
+      ]).then(finish);
+    }
+  };
+
+  nextRound();
 }
 if ($('creditsBackdrop')) {
   $('creditsBackdrop').addEventListener('click', (e) => { if (e.target === $('creditsBackdrop')) closeCredits(); });
@@ -633,6 +730,7 @@ async function gotoZone(zoneName, spawnOverride = null) {
   buildScene(zoneName);
   if (spawnOverride && playerObj) playerObj.position.set(spawnOverride[0], 0, spawnOverride[1]);
   state.zone = zoneName;
+  state.flags[`visited_${zoneName}`] = true;
   state.position = spawnOverride ? [spawnOverride[0], spawnOverride[1]] : null;
   saveState(localStorage, player, state);
   veil.remove();
@@ -701,11 +799,43 @@ async function interact(id) {
     return;
   }
   if (id === 'board') return void runConversation([{ who: 'owl', text: FLAVOR.board }]);
+  if (id === 'chest') {
+    const today = new Date().toDateString();
+    if (state.flags.chestDay === today) {
+      sounds.hoot();
+      return void runConversation([{ who: 'owl', text: { pt: 'O baú está dormindo. Volte amanhã — tesouros precisam de descanso!', en: 'The chest is sleeping. Come back tomorrow — treasure needs rest!', es: 'El cofre está durmiendo. ¡Vuelve mañana — el tesoro necesita descanso!' } }]);
+    }
+    state.flags.chestOpened = true;
+    state.flags.chestDay = today;
+    // recompensa diária: 3 palavras bônus entram no diário
+    registerWord(state.words, 'treasure', GLOSSES.treasure);
+    registerWord(state.words, 'sparkle', GLOSSES.sparkle);
+    registerWord(state.words, 'secret', GLOSSES.secret);
+    saveState(localStorage, player, state);
+    updateReviewBadge();
+    sounds.magic();
+    confetti(root, 140);
+    return void runConversation([
+      { who: 'owl', text: { pt: 'Um tesouro! Moedas douradas, uma pena brilhante e… palavras mágicas novas no seu diário! ✨', en: 'A treasure! Golden coins, a shiny feather and… new magic words for your journal! ✨', es: '¡Un tesoro! Monedas doradas, una pluma brillante y… ¡palabras mágicas nuevas para tu diario! ✨' } },
+      { gloss: 'treasure' },
+      { gloss: 'sparkle' },
+      { gloss: 'secret' },
+    ]);
+  }
   if (id === 'baker') {
     return void runConversation([
-      { who: 'finch', text: { pt: 'Bem-vindas à padaria da High Street! O pão de canela sai quentinho às cinco.', en: 'Welcome to the High Street bakery! The cinnamon buns come out warm at five.', es: '¡Bienvenidas a la panadería de High Street! El pan de canela sale calentito a las cinco.' } },
+      { who: 'baker', text: { pt: 'Bem-vindas à padaria da High Street! O pão de canela sai quentinho às cinco.', en: 'Welcome to the High Street bakery! The cinnamon buns come out warm at five.', es: '¡Bienvenidas a la panadería de High Street! El pan de canela sale calentito a las cinco.' } },
       { gloss: 'warm' },
     ]);
+  }
+  if (id === 'raven') {
+    const learned = Object.keys(state.words).length;
+    if (learned < 3) {
+      return void runConversation([{ who: 'raven', text: { pt: 'Sou a Prof. Raven, da Academia Owlburt. Duelo de feitiços? Primeiro aprendam 3 palavras com a coruja. Voltem quando o diário estiver cheio!', en: 'I am Prof. Raven, from Owlburt Academy. A spell duel? First learn 3 words with the owl. Come back when your journal is full!', es: 'Soy la Prof. Raven, de la Academia Owlburt. ¿Un duelo de hechizos? Primero aprendan 3 palabras con el búho. ¡Vuelvan cuando el diario esté lleno!' } }]);
+    }
+    return void runConversation([
+      { who: 'raven', text: { pt: 'Então vocês querem o Duelo de Feitiços? Três perguntas, duas certas pra vencer. preparem-se!', en: 'So you want the Spell Duel? Three questions, two right to win. Get ready!', es: '¿Quieren el Duelo de Hechizos? Tres preguntas, dos aciertos para ganar. ¡Prepárense!' } },
+    ]).then(() => runDuel());
   }
   if (id === 'signTree') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.signTree }]); }
   if (id === 'marker') return void runConversation([{ who: 'owl', text: FLAVOR.marker }]);
@@ -849,7 +979,8 @@ function animate() {
   const t = clock.elapsedTime;
 
   const [inputX, inputY] = overlayCount > 0 ? [0, 0] : inputVector();
-  const speed = 3.8;
+  const running = Math.hypot(inputX, inputY) > 0.92; // joystick/teclas no máximo
+  const speed = 3.8 * (running ? 1.55 : 1);
   const dx = inputX * speed * dt;
   const dz = inputY * speed * dt;
   const moving = Math.abs(inputX) + Math.abs(inputY) > 0.05;
@@ -862,7 +993,7 @@ function animate() {
     stepTimer -= dt;
     if (moving && walked > 0.0005 && stepTimer <= 0) {
       footstep(zone?.name || 'school');
-      stepTimer = 0.4;
+      stepTimer = running ? 0.28 : 0.4;
     }
     if (moving && walked > 0.0005) {
       const targetAngle = Math.atan2(inputX, inputY);
@@ -871,7 +1002,7 @@ function animate() {
       while (delta < -Math.PI) delta += Math.PI * 2;
       playerObj.rotation.y += delta * Math.min(1, dt * 12);
     }
-    playerObj.userData.animate?.(t, moving ? 1 : 0);
+    playerObj.userData.animate?.(t, moving ? (running ? 2 : 1) : 0);
 
     // coruja fiel orbita a cabeça da jogadora
     const owlAngle = t * 1.5;
@@ -883,14 +1014,15 @@ function animate() {
     owlObj.rotation.y = -owlAngle + Math.PI / 2;
     owlObj.userData.animate?.(t, moving);
 
-    // irmã/irmão acompanha por perto (spec §2)
+    // irmã/irmão acompanha por perto (spec §2) — corre se estiver muito longe
     const distanceToPlayer = companionObj.position.distanceTo(playerObj.position);
     if (distanceToPlayer > 1.05) {
       const direction = playerObj.position.clone().sub(companionObj.position).normalize();
-      const step = Math.min(distanceToPlayer - 0.95, 4.6 * dt);
+      const companionRunning = distanceToPlayer > 3;
+      const step = Math.min(distanceToPlayer - 0.95, (companionRunning ? 7 : 4.6) * dt);
       companionObj.position.addScaledVector(direction, step);
       companionObj.rotation.y = Math.atan2(direction.x, direction.z);
-      companionObj.userData.animate?.(t, 1);
+      companionObj.userData.animate?.(t, companionRunning ? 2 : 1);
     } else {
       companionObj.userData.animate?.(t, 0);
     }

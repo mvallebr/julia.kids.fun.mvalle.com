@@ -31,7 +31,7 @@ export const CHARACTERS = [
 ];
 
 export const MAP_PIECES = ['finch', 'page', 'shelf', 'trolley'];
-export const ZONES = ['school', 'woods', 'highstreet'];
+export const ZONES = ['school', 'woods', 'highstreet', 'academy'];
 
 export function emptyState() {
   return {

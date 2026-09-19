@@ -280,6 +280,7 @@
       <div class="rpg-hud-group">
         <button class="hud-chip icon" id="hintButton" type="button" aria-label="Dica da coruja">🦉<span id="reviewBadge" class="review-badge hidden">!</span></button>
         <button class="hud-chip icon" id="wordsButton" type="button" aria-label="Diário de palavras">📖</button>
+        <button class="hud-chip icon" id="reportButton" type="button" aria-label="Progresso">📊</button>
         <button class="hud-chip icon" id="soundButton" type="button" aria-label="Som">🔊</button>
       </div>
     </div>
@@ -361,6 +362,16 @@
       </div>
     </aside>
   </div>
-  <script src="lib/bundle.js?v=20260920a"></script>
+  <div class="backdrop hidden" id="reportBackdrop">
+    <aside class="rpg-panel rpg-credits-panel" role="dialog" aria-modal="true">
+      <button class="rpg-close" id="reportClose" type="button" aria-label="Fechar">✕</button>
+      <h2>📊 Progresso da aventura</h2>
+      <div id="reportBody"></div>
+      <div class="rpg-panel-buttons">
+        <button class="rpg-btn" id="reportClose2" type="button">Fechar</button>
+      </div>
+    </aside>
+  </div>
+  <script src="lib/bundle.js?v=20260920b"></script>
 </body>
 </html>

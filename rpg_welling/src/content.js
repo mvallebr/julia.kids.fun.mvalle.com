@@ -5,6 +5,8 @@
 export const NPCS = {
   finch: { name: { pt: 'Sr. Finch', en: 'Mr Finch', es: 'Sr. Finch' }, emoji: '🧹', color: 0x7a5230 },
   page: { name: { pt: 'Sra. Page', en: 'Ms Page', es: 'Sra. Page' }, emoji: '📚', color: 0x8a4a6e },
+  baker: { name: { pt: 'Sr. Crumb', en: 'Mr Crumb', es: 'Sr. Crumb' }, emoji: '🥐', color: 0xb56a4a },
+  raven: { name: { pt: 'Prof. Raven', en: 'Prof. Raven', es: 'Prof. Raven' }, emoji: '🗡️', color: 0x5a7a9e },
 };
 
 // Painéis do livro de abertura (imagens de conceito do jogo).
@@ -263,5 +265,25 @@ export const GLOSSES = {
     pt: 'fetch = buscar e trazer',
     en: 'fetch = go get and bring back',
     es: 'fetch = buscar y traer',
+  },
+  treasure: {
+    pt: 'treasure = tesouro',
+    en: 'treasure = valuable things',
+    es: 'treasure = tesoro',
+  },
+  sparkle: {
+    pt: 'sparkle = brilhar, cintilar',
+    en: 'sparkle = shine with little lights',
+    es: 'sparkle = destellar',
+  },
+  secret: {
+    pt: 'secret = segredo',
+    en: 'secret = something hidden',
+    es: 'secret = secreto',
+  },
+  spell: {
+    pt: 'spell = feitiço',
+    en: 'spell = magic words',
+    es: 'spell = hechizo',
   },
 };
