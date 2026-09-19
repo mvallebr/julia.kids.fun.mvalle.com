@@ -9,7 +9,7 @@ import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { uiText, lang } from './i18n.js';
 import { ensureAudio, setMuted, sounds } from './audio.js';
-import { loadState, saveState, CHARACTERS, MAP_PIECES } from './state.js';
+import { loadState, saveState, bumpGeneration, CHARACTERS, MAP_PIECES } from './state.js';
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount } from './quest.js';
 import { buildSchool, buildWoods, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
 import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES } from './content.js';
@@ -59,6 +59,7 @@ let ring = null;
 let overlayCount = 0; // >0 = menus/diálogos abertos, movimento travado
 let ended = false;
 let restarting = false; // confirmRestart: bloqueia autosave/beforeunload até o reload
+window.__BUNDLE_V = 'n'; // marcador de versão pra debug de cache
 
 function initThree() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -432,21 +433,15 @@ function openRestart() {
 }
 function closeRestart() { $('restartBackdrop').classList.add('hidden'); }
 function confirmRestart() {
-  // impede o beforeunload/autosave de re-salvar o estado velho por cima
-  // do save recém-apagado (bug: restart voltava pra "aventura concluída")
+  // Abas antigas abertas podem ressuscitar o save apagado via autosave
+  // (visto acontecer). Incrementar a geração do slot faz as abas velhas
+  // escreverem no slot anterior — a nova leitura já nasce vazia.
   restarting = true;
   try {
-    const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {};
-    delete all[player.trim().toLowerCase().slice(0, 32)];
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+    bumpGeneration();
   } catch {}
   location.reload();
 }
-$('restartButton').addEventListener('click', openRestart);
-$('restartCancel').addEventListener('click', closeRestart);
-$('restartConfirm').addEventListener('click', confirmRestart);
-$('restartBackdrop').addEventListener('click', (e) => { if (e.target === $('restartBackdrop')) closeRestart(); });
-
 // ── Créditos (atribuições CC-BY dos modelos 3D) ────────────────────────────────
 function openCredits() {
   $('creditsBackdrop').classList.remove('hidden');
@@ -454,15 +449,20 @@ function openCredits() {
 function closeCredits() {
   $('creditsBackdrop').classList.add('hidden');
 }
-if ($('creditsButton')) {
-  $('creditsButton').addEventListener('click', openCredits);
-}
-if ($('creditsClose')) {
-  $('creditsClose').addEventListener('click', closeCredits);
-}
-if ($('creditsOk')) {
-  $('creditsOk').addEventListener('click', closeCredits);
-}
+// Delegação de eventos: os botões dos modais podem ter seus nós substituídos
+// no DOM (observado com o modal de restart pós-fim de aventura), e listeners
+// ligados direto no elemento viram órfãs — o clique não faz nada. Delegando
+// no document, o handler sobrevive a qualquer mutação.
+document.addEventListener('click', (e) => {
+  const id = e.target.closest?.('button')?.id;
+  if (id === 'restartConfirm') confirmRestart();
+  else if (id === 'restartCancel' || id === 'restartBackdrop' && e.target === e.currentTarget) closeRestart();
+  else if (id === 'restartButton') openRestart();
+  else if (id === 'creditsClose' || id === 'creditsOk') closeCredits();
+  else if (id === 'creditsButton') openCredits();
+  else if (e.target.id === 'restartBackdrop') closeRestart();
+  else if (e.target.id === 'creditsBackdrop') closeCredits();
+});
 if ($('creditsBackdrop')) {
   $('creditsBackdrop').addEventListener('click', (e) => { if (e.target === $('creditsBackdrop')) closeCredits(); });
 }

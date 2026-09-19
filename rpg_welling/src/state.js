@@ -1,6 +1,28 @@
 // RPG Welling — save local por jogadora (spec §37, sem contas online).
 
 export const STORAGE_KEY = 'mundo-da-julia.rpgwelling.v1';
+export const GEN_KEY = 'mundo-da-julia.rpgwelling.gen';
+
+// Geração do slot de save: o restart incrementa a geração, então abas
+// antigas abertas (com estado velho em memória) continuam escrevendo no
+// slot anterior — inofensivo — em vez de ressuscitarem o save apagado.
+export function slotKey() {
+  try {
+    const gen = localStorage.getItem(GEN_KEY);
+    // sem geração definida usa a chave base (compat com saves existentes);
+    // após o primeiro restart, a geração muda e abas velhas ficam no slot antigo
+    return gen ? `${STORAGE_KEY}.g${gen}` : STORAGE_KEY;
+  } catch {
+    return STORAGE_KEY;
+  }
+}
+
+export function bumpGeneration() {
+  try {
+    const gen = Number(localStorage.getItem(GEN_KEY) || '1') + 1;
+    localStorage.setItem(GEN_KEY, String(gen));
+  } catch {}
+}
 
 export const CHARACTERS = [
   { id: 'ivy', emoji: '👧', owl: 'Pip' },
@@ -60,7 +82,7 @@ export function loadState(storage, player) {
   const key = profileKey(player);
   if (!key) return normalizeState();
   try {
-    const all = JSON.parse(storage.getItem(STORAGE_KEY) || '{}') || {};
+    const all = JSON.parse(storage.getItem(slotKey()) || '{}') || {};
     return normalizeState(all[key]);
   } catch {
     return normalizeState();
@@ -71,8 +93,8 @@ export function saveState(storage, player, state) {
   const key = profileKey(player);
   if (!key) return;
   try {
-    const all = JSON.parse(storage.getItem(STORAGE_KEY) || '{}') || {};
+    const all = JSON.parse(storage.getItem(slotKey()) || '{}') || {};
     all[key] = normalizeState(state);
-    storage.setItem(STORAGE_KEY, JSON.stringify(all));
+    storage.setItem(slotKey(), JSON.stringify(all));
   } catch {}
 }
