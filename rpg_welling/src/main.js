@@ -58,6 +58,10 @@ function initThree() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.06;
   root.prepend(renderer.domElement);
   camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 200);
   clock = new THREE.Clock();
@@ -90,7 +94,19 @@ function buildScene(zoneName) {
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(zone.sun.color, zone.sun.intensity);
   sun.position.set(...zone.sun.pos);
+  sun.castShadow = true;
+  sun.shadow.mapSize.set(1024, 1024);
+  sun.shadow.camera.left = -13;
+  sun.shadow.camera.right = 13;
+  sun.shadow.camera.top = 13;
+  sun.shadow.camera.bottom = -13;
+  sun.shadow.camera.near = 1;
+  sun.shadow.camera.far = 60;
+  sun.shadow.bias = -0.0008;
+  sun.shadow.normalBias = 0.02;
   scene.add(sun);
+  scene.add(sun.target);
+  scene.userData.sun = sun;
 
   // jogadora + coruja fiel + irmã/irmão acompanhante (spec §2/§16)
   const savedPosition = state.zone === zoneName && Array.isArray(state.position) ? state.position : null;
@@ -653,6 +669,17 @@ function animate() {
     camera.position.lerp(new THREE.Vector3().copy(playerObj.position).add(cameraOffset), 1 - Math.exp(-dt * 5));
     lookTarget.set(playerObj.position.x, 0.6, playerObj.position.z);
     camera.lookAt(lookTarget);
+
+    // sol acompanha a jogadora para sombras estáveis (câmera de sombra relativa)
+    const sunLight = scene.userData.sun;
+    if (sunLight) {
+      sunLight.position.set(
+        playerObj.position.x + zone.sun.pos[0] * 0.5,
+        zone.sun.pos[1] * 0.75,
+        playerObj.position.z + zone.sun.pos[2] * 0.5
+      );
+      sunLight.target.position.set(playerObj.position.x, 0, playerObj.position.z);
+    }
   }
 
   // interação mais próxima → botão + anel brilhante

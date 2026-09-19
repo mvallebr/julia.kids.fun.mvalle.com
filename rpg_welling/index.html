@@ -19,7 +19,11 @@
         linear-gradient(165deg, #131a38 0%, #0e1230 60%, #191238 100%);
     }
     #rpg { position: fixed; inset: 0; }
-    #rpg canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    #rpg canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; filter: saturate(1.12) contrast(1.04) brightness(1.02); }
+    .rpg-vignette {
+      position: absolute; inset: 0; z-index: 10; pointer-events: none;
+      background: radial-gradient(ellipse at center, transparent 58%, rgba(8, 5, 20, .34) 100%);
+    }
     .hidden { display: none !important; }
 
     button { font-family: inherit; }
@@ -192,6 +196,7 @@
 </head>
 <body>
   <div id="rpg" aria-label="RPG Welling">
+    <div class="rpg-vignette"></div>
     <div class="rpg-hud">
       <div class="rpg-hud-group">
         <button class="hud-chip icon" id="homeButton" type="button" aria-label="Menu">🏠</button>
@@ -226,6 +231,6 @@
 
     <div id="fatal"></div>
   </div>
-  <script src="lib/bundle.js?v=20260919a"></script>
+  <script src="lib/bundle.js?v=20260919e"></script>
 </body>
 </html>
