@@ -28,7 +28,7 @@ export function loadGlb(filename) {
 
 // pre-carrega todos os modelos externos. Após await, glbScenes está populado e makeKid/makeOwl/etc podem usar síncrono.
 export async function preloadModels() {
-  const files = ['ivy-rigged.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid-animated.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
+  const files = ['ivy-rigged.glb', 'oakley-rigged.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid-animated.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
   const results = await Promise.allSettled(files.map(loadGlb));
   files.forEach((f, i) => {
     const r = results[i];
@@ -510,13 +510,14 @@ function facePlane(parent, texture, size) {
 }
 
 export function makeKid(characterId) {
-  // ── 1ª escolha: Ivy/Oakley gerados por IA local (Hunyuan3D + rig Blender) ──
-    const ai = glbSource('ivy-rigged.glb');
-    if (ai && ai.animations && ai.animations.length) {
-      const g = new THREE.Group();
-      // skinned mesh NÃO pode usar .clone() comum: os clones compartilham o
-      // esqueleto e o 2º personagem colapsa. SkeletonUtils.clone rebinda tudo.
-      const kid = SkeletonUtils.clone(ai.scene);
+  // ── 1ª escolha: modelo IA dedicado (oakley tem o próprio), senão Ivy tintada ──
+  const dedicated = characterId === 'oakley' ? glbSource('oakley-rigged.glb') : null;
+  const ai = dedicated || glbSource('ivy-rigged.glb');
+  if (ai && ai.animations && ai.animations.length) {
+    const g = new THREE.Group();
+    // skinned mesh NÃO pode usar .clone() comum: os clones compartilham o
+    // esqueleto e o 2º personagem colapsa. SkeletonUtils.clone rebinda tudo.
+    const kid = SkeletonUtils.clone(ai.scene);
       kid.traverse((c) => {
         if (c.isMesh) {
           c.castShadow = true;
@@ -533,10 +534,10 @@ export function makeKid(characterId) {
           }
         }
       });
-    // malha IA nasce com ~1.97m; kid do jogo tem ~1.42m
-    kid.scale.setScalar(0.72);
-    // diferenciar Oakley: tingir a capa/tie de azul
-    if (characterId === 'oakley') {
+    // malhas IA normalizadas pra 1.2m no rig; kid do jogo tem ~1.42m
+    kid.scale.setScalar(1.18);
+    // diferenciar Oakley quando usa o modelo da Ivy (tint azulado na capa/tie)
+    if (characterId === 'oakley' && !dedicated) {
       kid.traverse((c) => {
         if (c.isMesh && c.material) {
           const mats = Array.isArray(c.material) ? c.material : [c.material];
