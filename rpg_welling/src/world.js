@@ -1174,9 +1174,9 @@ export function buildWoods(scene) {
           c.receiveShadow = true;
         }
       });
-      // Pack tem ~5m de largura quando exportado. Procedural tinha ~3m de altura. Vamos
-      // normalizar pelo bbox e dar uma escala inicial que combine.
-      t.scale.setScalar(scale * 0.7);
+      // Pack tem ~1.7m de altura (várias árvores sobrepostas). Aplicar scale 1.5x pra
+      // floresta ficar densa (scale 1.0–2.2 conforme o parâmetro da função).
+      t.scale.setScalar(scale * 1.5);
       // pequena rotação aleatória pra variedade (pack contém várias árvores sobrepostas)
       t.rotation.y = Math.random() * Math.PI * 2;
       group.add(t);
