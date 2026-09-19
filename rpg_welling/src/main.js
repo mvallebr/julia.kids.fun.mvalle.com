@@ -58,6 +58,7 @@ const npcs = {};
 let ring = null;
 let overlayCount = 0; // >0 = menus/diálogos abertos, movimento travado
 let ended = false;
+let restarting = false; // confirmRestart: bloqueia autosave/beforeunload até o reload
 
 function initThree() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -156,7 +157,7 @@ function buildScene(zoneName) {
   for (const id of Object.keys(NPCS)) {
     const spot = zone.npcSpots?.[id];
     if (!spot) continue;
-    const adult = makeAdult(NPCS[id].color);
+    const adult = makeAdult(NPCS[id].color, id);
     blobShadow(adult, 0.5);
     adult.position.set(spot[0], 0, spot[1]);
     adult.rotation.y = id === 'finch' ? Math.PI / 2 : 0.95;
@@ -431,6 +432,9 @@ function openRestart() {
 }
 function closeRestart() { $('restartBackdrop').classList.add('hidden'); }
 function confirmRestart() {
+  // impede o beforeunload/autosave de re-salvar o estado velho por cima
+  // do save recém-apagado (bug: restart voltava pra "aventura concluída")
+  restarting = true;
   try {
     const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {};
     delete all[player.trim().toLowerCase().slice(0, 32)];
@@ -837,14 +841,14 @@ async function boot() {
   // autosave leve da posição
   if (!warp) {
     window.setInterval(() => {
-      if (playerObj && overlayCount === 0) {
+      if (playerObj && overlayCount === 0 && !restarting) {
         state.position = [playerObj.position.x, playerObj.position.z];
         saveState(localStorage, player, state);
       }
     }, 4000);
   }
   window.addEventListener('beforeunload', () => {
-    if (playerObj && !warp) {
+    if (playerObj && !warp && !restarting) {
       state.position = [playerObj.position.x, playerObj.position.z];
       saveState(localStorage, player, state);
     }

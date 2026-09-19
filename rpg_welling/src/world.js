@@ -28,7 +28,7 @@ export function loadGlb(filename) {
 
 // pre-carrega todos os modelos externos. Após await, glbScenes está populado e makeKid/makeOwl/etc podem usar síncrono.
 export async function preloadModels() {
-  const files = ['ivy-rigged.glb', 'oakley-rigged.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid-animated.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
+  const files = ['ivy-rigged.glb', 'oakley-rigged.glb', 'finch-rigged.glb', 'page-rigged.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid-animated.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
   const results = await Promise.allSettled(files.map(loadGlb));
   files.forEach((f, i) => {
     const r = results[i];
@@ -523,13 +523,14 @@ export function makeKid(characterId) {
           c.castShadow = true;
           c.receiveShadow = true;
           // lift de luz: capa preta engole a luz quente da cena; usar o próprio
-          // mapa de cor como emissive fraco devolve legibilidade sem lavar o look
+          // mapa de cor como emissive devolve legibilidade sem lavar o look
           const mats = Array.isArray(c.material) ? c.material : [c.material];
           for (const m of mats) {
             if (m && m.map && m.emissive) {
               m.emissiveMap = m.map;
-              m.emissive = new THREE.Color(0x3a3a3a);
-              m.emissiveIntensity = 0.55;
+              m.emissive = new THREE.Color(0x6a6a6a);
+              m.emissiveIntensity = 0.9;
+              m.toneMapped = true;
             }
           }
         }
@@ -875,7 +876,41 @@ export function makeOwl(variant = 0) {
 }
 
 export function makeAdult(dress, face = 'mustache') {
-  // Preferir GLB. Fallback procedural se preload falhou.
+  // ── 1ª escolha: modelo IA dedicado do NPC (finch-rigged.glb / page-rigged.glb)
+  const dedicated = glbSource(`${face}-rigged.glb`);
+  if (dedicated) {
+    const g = new THREE.Group();
+    const npc = SkeletonUtils.clone(dedicated.scene);
+    npc.traverse((c) => {
+      if (c.isMesh) {
+        c.castShadow = true;
+        c.receiveShadow = true;
+        const mats = Array.isArray(c.material) ? c.material : [c.material];
+        for (const m of mats) {
+          if (m && m.map && m.emissive) {
+            m.emissiveMap = m.map;
+            m.emissive = new THREE.Color(0x6a6a6a);
+            m.emissiveIntensity = 0.9;
+          }
+        }
+      }
+    });
+    g.add(npc);
+    // NPCs ficam parados: toca só o idle em loop
+    const mixer = new THREE.AnimationMixer(npc);
+    const idleClip = dedicated.animations.find((a) => /idle/i.test(a.name));
+    if (idleClip) {
+      mixer.clipAction(idleClip).play();
+    }
+    let lastT = 0;
+    g.userData.animate = (t) => {
+      const dt = Math.max(0, Math.min(0.1, t - lastT));
+      lastT = t;
+      mixer.update(dt);
+    };
+    return g;
+  }
+  // ── 2ª escolha: Business Man genérico do Sketchfab ─────────────────────────
   const src = glbSource('npc.glb');
   if (src) {
     const g = new THREE.Group();
