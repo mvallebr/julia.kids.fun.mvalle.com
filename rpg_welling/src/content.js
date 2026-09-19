@@ -7,6 +7,7 @@ export const NPCS = {
   page: { name: { pt: 'Sra. Page', en: 'Ms Page', es: 'Sra. Page' }, emoji: '📚', color: 0x8a4a6e },
   baker: { name: { pt: 'Sr. Crumb', en: 'Mr Crumb', es: 'Sr. Crumb' }, emoji: '🥐', color: 0xb56a4a },
   raven: { name: { pt: 'Prof. Raven', en: 'Prof. Raven', es: 'Prof. Raven' }, emoji: '🗡️', color: 0x5a7a9e },
+  willow: { name: { pt: 'Prof. Willow', en: 'Prof. Willow', es: 'Prof. Willow' }, emoji: '🌿', color: 0x4a6a5a },
 };
 
 // Painéis do livro de abertura (imagens de conceito do jogo).
@@ -285,5 +286,25 @@ export const GLOSSES = {
     pt: 'spell = feitiço',
     en: 'spell = magic words',
     es: 'spell = hechizo',
+  },
+  practice: {
+    pt: 'practice = praticar',
+    en: 'practice = do it many times to learn',
+    es: 'practice = practicar',
+  },
+  golden: {
+    pt: 'golden = dourado, da cor do ouro',
+    en: 'golden = gold colored',
+    es: 'golden = dorado',
+  },
+  curious: {
+    pt: 'curious = curioso, quer saber tudo',
+    en: 'curious = wanting to know things',
+    es: 'curious = curioso',
+  },
+  roots: {
+    pt: 'roots = raízes',
+    en: 'roots = the part of a plant under the ground',
+    es: 'roots = raíces',
   },
 };

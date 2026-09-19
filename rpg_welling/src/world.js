@@ -28,7 +28,7 @@ export function loadGlb(filename) {
 
 // pre-carrega todos os modelos externos. Após await, glbScenes está populado e makeKid/makeOwl/etc podem usar síncrono.
 export async function preloadModels() {
-  const files = ['ivy-rigged.glb', 'oakley-rigged.glb', 'finch-rigged.glb', 'page-rigged.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid-animated.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
+  const files = ['ivy-rigged.glb', 'oakley-rigged.glb', 'finch-rigged.glb', 'page-rigged.glb', 'raven-rigged.glb', 'crumb-rigged.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid-animated.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
   const results = await Promise.allSettled(files.map(loadGlb));
   files.forEach((f, i) => {
     const r = results[i];
@@ -1087,6 +1087,7 @@ export function buildSchool(scene) {
     // mundo semi-aberto: sair pelo portão da frente leva à High Street
     exits: [
       { x: 0, z: 3.0, radius: 1.7, target: 'highstreet', spawn: [0, -14.6] },
+      { x: -5.9, z: -12, radius: 1.6, target: 'classroom', spawn: [0, 6.5] },
     ],
   };
   scene.userData.zone = zone;
@@ -1512,6 +1513,108 @@ export function buildAcademy(scene) {
   zone.update = (dt, t) => {
     if (zone.duelRing) zone.duelRing.material.opacity = 0.55 + 0.3 * Math.sin(t * 2.4);
   };
+  return zone;
+}
+
+export function buildClassroom(scene) {
+  const zone = {
+    name: 'classroom',
+    spawn: [0, 6],
+    bounds: { minX: -5.5, maxX: 5.5, minZ: -8.5, maxZ: 8.5 },
+    colliders: [],
+    interactables: [],
+    hemi: [0xfff6e0, 0x4a3a2a, 1.2],
+    sun: { color: 0xffe8c0, intensity: 1.4, pos: [4, 10, 6] },
+    background: 0x2a2430,
+    fog: [0x2a2430, 14, 40],
+    npcSpots: { willow: [-2.2, -6.6] },
+    exits: [
+      { x: 0, z: 7.9, radius: 1.5, target: 'school', spawn: [0, -24.5] },
+    ],
+  };
+  scene.userData.zone = zone;
+  const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
+  const addCollider = (x, z, hw, hd) => zone.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
+
+  // piso de madeira + tapete
+  const floorTexRaw = planksTexture();
+  floorTexRaw.texture.wrapS = floorTexRaw.texture.wrapT = THREE.RepeatWrapping;
+  floorTexRaw.texture.repeat.set(4, 4);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 18), pbrFrom(floorTexRaw, [4, 4], 1.2, [0.75, 1.0]));
+  floor.rotation.x = -Math.PI / 2;
+  floor.receiveShadow = true;
+  scene.add(floor);
+
+  // paredes do cômodo
+  const wallMat = mat(0xc9b896);
+  const backWall = new THREE.Mesh(new THREE.BoxGeometry(12, 5, 0.4), wallMat);
+  backWall.position.set(0, 2.5, -8.8);
+  scene.add(backWall);
+  addCollider(0, -8.8, 6, 0.3);
+  for (const side of [-1, 1]) {
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5, 18), wallMat);
+    wall.position.set(side * 5.8, 2.5, 0);
+    scene.add(wall);
+    addCollider(side * 5.8, 0, 0.3, 9);
+  }
+
+  // janela alta com luz dourada
+  for (const wx of [-3, 3]) {
+    const window = new THREE.Mesh(new THREE.PlaneGeometry(1.6, 2.2), glowMat(0xfff0c0));
+    window.position.set(wx, 2.9, -8.58);
+    scene.add(window);
+    const shaft = new THREE.Mesh(
+      new THREE.ConeGeometry(1.4, 5.5, 4, 1, true),
+      new THREE.MeshBasicMaterial({ color: 0xfff0c0, transparent: true, opacity: 0.08, depthWrite: false })
+    );
+    shaft.position.set(wx, 1.2, -6);
+    shaft.rotation.z = Math.PI;
+    scene.add(shaft);
+  }
+
+  // lousa verde com moldura de madeira + giz
+  const boardFrame = new THREE.Mesh(new THREE.BoxGeometry(5, 2.2, 0.12), mat(0x6b4a2a));
+  boardFrame.position.set(0, 2.3, -8.55);
+  scene.add(boardFrame);
+  const blackboard = new THREE.Mesh(new THREE.PlaneGeometry(4.6, 1.8), mat(0x2e4a3a));
+  blackboard.position.set(0, 2.3, -8.47);
+  scene.add(blackboard);
+  const chalk = new THREE.Mesh(new THREE.PlaneGeometry(2.6, 0.08), glowMat(0xf2ede0));
+  chalk.position.set(-0.3, 2.6, -8.45);
+  scene.add(chalk);
+  addInteract('blackboard', 0, -7.2, 2.0);
+
+  // mesa da professora + giz
+  const teacherDesk = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.85, 0.9), mat(0x6b4a2a));
+  teacherDesk.position.set(-3.4, 0.425, -6.8);
+  teacherDesk.castShadow = true;
+  scene.add(teacherDesk);
+  addCollider(-3.4, -6.8, 1.1, 0.5);
+
+  // mesas dos alunos (2 colunas × 3 fileiras)
+  for (const row of [2, 0, -2]) {
+    for (const col of [-1.7, 1.7]) {
+      const desk = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.72, 0.75), mat(0x8a5a34));
+      desk.position.set(col, 0.36, row);
+      desk.castShadow = true;
+      scene.add(desk);
+      addCollider(col, row, 0.6, 0.42);
+    }
+  }
+
+  // professora Willow (dedicated GLB se existir; senão Business Man tintado)
+  if (zone.npcSpots.willow) {
+    const [wx, wz] = zone.npcSpots.willow;
+    const willow = makeAdult(0x4a6a5a, 'willow');
+    blobShadow(willow, 0.5);
+    willow.position.set(wx, 0, wz);
+    willow.rotation.y = 0.4;
+    scene.add(willow);
+    zone.willow = willow;
+  }
+  addInteract('willow', -2.2, -5.6, 1.7);
+
+  zone.update = () => {};
   return zone;
 }
 

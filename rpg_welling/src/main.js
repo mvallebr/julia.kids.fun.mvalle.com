@@ -11,7 +11,7 @@ import { uiText, lang } from './i18n.js';
 import { ensureAudio, setMuted, setZoneAmbience, footstep, sounds } from './audio.js';
 import { loadState, saveState, bumpGeneration, CHARACTERS, MAP_PIECES } from './state.js';
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount } from './quest.js';
-import { buildSchool, buildWoods, buildHighStreet, buildAcademy, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
+import { buildSchool, buildWoods, buildHighStreet, buildAcademy, buildClassroom, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
 import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES } from './content.js';
 import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz } from './vocab.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
@@ -21,7 +21,7 @@ const params = new URLSearchParams(location.search);
 const player = (params.get('name') || 'Exploradora').trim().slice(0, 32);
 const language = ['pt', 'en', 'es'].includes(params.get('language')) ? params.get('language') : 'pt';
 // QA: ?zone=woods pula direto para a mata sem poluir o save real
-const warp = ['woods', 'school', 'highstreet', 'academy'].includes(params.get('zone')) ? params.get('zone') : null;
+const warp = ['woods', 'school', 'highstreet', 'academy', 'classroom'].includes(params.get('zone')) ? params.get('zone') : null;
 
 let state = loadState(localStorage, player);
 if (warp) {
@@ -45,6 +45,8 @@ const PROMPTS = {
   marker: { pt: '🔍 Ler a pedra antiga', en: '🔍 Read the old stone', es: '🔍 Leer la piedra antigua' },
   gate: { pt: '🚪 Portão secreto', en: '🚪 Secret gate', es: '🚪 Puerta secreta' },
   chest: { pt: '🎁 Abrir o baú', en: '🎁 Open the chest', es: '🎁 Abrir el cofre' },
+  blackboard: { pt: '🧮 Aula na lousa', en: '🧮 Blackboard lesson', es: '🧮 Lección en la pizarra' },
+  willow: { pt: '🗣️ Falar com a Prof. Willow', en: '🗣️ Talk to Prof. Willow', es: '🗣️ Hablar con la Prof. Willow' },
   orderStart: { pt: '🍵 Falar com a Sra. Page (encomenda)', en: '🍵 Talk to Ms Page (errand)', es: '🍵 Hablar con la Sra. Page (encargo)' },
   orderMint: { pt: '🌿 Colher menta fresca', en: '🌿 Pick fresh mint', es: '🌿 Recoger menta fresca' },
   orderBun: { pt: '🥐 Pegar o pão de canela', en: '🥐 Get the cinnamon bun', es: '🥐 Tomar el pan de canela' },
@@ -108,6 +110,7 @@ function buildScene(zoneName) {
     ? buildWoods(scene)
     : zoneName === 'highstreet' ? buildHighStreet(scene)
     : zoneName === 'academy' ? buildAcademy(scene)
+    : zoneName === 'classroom' ? buildClassroom(scene)
     : buildSchool(scene);
   scene.background = new THREE.Color(zone.background);
   scene.fog = new THREE.Fog(zone.fog[0], zone.fog[1], zone.fog[2]);
@@ -799,6 +802,67 @@ async function interact(id) {
     return;
   }
   if (id === 'board') return void runConversation([{ who: 'owl', text: FLAVOR.board }]);
+  // ── lousa da sala de aula: lição emoji → palavra em inglês ─────────────────
+  if (id === 'blackboard') {
+    const LESSON = [
+      { en: 'owl', emoji: '🦉', pt: 'coruja' },
+      { en: 'book', emoji: '📖', pt: 'livro' },
+      { en: 'cat', emoji: '🐱', pt: 'gato' },
+      { en: 'star', emoji: '⭐', pt: 'estrela' },
+      { en: 'broom', emoji: '🧹', pt: 'vassoura' },
+      { en: 'moon', emoji: '🌙', pt: 'lua' },
+    ];
+    const lessons = [...LESSON].sort(() => Math.random() - 0.5).slice(0, 3);
+    overlayCount += 1;
+    let round = 0;
+    const nextLesson = () => {
+      if (round >= lessons.length) {
+        overlayCount -= 1;
+        $('quizBackdrop').classList.add('hidden');
+        saveState(localStorage, player, state);
+        updateReviewBadge();
+        sounds.magic();
+        return void runConversation([{ who: 'willow', text: { pt: 'Excelente aula! Essas palavras já estão no seu diário — a coruja vai cobrar depois, hein!', en: 'Excellent class! Those words are in your journal now — the owl will quiz you later!', es: '¡Excelente clase! Esas palabras ya están en tu diario — ¡el búho te va a preguntar después!' } }]);
+      }
+      const lesson = lessons[round];
+      round += 1;
+      const wrongs = LESSON.filter((l) => l.en !== lesson.en).sort(() => Math.random() - 0.5).slice(0, 2).map((l) => l.en);
+      const options = [lesson.en, ...wrongs].sort(() => Math.random() - 0.5);
+      $('quizPrompt').textContent = `${lesson.emoji} = ?`;
+      $('quizFeedback').textContent = `Palavra ${round} de ${lessons.length}`;
+      const optionsEl = $('quizOptions');
+      optionsEl.innerHTML = '';
+      for (const opt of options) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.textContent = opt;
+        btn.addEventListener('click', () => {
+          if (!state.words[lesson.en]) registerWord(state.words, lesson.en, { pt: `${lesson.en} = ${lesson.pt}`, en: lesson.en, es: lesson.en });
+          if (opt === lesson.en) {
+            answerCorrect(state.words, lesson.en);
+            btn.classList.add('correct');
+            $('quizFeedback').textContent = `✨ ${lesson.en} = ${lesson.pt}!`;
+            sounds.star();
+          } else {
+            answerWrong(state.words, lesson.en);
+            btn.classList.add('wrong');
+            $('quizFeedback').textContent = `🐣 ${lesson.emoji} = ${lesson.en}`;
+            sounds.wrong();
+          }
+          setTimeout(nextLesson, 1000);
+        });
+        optionsEl.appendChild(btn);
+      }
+      $('quizBackdrop').classList.remove('hidden');
+    };
+    return void nextLesson();
+  }
+  if (id === 'willow') {
+    return void runConversation([
+      { who: 'willow', text: { pt: 'Bem-vindos à minha sala! A lousa está cheia de palavras novas — toque nela e vamos praticar!', en: 'Welcome to my classroom! The blackboard is full of new words — touch it and let\'s practice!', es: '¡Bienvenidos a mi sala! La pizarra está llena de palabras nuevas — ¡tóquenla y practiquemos!' } },
+      { gloss: 'practice' },
+    ]);
+  }
   if (id === 'chest') {
     const today = new Date().toDateString();
     if (state.flags.chestDay === today) {
@@ -837,12 +901,12 @@ async function interact(id) {
       { who: 'raven', text: { pt: 'Então vocês querem o Duelo de Feitiços? Três perguntas, duas certas pra vencer. preparem-se!', en: 'So you want the Spell Duel? Three questions, two right to win. Get ready!', es: '¿Quieren el Duelo de Hechizos? Tres preguntas, dos aciertos para ganar. ¡Prepárense!' } },
     ]).then(() => runDuel());
   }
-  if (id === 'signTree') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.signTree }]); }
-  if (id === 'marker') return void runConversation([{ who: 'owl', text: FLAVOR.marker }]);
+  if (id === 'signTree') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.signTree }, { gloss: 'golden' }]); }
+  if (id === 'marker') return void runConversation([{ who: 'owl', text: FLAVOR.marker }, { gloss: 'ancient' }]);
   if (id === 'pieceShelf') return void collectPiece('shelf');
   if (id === 'pieceTrolley') return void collectPiece('trolley');
-  if (id === 'clueTable') return void addClue('libraryTable');
-  if (id === 'clueOak') return void addClue('oak');
+  if (id === 'clueTable') { addClue('libraryTable'); return void runConversation([{ who: 'owl', text: FLAVOR.clueTable }, { gloss: 'curious' }]); }
+  if (id === 'clueOak') { addClue('oak'); return void runConversation([{ who: 'owl', text: FLAVOR.clueOak }, { gloss: 'roots' }]); }
   // ── quest multi-zona: A Encomenda da Sra. Page ────────────────────────────
   if (id === 'orderStart') {
     if (state.flags.orderDone) return void runConversation([{ who: 'page', text: FLAVOR.orderDone }]);
