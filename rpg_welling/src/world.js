@@ -4,6 +4,7 @@
 
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 // ── cache de modelos GLB (carregados sob demanda) ─────────────────────────────
 const gltfLoader = new GLTFLoader();
@@ -27,7 +28,7 @@ export function loadGlb(filename) {
 
 // pre-carrega todos os modelos externos. Após await, glbScenes está populado e makeKid/makeOwl/etc podem usar síncrono.
 export async function preloadModels() {
-  const files = ['kid-animated.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
+  const files = ['ivy-rigged.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid-animated.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
   const results = await Promise.allSettled(files.map(loadGlb));
   files.forEach((f, i) => {
     const r = results[i];
@@ -509,7 +510,83 @@ function facePlane(parent, texture, size) {
 }
 
 export function makeKid(characterId) {
-  // ── GLB rigged com 18 animações (Mini Chibi Kid, CC-BY) ────────────────────
+  // ── 1ª escolha: Ivy/Oakley gerados por IA local (Hunyuan3D + rig Blender) ──
+    const ai = glbSource('ivy-rigged.glb');
+    if (ai && ai.animations && ai.animations.length) {
+      const g = new THREE.Group();
+      // skinned mesh NÃO pode usar .clone() comum: os clones compartilham o
+      // esqueleto e o 2º personagem colapsa. SkeletonUtils.clone rebinda tudo.
+      const kid = SkeletonUtils.clone(ai.scene);
+      kid.traverse((c) => {
+        if (c.isMesh) {
+          c.castShadow = true;
+          c.receiveShadow = true;
+          // lift de luz: capa preta engole a luz quente da cena; usar o próprio
+          // mapa de cor como emissive fraco devolve legibilidade sem lavar o look
+          const mats = Array.isArray(c.material) ? c.material : [c.material];
+          for (const m of mats) {
+            if (m && m.map && m.emissive) {
+              m.emissiveMap = m.map;
+              m.emissive = new THREE.Color(0x3a3a3a);
+              m.emissiveIntensity = 0.55;
+            }
+          }
+        }
+      });
+    // malha IA nasce com ~1.97m; kid do jogo tem ~1.42m
+    kid.scale.setScalar(0.72);
+    // diferenciar Oakley: tingir a capa/tie de azul
+    if (characterId === 'oakley') {
+      kid.traverse((c) => {
+        if (c.isMesh && c.material) {
+          const mats = Array.isArray(c.material) ? c.material : [c.material];
+          for (const m of mats) {
+            if (m.color) m.color.offsetHSL(0.55, 0.1, 0.05);
+          }
+        }
+      });
+    }
+    g.add(kid);
+    const mixer = new THREE.AnimationMixer(kid);
+    const findClip = (re, fallbackRe) =>
+      ai.animations.find((a) => re.test(a.name)) ||
+      (fallbackRe ? ai.animations.find((a) => fallbackRe.test(a.name)) : null);
+    const idleClip = findClip(/^idle$/i, /idle/i);
+    const walkClip = findClip(/^walk$/i, /walk/i);
+    let idleAction = null, walkAction = null, currentAction = null;
+    if (idleClip) {
+      idleAction = mixer.clipAction(idleClip);
+      idleAction.play();
+      currentAction = idleAction;
+    }
+    if (walkClip) {
+      walkAction = mixer.clipAction(walkClip);
+      walkAction.play();
+      walkAction.enabled = false;
+      walkAction.setEffectiveWeight(0);
+    }
+    let lastT = 0;
+    g.userData.animate = (t, speed) => {
+      const dt = Math.max(0, Math.min(0.1, t - lastT));
+      lastT = t;
+      if (idleAction && walkAction) {
+        const moving = speed > 0.5;
+        const target = moving ? walkAction : idleAction;
+        const other = moving ? idleAction : walkAction;
+        if (currentAction !== target) {
+          target.enabled = true;
+          target.setEffectiveTimeScale(1);
+          target.fadeIn(0.18);
+          other.fadeOut(0.18);
+          currentAction = target;
+        }
+      }
+      mixer.update(dt);
+    };
+    return g;
+  }
+
+  // ── 2ª escolha: chibi rigged do Sketchfab ──────────────────────────────────
   const src = glbSource('kid-animated.glb');
   if (src && src.animations && src.animations.length) {
     const g = new THREE.Group();

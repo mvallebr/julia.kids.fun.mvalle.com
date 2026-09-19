@@ -854,6 +854,12 @@ window.__rpgWelling = {
   setPos: (x, z) => { if (playerObj) playerObj.position.set(x, 0, z); },
   state: () => state,
   interact: (id) => interact(id),
+  kids: () => [playerObj, companionObj].map((o) => o && ({
+    pos: o.position.toArray().map((n) => +n.toFixed(2)),
+    visible: o.visible,
+    scale: o.scale.toArray(),
+    children: o.children.map((c) => c.type),
+  })),
 };
 
 boot();
