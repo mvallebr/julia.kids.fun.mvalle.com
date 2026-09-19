@@ -1,0 +1,140 @@
+// RPG Welling — textos de interface no idioma da jogadora.
+
+const PT = {
+  title: 'RPG Welling',
+  loading: 'Carregando a aventura…',
+  webglFail: 'Este navegador não conseguiu abrir o 3D. Tente em um Chrome mais novo!',
+  chooseCharacter: 'Quem vai explorar?',
+  characterIvy: 'Ivy, a irmã mais velha. Curiosa, leva a Pip, a coruja corajosa.',
+  characterOakley: 'Oakley, o irmão. Observador, leva o Marlow, a coruja pensadora.',
+  start: 'Começar a aventura',
+  skip: 'Pular',
+  next: 'Continuar',
+  home: 'Menu',
+  sound: 'Som',
+  hint: 'Dica da coruja',
+  journal: 'Missão',
+  pieces: 'partes do mapa',
+  objTalk: 'Fale com o Sr. Finch e a Sra. Page',
+  objFind: 'Encontre as partes do mapa antigo ({count}/4)',
+  objAssemble: 'Junte o mapa na porta de heras',
+  objToWoods: 'Entre na trilha secreta',
+  objCross: 'Atravesse o riacho pelas pedras certas',
+  objGate: 'Abra o portão secreto',
+  objDone: 'Aventura concluída! 🏰',
+  continueLabel: 'Continuar',
+  close: 'Fechar',
+  correct: 'Isso mesmo! 😄',
+  tryAgain: 'Quase! A coruja acha que dá outra chance. 🙂',
+  toastPiece: '🗺️ Parte do mapa encontrada ({count}/4)!',
+  toastClue: '📜 Página de história guardada!',
+  toastAlready: 'Você já olhou aqui.',
+  warpDebug: 'Modo exploração rápida',
+  theEnd: 'Continua…',
+  endCard: 'O portão se abriu para os Caminhos de Açúcar! Essa história continua no próximo capítulo.',
+  badgeEarned: '🏅 Chave dos Bosques',
+  playAgain: 'Voltar ao menu',
+  hintNoPieces: '🦉 Pip pousa no seu ombro: "Comecem falando com os adultos da escola. O zelador achou algo varrendo…"',
+  hintFind: '🦉 "Brilha, brilha! Procure coisas brilhantes perto dos livros e do carrinho de livros."',
+  hintAssemble: '🦉 "Quatro partes fazem um mapa inteiro. A porta de heras está esperando!"',
+  hintCross: '🦉 "Olhe o padrão das pedras: 2, 4, 6… qual vem depois?"',
+  hintGate: '🦉 "O mapa na sua mão combina com a árvore do portão. Toque no portão!"',
+  hintDone: '🦉 "Que aventura! Tomara que o castelo tenha petiscos."',
+};
+
+const EN = {
+  loading: 'Loading the adventure…',
+  webglFail: 'This browser could not start 3D. Try a newer Chrome!',
+  chooseCharacter: 'Who is going to explore?',
+  characterIvy: 'Ivy, the older sister. Curious, with Pip the bold owl.',
+  characterOakley: 'Oakley, the brother. Watchful, with Marlow the thoughtful owl.',
+  start: 'Start the adventure',
+  skip: 'Skip',
+  next: 'Next',
+  home: 'Menu',
+  sound: 'Sound',
+  hint: 'Owl hint',
+  journal: 'Quest',
+  pieces: 'map pieces',
+  objTalk: 'Talk to Mr Finch and Ms Page',
+  objFind: 'Find the old map pieces ({count}/4)',
+  objAssemble: 'Put the map together at the ivy door',
+  objToWoods: 'Step into the secret trail',
+  objCross: 'Cross the stream on the right stones',
+  objGate: 'Open the secret gate',
+  objDone: 'Adventure complete! 🏰',
+  continueLabel: 'Continue',
+  close: 'Close',
+  correct: 'That\'s right! 😄',
+  tryAgain: 'Almost! The owl thinks you deserve another try. 🙂',
+  toastPiece: '🗺️ Map piece found ({count}/4)!',
+  toastClue: '📜 Storybook page saved!',
+  toastAlready: 'You already looked here.',
+  theEnd: 'To be continued…',
+  endCard: 'The gate opened to the Sugar Paths! This story continues in the next chapter.',
+  badgeEarned: '🏅 Woodland Key',
+  playAgain: 'Back to menu',
+  hintNoPieces: '🦉 Pip lands on your shoulder: "Start by talking to the school grown-ups. The caretaker found something while sweeping…"',
+  hintFind: '🦉 "Shiny, shiny! Look for glimmering things near the books and the book trolley."',
+  hintAssemble: '🦉 "Four pieces make one whole map. The ivy door is waiting!"',
+  hintCross: '🦉 "Look at the stone pattern: 2, 4, 6… which comes next?"',
+  hintGate: '🦉 "The map in your hand matches the tree on the gate. Tap the gate!"',
+  hintDone: '🦉 "What an adventure! I hope the castle has snacks."',
+};
+
+const ES = {
+  loading: 'Cargando la aventura…',
+  webglFail: '¡Este navegador no pudo abrir el 3D! Prueba en un Chrome más nuevo.',
+  chooseCharacter: '¿Quién va a explorar?',
+  characterIvy: 'Ivy, la hermana mayor. Curiosa, lleva a Pip, el búho valiente.',
+  characterOakley: 'Oakley, el hermano. Observador, lleva a Marlow, el búho pensador.',
+  start: 'Empezar la aventura',
+  skip: 'Saltar',
+  next: 'Seguir',
+  home: 'Menú',
+  sound: 'Sonido',
+  hint: 'Pista del búho',
+  journal: 'Misión',
+  pieces: 'partes del mapa',
+  objTalk: 'Habla con el Sr. Finch y la Sra. Page',
+  objFind: 'Encuentra las partes del mapa antiguo ({count}/4)',
+  objAssemble: 'Une el mapa en la puerta de hiedra',
+  objToWoods: 'Entra en el sendero secreto',
+  objCross: 'Cruza el arroyo por las piedras correctas',
+  objGate: 'Abre la puerta secreta',
+  objDone: '¡Aventura completada! 🏰',
+  continueLabel: 'Continuar',
+  close: 'Cerrar',
+  correct: '¡Eso es! 😄',
+  tryAgain: '¡Casi! El búho cree que mereces otra oportunidad. 🙂',
+  toastPiece: '🗺️ ¡Parte del mapa encontrada ({count}/4)!',
+  toastClue: '📜 ¡Página de historia guardada!',
+  toastAlready: 'Ya miraste aquí.',
+  theEnd: 'Continuará…',
+  endCard: '¡La puerta se abrió a los Caminos de Azúcar! Esta historia sigue en el próximo capítulo.',
+  badgeEarned: '🏅 Llave del Bosque',
+  playAgain: 'Volver al menú',
+  hintNoPieces: '🦉 Pip aterriza en tu hombro: "Empiecen hablando con los adultos de la escuela. El conserje encontró algo barriendo…"',
+  hintFind: '🦉 "¡Brilla, brilla! Busquen cosas brillantes cerca de los libros y del carrito de libros."',
+  hintAssemble: '🦉 "Cuatro partes hacen un mapa entero. ¡La puerta de hiedra está esperando!"',
+  hintCross: '🦉 "Mira el patrón de las piedras: 2, 4, 6… ¿cuál viene después?"',
+  hintGate: '🦉 "El mapa en tu mano coincide con el árbol de la puerta. ¡Toca la puerta!"',
+  hintDone: '🦉 "¡Qué aventura! Ojalá el castello tenga meriendas."',
+};
+
+export function uiText(language, key, vars = {}) {
+  let table = PT;
+  if (language === 'en') table = { ...PT, ...EN };
+  else if (language === 'es') table = { ...PT, ...ES };
+  let value = table[key] ?? PT[key] ?? key;
+  for (const [name, replacement] of Object.entries(vars)) {
+    value = value.replaceAll(`{${name}}`, replacement);
+  }
+  return value;
+}
+
+// campo multilíngue { pt, en, es } → string no idioma ativo
+export function lang(value, language = 'pt') {
+  if (value && typeof value === 'object') return value[language] ?? value.pt ?? value.en ?? '';
+  return value ?? '';
+}

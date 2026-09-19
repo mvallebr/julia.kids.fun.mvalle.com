@@ -122,6 +122,12 @@
       box-shadow: 0 10px 26px rgba(47, 158, 110, .4);
     }
     .app-language:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .app-rpg {
+      background: linear-gradient(135deg, #1f2a5e, #6a4ecf);
+      box-shadow: 0 10px 26px rgba(31, 42, 94, .5);
+      border: 1.5px solid rgba(245, 197, 66, .55);
+    }
+    .app-rpg:hover { transform: translateY(-2px); filter: brightness(1.08); }
     .app-maths {
       background: linear-gradient(135deg, #8a5bdb, #b9a4f5);
       box-shadow: 0 10px 26px rgba(138, 93, 219, .38);
@@ -252,6 +258,11 @@
         <span data-i18n="languageAdv">Aventuras de Idiomas</span>
         <span class="emoji" style="margin-left:auto" aria-hidden="true">🧩</span>
       </a>
+      <a class="app app-rpg" href="rpg_welling/index.html" id="appRpg">
+        <span class="emoji" aria-hidden="true">🦉</span>
+        <span data-i18n="rpg">RPG Welling</span>
+        <span class="emoji" style="margin-left:auto" aria-hidden="true">🏰</span>
+      </a>
       <a class="app app-wordquest" href="word_quest/index.html" id="appWordQuest">
         <span class="emoji" aria-hidden="true">🗺️</span>
         <span data-i18n="wordQuest">The Word Quest</span>
@@ -303,7 +314,7 @@
       pt: {
         htmlLang: 'pt-BR', title: 'Aventuras da Julia 🌍', helloPrefix: 'OLÁ',
         tagline: 'Escolha uma aventura para começar:', nameLabel: 'Seu nome', namePlaceholder: 'Escreva seu nome', avatarLabel: 'Escolha seu avatar', savedLabel: 'Quem está jogando?', needName: 'Digite seu nome para continuar!', needAvatar: 'Escolha um avatar para continuar!', world: "Julia's World",
-        math: 'Aventuras de Matemática', english: 'Aventuras de Inglês', vocabulary: 'Diversão com Vocabulário', music: 'Aventuras Musicais', languageAdv: 'Aventuras de Idiomas', notebook: 'Caderno de Stickers e Badges', wordQuest: 'The Word Quest', soon: 'EM BREVE',
+        math: 'Aventuras de Matemática', english: 'Aventuras de Inglês', vocabulary: 'Diversão com Vocabulário', music: 'Aventuras Musicais', languageAdv: 'Aventuras de Idiomas', notebook: 'Caderno de Stickers e Badges', wordQuest: 'The Word Quest', rpg: 'RPG Welling', soon: 'EM BREVE',
         languageLabel: '🌐 Escolha seu idioma', helpButton: 'Help', aboutButton: 'About',
         madeWith: 'feito com 💛 pela Julia e pelo papai',
         helpTitle: '❓ Como usar o atlas', helpClose: 'Fechar ajuda', helpIntro: 'Descubra como explorar o mundo, colecionar stickers e conquistar badges.', helpExploreTitle: '🌍 Explorar o mundo', helpExploreText: 'Arraste o globo para girar, use a roda do mouse para chegar mais perto e clique em um país para abrir sua ficha.', helpControlsTitle: '🖱️ Controles rápidos', helpControlsText: 'Use Início para voltar à visão inicial, Menu para voltar aqui, Girar para deixar o planeta rodando e o menu ☰ dentro do app para mais configurações.', helpStickersTitle: '🎟️ Stickers', helpStickersText: 'Cada lugar aberto dá 1 sticker com link para a Wikipedia. Ao visitar 10 lugares, você ganha +5 stickers; ao chegar a 50, ganha +20 adicionais, além do bônus anterior.', helpBadgesTitle: '🏅 Badges', helpBadgesText: 'Complete todos os países de um continente para ganhar seu badge. Também existem badges por 5, 25 e 75 lugares, além do Super explorador ao visitar todos os países.', helpRankingTitle: '🏆 Ranking', helpRankingText: 'Você ganha 3 pontos por lugar e 100 pontos por badge. Trocar explorador permite registrar várias pessoas; os perfis ficam salvos neste computador.',
@@ -312,7 +323,7 @@
       en: {
         htmlLang: 'en', title: "Julia's Adventures 🌍", helloPrefix: 'HELLO',
         tagline: 'Pick an adventure to start:', nameLabel: 'Your name', namePlaceholder: 'Type your name', avatarLabel: 'Pick your avatar', savedLabel: 'Who is playing?', needName: 'Type your name to continue!', needAvatar: 'Pick an avatar to continue!', world: "Julia's World",
-        math: 'Math Adventures', english: 'English Adventures', vocabulary: 'Vocabulary Fun', music: 'Music Adventures', languageAdv: 'Language Adventures', notebook: 'Stickers & Badges Notebook', wordQuest: 'The Word Quest', soon: 'COMING SOON',
+        math: 'Math Adventures', english: 'English Adventures', vocabulary: 'Vocabulary Fun', music: 'Music Adventures', languageAdv: 'Language Adventures', notebook: 'Stickers & Badges Notebook', wordQuest: 'The Word Quest', rpg: 'RPG Welling', soon: 'COMING SOON',
         languageLabel: '🌐 Choose your language', helpButton: 'Help', aboutButton: 'About',
         madeWith: 'made with 💛 by Julia and her dad',
         helpTitle: '❓ How to use the atlas', helpClose: 'Close help', helpIntro: 'Learn how to explore the world, collect stickers and earn badges.', helpExploreTitle: '🌍 Explore the world', helpExploreText: 'Drag the globe to spin it, use the mouse wheel to zoom and click a country to open its card.', helpControlsTitle: '🖱️ Quick controls', helpControlsText: 'Use Home to return to the starting view, Menu to come back here, Spin to keep the planet moving and the ☰ menu inside the app for more settings.', helpStickersTitle: '🎟️ Stickers', helpStickersText: 'Each place you open gives you 1 sticker with a Wikipedia link. At 10 places you get +5 stickers; at 50 you get +20 more, in addition to the earlier bonus.', helpBadgesTitle: '🏅 Badges', helpBadgesText: 'Complete every country in a continent to earn its badge. There are also badges for 5, 25 and 75 places, plus Super Explorer for visiting every country.', helpRankingTitle: '🏆 Leaderboard', helpRankingText: 'You get 3 points per place and 100 points per badge. Switch explorer to record several people; profiles are saved on this computer.',
@@ -321,7 +332,7 @@
       es: {
         htmlLang: 'es', title: 'Aventuras de Julia 🌍', helloPrefix: '¡HOLA',
         tagline: 'Elige una aventura para empezar:', nameLabel: 'Tu nombre', namePlaceholder: 'Escribe tu nombre', avatarLabel: 'Elige tu avatar', savedLabel: '¿Quién está jugando?', needName: '¡Escribe tu nombre para continuar!', needAvatar: '¡Elige un avatar para continuar!', world: "Julia's World",
-        math: 'Aventuras de Matemáticas', english: 'Aventuras de Inglés', vocabulary: 'Diversión con Vocabulario', music: 'Aventuras Musicales', languageAdv: 'Aventuras de Idiomas', notebook: 'Cuaderno de Stickers y Badges', wordQuest: 'The Word Quest', soon: 'PRONTO',
+        math: 'Aventuras de Matemáticas', english: 'Aventuras de Inglés', vocabulary: 'Diversión con Vocabulario', music: 'Aventuras Musicales', languageAdv: 'Aventuras de Idiomas', notebook: 'Cuaderno de Stickers y Badges', wordQuest: 'The Word Quest', rpg: 'RPG Welling', soon: 'PRONTO',
         languageLabel: '🌐 Elige tu idioma', helpButton: 'Ayuda', aboutButton: 'Acerca de',
         madeWith: 'hecho con 💛 por Julia y su papá',
         helpTitle: '❓ Cómo usar el atlas', helpClose: 'Cerrar ayuda', helpIntro: 'Descubre cómo explorar el mundo, coleccionar stickers y ganar badges.', helpExploreTitle: '🌍 Explorar el mundo', helpExploreText: 'Arrastra el globo para girarlo, usa la rueda del mouse para acercarte y haz clic en un país para abrir su ficha.', helpControlsTitle: '🖱️ Controles rápidos', helpControlsText: 'Usa Inicio para volver a la vista inicial, Menú para volver aquí, Girar para mantener el planeta en movimiento y el menú ☰ dentro del app para más configuraciones.', helpStickersTitle: '🎟️ Stickers', helpStickersText: 'Cada lugar que abras te da 1 sticker con enlace a Wikipedia. Al visitar 10 lugares ganas +5 stickers; al llegar a 50 ganas +20 adicionales, además del bono anterior.', helpBadgesTitle: '🏅 Badges', helpBadgesText: 'Completa todos los países de un continente para ganar su badge. También hay badges por 5, 25 y 75 lugares, además del Super explorador al visitar todos los países.', helpRankingTitle: '🏆 Ranking', helpRankingText: 'Ganas 3 puntos por lugar y 100 puntos por badge. Cambiar de explorador permite registrar varias personas; los perfiles se guardan en esta computadora.',
@@ -453,6 +464,7 @@
       $('appEnglish').href = `english_adventures/index.html?${params}`;
       $('appLanguage').href = `language_adventures/index.html?${params}`;
       $('appMusic').href = `music_adventures/index.html?${params}`;
+      $('appRpg').href = `rpg_welling/index.html?${params}`;
       $('appNotebook').href = `notebook/index.html?${params}`;
       $('appWordQuest').href = `word_quest/index.html?${params}`;
     }
@@ -551,6 +563,7 @@
     $('appEnglish').addEventListener('click', requireProfile);
     $('appLanguage').addEventListener('click', requireProfile);
     $('appMusic').addEventListener('click', requireProfile);
+    $('appRpg').addEventListener('click', requireProfile);
     $('appWordQuest').addEventListener('click', requireProfile);
     $('appNotebook').addEventListener('click', requireProfile);
 

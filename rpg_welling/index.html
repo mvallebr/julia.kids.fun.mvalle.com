@@ -1,0 +1,231 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+  <meta name="description" content="RPG Welling: aventura em 3D na escola, nos bosques de Oxleas e rumo ao Castelo de Açúcar — aprenda explorando.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://julia.kids.fun.mvalle.com/rpg_welling/">
+  <title>RPG Welling 🦉</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦉</text></svg>">
+  <link rel="stylesheet" href="../julia_world/fonts/fonts.css">
+  <style>
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0; overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none;
+      font-family: 'Fredoka', 'Segoe UI', system-ui, sans-serif; color: #fff;
+      background: radial-gradient(1200px 800px at 70% -10%, rgba(122, 78, 207, .45), transparent 60%),
+        linear-gradient(165deg, #131a38 0%, #0e1230 60%, #191238 100%);
+    }
+    #rpg { position: fixed; inset: 0; }
+    #rpg canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+    .hidden { display: none !important; }
+
+    button { font-family: inherit; }
+    .rpg-button {
+      border: 0; border-radius: 999px; cursor: pointer; color: #fff;
+      font: 700 16px 'Fredoka', sans-serif; padding: 12px 24px;
+      transition: transform .15s, filter .2s;
+    }
+    .rpg-button:hover { transform: translateY(-2px); filter: brightness(1.07); }
+    .rpg-button.primary { background: linear-gradient(135deg, #f5b942, #e0892d); color: #241505; box-shadow: 0 8px 22px rgba(224, 137, 45, .4); }
+    .rpg-button.ghost { background: rgba(255,255,255,.12); color: #e9e4ff; }
+
+    /* HUD */
+    .rpg-hud {
+      position: absolute; top: calc(10px + env(safe-area-inset-top)); left: 10px; right: 10px;
+      display: flex; justify-content: space-between; gap: 8px; z-index: 20; pointer-events: none;
+    }
+    .rpg-hud-group { display: flex; gap: 8px; pointer-events: auto; flex-wrap: wrap; }
+    .hud-chip {
+      display: inline-flex; align-items: center; gap: 6px;
+      border: 0; border-radius: 999px; cursor: pointer; color: #fff;
+      background: rgba(20, 16, 44, .72); backdrop-filter: blur(6px);
+      border: 1.5px solid rgba(245, 197, 66, .4);
+      font: 700 14px 'Fredoka', sans-serif; padding: 9px 14px; max-width: 62vw;
+      transition: transform .15s, background .2s;
+    }
+    .hud-chip:hover { transform: translateY(-1px); background: rgba(34, 28, 66, .85); }
+    .hud-chip.icon { font-size: 17px; padding: 8px 12px; }
+
+    /* missão (diário) */
+    #journal {
+      position: absolute; top: calc(60px + env(safe-area-inset-top)); left: 10px; z-index: 25;
+      width: min(300px, calc(100vw - 20px)); padding: 14px 16px;
+      background: rgba(24, 19, 50, .94); border: 2px solid rgba(245, 197, 66, .55);
+      border-radius: 18px; box-shadow: 0 14px 34px rgba(0,0,0,.45);
+    }
+    #journal h3 { margin: 0 0 8px; font-size: 16px; color: #ffd166; }
+    #journalObjective { margin: 0 0 10px; font-size: 13.5px; color: #e9e4ff; }
+    #journalPieces { margin: 0; padding: 0 0 0 4px; list-style: none; font-size: 13.5px; display: grid; gap: 5px; color: #fff; }
+    #journalClose {
+      position: absolute; top: 8px; right: 8px; width: 26px; height: 26px;
+      border: 0; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; cursor: pointer;
+    }
+
+    /* botão de interação */
+    #prompt {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      bottom: calc(132px + env(safe-area-inset-bottom)); z-index: 20;
+      border: 2px solid rgba(245, 197, 66, .8); border-radius: 999px; cursor: pointer;
+      color: #241505; background: linear-gradient(135deg, #ffd166, #f0a63a);
+      font: 700 16.5px 'Fredoka', sans-serif; padding: 13px 26px;
+      box-shadow: 0 10px 26px rgba(240, 166, 58, .45), 0 0 0 4px rgba(255, 209, 102, .18);
+      animation: promptPulse 1.4s ease-in-out infinite;
+      max-width: 84vw; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    }
+    @keyframes promptPulse { 0%, 100% { transform: translateX(-50%) scale(1); } 50% { transform: translateX(-50%) scale(1.045); } }
+
+    /* joystick */
+    #joy {
+      position: absolute; left: calc(18px + env(safe-area-inset-left)); bottom: calc(20px + env(safe-area-inset-bottom));
+      width: 118px; height: 118px; border-radius: 50%; z-index: 20;
+      background: rgba(20, 16, 44, .5); border: 2px solid rgba(255,255,255,.25);
+      touch-action: none; backdrop-filter: blur(4px);
+    }
+    #joyKnob {
+      position: absolute; left: 50%; top: 50%; width: 52px; height: 52px; margin: -26px 0 0 -26px;
+      border-radius: 50%; background: radial-gradient(circle at 35% 30%, #ffe9b0, #f0a63a);
+      box-shadow: 0 4px 12px rgba(0,0,0,.4); pointer-events: none;
+    }
+
+    /* diálogo */
+    #dialog {
+      position: absolute; left: 50%; transform: translateX(-50%);
+      bottom: calc(16px + env(safe-area-inset-bottom)); z-index: 40;
+      width: min(640px, calc(100vw - 20px));
+      background: rgba(24, 19, 50, .96); border: 2px solid rgba(245, 197, 66, .55);
+      border-radius: 22px; padding: 14px 16px 14px; box-shadow: 0 18px 44px rgba(0,0,0,.5);
+    }
+    #dialogName { font-weight: 700; color: #ffd166; font-size: 15.5px; margin-bottom: 5px; }
+    .dialog-head { display: flex; align-items: center; justify-content: space-between; }
+    #dialogText { font-size: 16px; line-height: 1.5; color: #fff; min-height: 24px; }
+    #dialogButtons { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .rpg-choice {
+      flex: 1 1 40%; border: 1.5px solid rgba(255,255,255,.3); border-radius: 14px; cursor: pointer;
+      background: rgba(255,255,255,.09); color: #fff; font: 600 15px 'Fredoka', sans-serif; padding: 11px 14px;
+      transition: transform .15s, background .2s, border-color .2s;
+    }
+    .rpg-choice:hover { transform: translateY(-2px); background: rgba(255,255,255,.16); border-color: rgba(245,197,66,.7); }
+    #dialogVoice {
+      border: 0; border-radius: 50%; width: 32px; height: 32px; cursor: pointer;
+      background: rgba(255,255,255,.14); color: #fff; font-size: 15px; margin-left: 8px;
+    }
+    #dialogClose {
+      position: absolute; top: -12px; right: -6px; width: 34px; height: 34px;
+      border: 2px solid rgba(245,197,66,.6); border-radius: 50%;
+      background: #241f44; color: #fff; font-size: 14px; cursor: pointer;
+    }
+
+    /* overlays: história, personagem, final */
+    .rpg-story, .rpg-select, .rpg-ending {
+      position: absolute; inset: 0; z-index: 60;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      gap: 16px; padding: 20px; text-align: center; overflow-y: auto;
+      background: radial-gradient(1000px 700px at 50% -10%, rgba(122, 78, 207, .5), transparent 60%), rgba(10, 7, 26, .96);
+    }
+    .rpg-story-art {
+      width: min(880px, 92vw); aspect-ratio: 16 / 9; object-fit: cover;
+      border-radius: 20px; border: 2px solid rgba(245, 197, 66, .5); box-shadow: 0 18px 50px rgba(0,0,0,.5);
+    }
+    .rpg-story-text { margin: 0; max-width: 640px; font-size: clamp(15px, 2.4vw, 18px); line-height: 1.55; color: #f3efff; }
+    .rpg-story-buttons { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+    .rpg-select-title, .rpg-ending-title { margin: 0; font-family: 'Luckiest Guy', 'Fredoka', sans-serif; font-weight: 400; color: #ffd166; font-size: clamp(26px, 5vw, 40px); letter-spacing: .03em; }
+    .rpg-select { flex-direction: column; }
+    .rpg-select-row { display: flex; gap: 16px; flex-wrap: wrap; justify-content: center; }
+    .rpg-select-card {
+      width: min(260px, 86vw); border: 2px solid rgba(255,255,255,.25); border-radius: 22px; cursor: pointer;
+      background: rgba(255,255,255,.07); color: #fff; padding: 22px 18px;
+      display: flex; flex-direction: column; align-items: center; gap: 8px;
+      transition: transform .15s, border-color .2s, background .2s;
+    }
+    .rpg-select-card:hover { transform: translateY(-4px); border-color: rgba(245,197,66,.8); background: rgba(255,255,255,.12); }
+    .rpg-select-emoji { font-size: 52px; line-height: 1; }
+    .rpg-select-name { font-family: 'Luckiest Guy', 'Fredoka', sans-serif; font-weight: 400; font-size: 24px; color: #ffd166; }
+    .rpg-select-desc { margin: 0; font-size: 14px; line-height: 1.45; color: #d9d2f5; }
+    .rpg-ending-castle { font-size: 74px; line-height: 1; animation: castleFloat 2.6s ease-in-out infinite; }
+    @keyframes castleFloat { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-9px); } }
+    .rpg-ending-text { margin: 0; max-width: 480px; font-size: 16px; line-height: 1.55; color: #f3efff; }
+    .rpg-ending-badge {
+      padding: 10px 20px; border-radius: 999px; font-weight: 700; color: #241505;
+      background: linear-gradient(135deg, #ffd166, #f0a63a); box-shadow: 0 8px 22px rgba(240, 166, 58, .4);
+    }
+
+    /* toasts */
+    .rpg-toast {
+      position: absolute; top: calc(62px + env(safe-area-inset-top)); left: 50%; transform: translate(-50%, -12px);
+      z-index: 50; max-width: min(520px, 90vw); text-align: center;
+      background: rgba(24, 19, 50, .95); border: 1.5px solid rgba(245, 197, 66, .55);
+      border-radius: 999px; padding: 10px 20px; font: 600 14.5px 'Fredoka', sans-serif; color: #fff;
+      opacity: 0; transition: opacity .3s, transform .3s; pointer-events: none;
+    }
+    .rpg-toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+    /* confete */
+    .rpg-confetti { position: absolute; inset: 0; z-index: 55; pointer-events: none; overflow: hidden; }
+    .rpg-confetti span {
+      position: absolute; top: -14px; border-radius: 3px;
+      animation: confettiFall 1.4s ease-in forwards;
+    }
+    @keyframes confettiFall {
+      to { transform: translateY(105vh) rotate(540deg); opacity: .2; }
+    }
+
+    /* transição */
+    .rpg-fade { position: absolute; inset: 0; z-index: 70; background: #06040f; opacity: 0; transition: opacity .45s ease; pointer-events: all; }
+    .rpg-fade.on { opacity: 1; }
+
+    #fatal {
+      position: absolute; left: 16px; right: 16px; bottom: 16px; z-index: 90; display: none;
+      background: #fff0f0; color: #a33; border-radius: 14px; padding: 14px 18px; font-size: 15px;
+      box-shadow: 0 10px 26px rgba(0,0,0,.3);
+    }
+    #fatal.show { display: block; }
+
+    @media (max-width: 640px) {
+      #prompt { bottom: calc(150px + env(safe-area-inset-bottom)); font-size: 15px; padding: 12px 20px; }
+      #dialog { padding: 12px 12px; }
+      .rpg-choice { flex-basis: 100%; }
+    }
+  </style>
+</head>
+<body>
+  <div id="rpg" aria-label="RPG Welling">
+    <div class="rpg-hud">
+      <div class="rpg-hud-group">
+        <button class="hud-chip icon" id="homeButton" type="button" aria-label="Menu">🏠</button>
+        <button class="hud-chip" id="questChip" type="button">📜 …</button>
+      </div>
+      <div class="rpg-hud-group">
+        <button class="hud-chip icon" id="hintButton" type="button" aria-label="Dica da coruja">🦉</button>
+        <button class="hud-chip icon" id="soundButton" type="button" aria-label="Som">🔊</button>
+      </div>
+    </div>
+
+    <div id="journal" class="hidden">
+      <button id="journalClose" type="button" aria-label="Fechar">✕</button>
+      <h3>🗺️ O Mapa Antigo</h3>
+      <p id="journalObjective"></p>
+      <ul id="journalPieces"></ul>
+    </div>
+
+    <button id="prompt" class="hidden" type="button"></button>
+
+    <div id="joy"><div id="joyKnob"></div></div>
+
+    <div id="dialog" class="hidden">
+      <button id="dialogClose" type="button" aria-label="Fechar">✕</button>
+      <div class="dialog-head">
+        <div id="dialogName"></div>
+        <button id="dialogVoice" class="hidden" type="button" aria-label="Ouvir em inglês">🔊</button>
+      </div>
+      <div id="dialogText"></div>
+      <div id="dialogButtons"></div>
+    </div>
+
+    <div id="fatal"></div>
+  </div>
+  <script src="lib/bundle.js?v=20260919a"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "name": "rpg-welling",
+  "version": "1.0.0",
+  "description": "RPG Welling — RPG de aprendizado em 3D leve para a Julia (slice: escola, biblioteca, mata secreta)",
+  "type": "module",
+  "scripts": {
+    "build": "esbuild src/main.js --bundle --minify --outfile=lib/bundle.js",
+    "dev": "esbuild src/main.js --bundle --outfile=lib/bundle.js --watch",
+    "test": "node --test test/*.test.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "esbuild": "^0.28.2",
+    "three": "^0.180.0"
+  }
+}
