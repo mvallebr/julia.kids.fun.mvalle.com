@@ -813,6 +813,9 @@ async function boot() {
     await preloadModels();
   } catch (error) {
     console.warn('Falha ao carregar modelos 3D externos; usando fallback procedural.', error);
+    if (location.protocol === 'file:') {
+      toast('⚠️ Abra pelo jogar.sh — o navegador bloqueia os modelos 3D no modo arquivo.', 6000);
+    }
   }
 
   buildScene(state.zone);
