@@ -390,41 +390,81 @@ function renderWordsList() {
   }).join('');
 }
 
+// ── sessões de quiz (revisão da coruja, duelo, lousa) ──────────────────────────
+// overlayCount é incrementado por sessão e devolvido no fim OU no cancelamento
+// (✕ / Depois / clique fora), com token pra invalidar callbacks pendentes — sem
+// isso, fechar no meio da lousa/duelo travava o movimento pra sempre.
+let quizSession = null;
+let quizSessionCounter = 0;
+function beginQuizSession(kind) {
+  if (quizSession) return null;
+  quizSession = { token: ++quizSessionCounter, kind };
+  overlayCount += 1;
+  return quizSession.token;
+}
+function liveToken(token) {
+  return quizSession && quizSession.token === token ? token : null;
+}
+function endQuizSession(token) {
+  if (!quizSession || quizSession.token !== token) return;
+  quizSession = null;
+  overlayCount = Math.max(0, overlayCount - 1);
+  $('quizBackdrop').classList.add('hidden');
+}
+function abortQuizSession() {
+  if (!quizSession) return;
+  quizSession.token += 1000; // invalida callbacks agendados
+  quizSession = null;
+  overlayCount = Math.max(0, overlayCount - 1);
+  $('quizBackdrop').classList.add('hidden');
+}
+
 function openQuiz() {
   const due = dueWords(state.words);
-  if (due.length === 0) return;
-  const quiz = buildQuiz(state.words, due[0][0]);
-  if (!quiz) return;
-  $('quizPrompt').textContent = `Como se diz “${quiz.word}”?`;
-  const optionsEl = $('quizOptions');
-  optionsEl.innerHTML = '';
-  $('quizFeedback').textContent = '';
-  for (const option of quiz.options) {
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.textContent = option.text;
-    btn.addEventListener('click', () => {
-      if (option.correct) {
-        answerCorrect(state.words, quiz.word);
-        btn.classList.add('correct');
-        $('quizFeedback').textContent = '🎉 Isso! A coruja fica orgulhosa.';
-        sounds.star();
-      } else {
-        answerWrong(state.words, quiz.word);
-        btn.classList.add('wrong');
-        $('quizFeedback').textContent = `🐣 Quase! A resposta era “${quiz.word}”.`;
-        sounds.wrong();
-      }
-      saveState(localStorage, player, state);
+  if (due.length === 0 || quizSession) return;
+  const token = beginQuizSession('review');
+  if (token === null) return;
+  const queue = due.map(([w]) => w);
+
+  const nextQuestion = () => {
+    if (liveToken(token) === null) return; // sessão cancelada
+    if (queue.length === 0) {
+      endQuizSession(token);
       updateReviewBadge();
-      setTimeout(() => {
-        $('quizBackdrop').classList.add('hidden');
-        openQuiz(); // próxima pergunta vencida, se houver
-      }, 1100);
-    });
-    optionsEl.appendChild(btn);
-  }
-  $('quizBackdrop').classList.remove('hidden');
+      return;
+    }
+    const quiz = buildQuiz(state.words, queue.shift());
+    if (!quiz) return nextQuestion();
+    $('quizPrompt').textContent = `Como se diz “${quiz.word}”?`;
+    const optionsEl = $('quizOptions');
+    optionsEl.innerHTML = '';
+    $('quizFeedback').textContent = '';
+    for (const option of quiz.options) {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = option.text;
+      btn.addEventListener('click', () => {
+        if (liveToken(token) === null) return;
+        if (option.correct) {
+          answerCorrect(state.words, quiz.word);
+          btn.classList.add('correct');
+          $('quizFeedback').textContent = '🎉 Isso! A coruja fica orgulhosa.';
+          sounds.star();
+        } else {
+          answerWrong(state.words, quiz.word);
+          btn.classList.add('wrong');
+          $('quizFeedback').textContent = `🐣 Quase! A resposta era “${quiz.word}”.`;
+          sounds.wrong();
+        }
+        saveState(localStorage, player, state);
+        updateReviewBadge();
+        setTimeout(nextQuestion, 1100);
+      });
+      optionsEl.appendChild(btn);
+    }
+    $('quizBackdrop').classList.remove('hidden');
+  };
+  nextQuestion();
 }
 
 function askChoice(node) {
@@ -584,18 +624,21 @@ function closeWords() {
   $('wordsBackdrop').classList.add('hidden');
 }
 function closeQuiz() {
-  $('quizBackdrop').classList.add('hidden');
+  abortQuizSession(); // cancela sessão ativa e devolve o overlayCount
 }
 
 // ── Duelo de Feitiços vs Prof. Raven (melhor de 3, usando o diário) ────────────
 function runDuel() {
+  if (quizSession) return;
   const learned = Object.keys(state.words);
   const picked = [...learned].sort(() => Math.random() - 0.5).slice(0, 3);
+  const token = beginQuizSession('duel');
+  if (token === null) return;
   let score = 0;
   let idx = 0;
-  overlayCount += 1; // trava movimento durante o duelo
 
   const nextRound = () => {
+    if (liveToken(token) === null) return;
     if (idx >= picked.length) return endDuel();
     const quiz = buildQuiz(state.words, picked[idx]);
     if (!quiz) return endDuel();
@@ -609,6 +652,7 @@ function runDuel() {
       btn.type = 'button';
       btn.textContent = option.text;
       btn.addEventListener('click', () => {
+        if (liveToken(token) === null) return;
         if (option.correct) {
           answerCorrect(state.words, quiz.word);
           score += 1;
@@ -631,8 +675,7 @@ function runDuel() {
   };
 
   const endDuel = () => {
-    $('quizBackdrop').classList.add('hidden');
-    overlayCount -= 1;
+    endQuizSession(token);
     const won = score >= 2;
     const finish = () => {
       if (won) {
@@ -812,13 +855,14 @@ async function interact(id) {
       { en: 'broom', emoji: '🧹', pt: 'vassoura' },
       { en: 'moon', emoji: '🌙', pt: 'lua' },
     ];
+    const token = beginQuizSession('lesson');
+    if (token === null) return;
     const lessons = [...LESSON].sort(() => Math.random() - 0.5).slice(0, 3);
-    overlayCount += 1;
     let round = 0;
     const nextLesson = () => {
+      if (liveToken(token) === null) return;
       if (round >= lessons.length) {
-        overlayCount -= 1;
-        $('quizBackdrop').classList.add('hidden');
+        endQuizSession(token);
         saveState(localStorage, player, state);
         updateReviewBadge();
         sounds.magic();
@@ -837,6 +881,7 @@ async function interact(id) {
         btn.type = 'button';
         btn.textContent = opt;
         btn.addEventListener('click', () => {
+          if (liveToken(token) === null) return;
           if (!state.words[lesson.en]) registerWord(state.words, lesson.en, { pt: `${lesson.en} = ${lesson.pt}`, en: lesson.en, es: lesson.en });
           if (opt === lesson.en) {
             answerCorrect(state.words, lesson.en);

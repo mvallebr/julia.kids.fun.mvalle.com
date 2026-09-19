@@ -28,7 +28,7 @@ export function loadGlb(filename) {
 
 // pre-carrega todos os modelos externos. Após await, glbScenes está populado e makeKid/makeOwl/etc podem usar síncrono.
 export async function preloadModels() {
-  const files = ['ivy-rigged.glb', 'oakley-rigged.glb', 'finch-rigged.glb', 'page-rigged.glb', 'raven-rigged.glb', 'crumb-rigged.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid-animated.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
+  const files = ['ivy-rigged.glb', 'oakley-rigged.glb', 'finch-rigged.glb', 'page-rigged.glb', 'raven-rigged.glb', 'crumb-rigged.glb', 'willow-rigged.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid-animated.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
   const results = await Promise.allSettled(files.map(loadGlb));
   files.forEach((f, i) => {
     const r = results[i];
