@@ -90,6 +90,7 @@ export const CONVERSATIONS = {
       en: 'Found lots of things around here yet? Books keep secrets — just look carefully!',
       es: '¿Ya encontraron muchas cosas por aquí? ¡Los libros guardan secretos, solo miren bien!',
     } },
+    { gloss: 'broom' },
   ],
   page: [
     { who: 'page', text: {
@@ -133,6 +134,12 @@ export const CONVERSATIONS = {
       es: 'Esta biblioteca es antigua. Dicen que tiene un pasaje concealed… o sea, escondido. ¡Quien busca, encuentra!',
     } },
     { gloss: 'concealed' },
+    { who: 'page', text: {
+      pt: 'E uma coisa eu aprendo com as corujas todos os dias: elas trust em quem escuta com calma. Trust — confie!',
+      en: 'And one thing the owls teach me every day: they trust those who listen patiently. Trust!',
+      es: 'Y algo que las búhos me enseñan cada día: ellos confían en quien escucha con calma. ¡Trust, confía!',
+    } },
+    { gloss: 'trust' },
   ],
   assemble: [
     { choice: {
@@ -209,7 +216,8 @@ export const PIECE_NAMES = {
   trolley: { pt: 'do carrinho de livros', en: 'from the book trolley', es: 'del carrito de libros' },
 };
 
-// Glosas ✨ mostradas como brindes de vocabulário (spec §9).
+// Glosas ✨ mostradas como brindes de vocabulário (spec §9) — cada uma vira
+// carta no Diário de Palavras com revisão espaçada (src/vocab.js).
 export const GLOSSES = {
   peculiar: {
     pt: 'peculiar = esquisito, diferente das outras',
@@ -220,5 +228,25 @@ export const GLOSSES = {
     pt: 'concealed = escondido',
     en: 'concealed = hidden',
     es: 'concealed = escondido',
+  },
+  broom: {
+    pt: 'broom = vassoura',
+    en: 'broom = vassoura',
+    es: 'broom = escoba',
+  },
+  ancient: {
+    pt: 'ancient = antiquado, muito antigo',
+    en: 'ancient = very old',
+    es: 'ancient = muy antiguo',
+  },
+  woods: {
+    pt: 'woods = mata, bosque',
+    en: 'woods = forest',
+    es: 'woods = bosque',
+  },
+  trust: {
+    pt: 'trust = confiar',
+    en: 'trust = to believe in someone',
+    es: 'trust = confiar',
   },
 };

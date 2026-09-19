@@ -236,6 +236,35 @@
     .rpg-credits-list em { color: #b8d8ff; font-style: italic; }
     .rpg-credits-footer { font-size: 11.5px; color: rgba(255,255,255,.65); margin: 0; }
     .rpg-credits-footer code { background: rgba(255,255,255,.1); padding: 1px 5px; border-radius: 4px; font-size: 11px; }
+    .review-badge {
+      position: absolute; top: -4px; right: -4px;
+      min-width: 16px; height: 16px; border-radius: 8px;
+      background: #e5533d; color: #fff; font-size: 11px; font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      border: 1.5px solid #1c1a3e;
+    }
+    .review-badge.hidden { display: none; }
+    #wordsList .word-row {
+      display: flex; align-items: baseline; gap: 8px;
+      padding: 8px 12px; border-radius: 8px; background: rgba(255,255,255,.06);
+      margin-bottom: 6px; font-size: 13.5px; color: #fff;
+    }
+    #wordsList .word-en { color: #ffd166; font-weight: 700; }
+    #wordsList .word-due { margin-left: auto; font-size: 11px; color: #e5533d; }
+    #wordsList .word-ok { margin-left: auto; font-size: 11px; color: #7ec97e; }
+    #wordsList .word-stars { font-size: 11px; color: #b8d8ff; }
+    #quizPrompt { font-size: 16px; color: #fff; margin: 0 0 12px; text-align: center; }
+    #quizOptions { display: grid; gap: 8px; }
+    #quizOptions button {
+      padding: 11px 14px; border: 1px solid rgba(255,255,255,.2); border-radius: 10px;
+      background: rgba(255,255,255,.07); color: #fff;
+      font: 600 14px 'Fredoka', sans-serif; cursor: pointer; text-align: left;
+    }
+    #quizOptions button:hover { background: rgba(255,255,255,.14); }
+    #quizOptions button.correct { background: #2e6b34; border-color: #7ec97e; }
+    #quizOptions button.wrong { background: #7a3028; border-color: #e5533d; }
+    #quizFeedback { text-align: center; font-size: 13.5px; color: #ffd166; min-height: 20px; margin: 10px 0 0; }
+    .rpg-words-empty { text-align: center; color: rgba(255,255,255,.6); font-size: 13.5px; padding: 18px 0; }
   </style>
 </head>
 <body>
@@ -249,7 +278,8 @@
         <button class="hud-chip" id="questChip" type="button">📜 …</button>
       </div>
       <div class="rpg-hud-group">
-        <button class="hud-chip icon" id="hintButton" type="button" aria-label="Dica da coruja">🦉</button>
+        <button class="hud-chip icon" id="hintButton" type="button" aria-label="Dica da coruja">🦉<span id="reviewBadge" class="review-badge hidden">!</span></button>
+        <button class="hud-chip icon" id="wordsButton" type="button" aria-label="Diário de palavras">📖</button>
         <button class="hud-chip icon" id="soundButton" type="button" aria-label="Som">🔊</button>
       </div>
     </div>
@@ -309,6 +339,28 @@
       </div>
     </aside>
   </div>
-  <script src="lib/bundle.js?v=20260919n"></script>
+  <div class="backdrop hidden" id="wordsBackdrop">
+    <aside class="rpg-panel rpg-credits-panel" role="dialog" aria-modal="true">
+      <button class="rpg-close" id="wordsClose" type="button" aria-label="Fechar">✕</button>
+      <h2>📖 Meu Diário de Palavras</h2>
+      <div id="wordsList"></div>
+      <div class="rpg-panel-buttons">
+        <button class="rpg-btn" id="wordsClose2" type="button">Fechar</button>
+      </div>
+    </aside>
+  </div>
+  <div class="backdrop hidden" id="quizBackdrop">
+    <aside class="rpg-panel rpg-credits-panel" role="dialog" aria-modal="true">
+      <button class="rpg-close" id="quizClose" type="button" aria-label="Fechar">✕</button>
+      <h2>🦉 A coruja quer saber…</h2>
+      <p id="quizPrompt"></p>
+      <div id="quizOptions"></div>
+      <p id="quizFeedback"></p>
+      <div class="rpg-panel-buttons">
+        <button class="rpg-btn" id="quizClose2" type="button">Depois</button>
+      </div>
+    </aside>
+  </div>
+  <script src="lib/bundle.js?v=20260919o"></script>
 </body>
 </html>

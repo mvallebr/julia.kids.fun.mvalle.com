@@ -13,6 +13,7 @@ import { loadState, saveState, bumpGeneration, CHARACTERS, MAP_PIECES } from './
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount } from './quest.js';
 import { buildSchool, buildWoods, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
 import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES } from './content.js';
+import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz } from './vocab.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
 
 // ── parâmetros da lançadora ───────────────────────────────────────────────────
@@ -340,7 +341,76 @@ function sayLine(who, text) {
 
 function showGloss(word) {
   const gloss = GLOSSES[word];
-  if (gloss) toast(root, `✨ ${lang(gloss, language)}`, { duration: 3400 });
+  if (gloss) {
+    toast(root, `✨ ${lang(gloss, language)}`, { duration: 3400 });
+    registerWord(state.words, word, gloss);
+    saveState(localStorage, player, state);
+    updateReviewBadge();
+  }
+}
+
+// ── Diário de palavras + quiz de revisão (repetição espaçada) ──────────────────
+function updateReviewBadge() {
+  const badge = $('reviewBadge');
+  if (!badge) return;
+  const due = dueWords(state.words);
+  badge.classList.toggle('hidden', due.length === 0);
+  badge.textContent = String(due.length);
+}
+
+function renderWordsList() {
+  const list = $('wordsList');
+  if (!list) return;
+  const entries = Object.entries(state.words).sort((a, b) => a[0].localeCompare(b[0]));
+  if (entries.length === 0) {
+    list.innerHTML = '<p class="rpg-words-empty">Nenhuma palavra ainda — converse com o Sr. Finch e a Sra. Page! ✨</p>';
+    return;
+  }
+  const now = Date.now();
+  list.innerHTML = entries.map(([word, w]) => {
+    const due = w.due <= now
+      ? '<span class="word-due">📌 revisar</span>'
+      : '<span class="word-ok">✓</span>';
+    const stars = '⭐'.repeat(Math.min(w.streak || 0, 5));
+    return `<div class="word-row"><span class="word-en">${word}</span><span>${w.pt}</span><span class="word-stars">${stars}</span>${due}</div>`;
+  }).join('');
+}
+
+function openQuiz() {
+  const due = dueWords(state.words);
+  if (due.length === 0) return;
+  const quiz = buildQuiz(state.words, due[0][0]);
+  if (!quiz) return;
+  $('quizPrompt').textContent = `Como se diz “${quiz.word}”?`;
+  const optionsEl = $('quizOptions');
+  optionsEl.innerHTML = '';
+  $('quizFeedback').textContent = '';
+  for (const option of quiz.options) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = option.text;
+    btn.addEventListener('click', () => {
+      if (option.correct) {
+        answerCorrect(state.words, quiz.word);
+        btn.classList.add('correct');
+        $('quizFeedback').textContent = '🎉 Isso! A coruja fica orgulhosa.';
+        sounds.star();
+      } else {
+        answerWrong(state.words, quiz.word);
+        btn.classList.add('wrong');
+        $('quizFeedback').textContent = `🐣 Quase! A resposta era “${quiz.word}”.`;
+        sounds.wrong();
+      }
+      saveState(localStorage, player, state);
+      updateReviewBadge();
+      setTimeout(() => {
+        $('quizBackdrop').classList.add('hidden');
+        openQuiz(); // próxima pergunta vencida, se houver
+      }, 1100);
+    });
+    optionsEl.appendChild(btn);
+  }
+  $('quizBackdrop').classList.remove('hidden');
 }
 
 function askChoice(node) {
@@ -451,6 +521,10 @@ function openCredits() {
 function closeCredits() {
   $('creditsBackdrop').classList.add('hidden');
 }
+function openWords() {
+  renderWordsList();
+  $('wordsBackdrop').classList.remove('hidden');
+}
 // Delegação de eventos: os botões dos modais podem ter seus nós substituídos
 // no DOM (observado com o modal de restart pós-fim de aventura), e listeners
 // ligados direto no elemento viram órfãs — o clique não faz nada. Delegando
@@ -462,12 +536,30 @@ document.addEventListener('click', (e) => {
   else if (id === 'restartButton') openRestart();
   else if (id === 'creditsClose' || id === 'creditsOk') closeCredits();
   else if (id === 'creditsButton') openCredits();
+  else if (id === 'wordsButton' || id === 'wordsClose' || id === 'wordsClose2') openWords();
+  else if (id === 'quizClose' || id === 'quizClose2') closeQuiz();
   else if (e.target.id === 'restartBackdrop') closeRestart();
   else if (e.target.id === 'creditsBackdrop') closeCredits();
+  else if (e.target.id === 'wordsBackdrop') closeWords();
+  else if (e.target.id === 'quizBackdrop') closeQuiz();
 });
+function closeWords() {
+  $('wordsBackdrop').classList.add('hidden');
+}
+function closeQuiz() {
+  $('quizBackdrop').classList.add('hidden');
+}
 if ($('creditsBackdrop')) {
   $('creditsBackdrop').addEventListener('click', (e) => { if (e.target === $('creditsBackdrop')) closeCredits(); });
 }
+// a coruja vira revisão quando há palavras vencidas (capture: roda antes da
+// dica normal e bloqueia o toast pra não misturar os dois)
+$('hintButton')?.addEventListener('click', (e) => {
+  if (dueWords(state.words).length > 0) {
+    e.stopImmediatePropagation();
+    openQuiz();
+  }
+}, { capture: true });
 
 $('soundButton').addEventListener('click', () => {
   state.sound = !state.sound;

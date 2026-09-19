@@ -1,4 +1,5 @@
 // RPG Welling — save local por jogadora (spec §37, sem contas online).
+import { normalizeWords } from './vocab.js';
 
 export const STORAGE_KEY = 'mundo-da-julia.rpgwelling.v1';
 export const GEN_KEY = 'mundo-da-julia.rpgwelling.gen';
@@ -42,6 +43,7 @@ export function emptyState() {
     flags: {}, // marcos da história (introSeen, mapAssembled, gateOpen…)
     clues: [], // páginas de historia encontradas
     challenges: {}, // challengeId → true quando resolvido
+    words: {}, // vocabulário aprendido (vocab.js, repetição espaçada)
     sound: true,
   };
 }
@@ -71,6 +73,7 @@ export function normalizeState(value = {}) {
     }
   }
   state.sound = source.sound !== false && source.sound !== 0;
+  state.words = normalizeWords(source.words);
   return state;
 }
 
