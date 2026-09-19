@@ -416,7 +416,7 @@ function openLesson(section, lesson) {
               sounds.correct();
               burstAt(button, 14);
               if (activity.speak) speak(activity.speak, pack.locale);
-              setTimeout(nextStep, 1100);
+              setTimeout(() => { activityIndex += 1; nextStep(); }, 1100);
             } else {
               button.classList.add('wrong');
               sounds.wrong();
@@ -473,7 +473,7 @@ function openLesson(section, lesson) {
               matches += 1;
               correctCount += 1;
               sounds.correct();
-              if (matches >= activity.pairs.length) setTimeout(nextStep, 900);
+              if (matches >= activity.pairs.length) setTimeout(() => { activityIndex += 1; nextStep(); }, 900);
             } else {
               cell.classList.add('wrong');
               sounds.wrong();
