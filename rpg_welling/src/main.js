@@ -443,6 +443,26 @@ $('restartCancel').addEventListener('click', closeRestart);
 $('restartConfirm').addEventListener('click', confirmRestart);
 $('restartBackdrop').addEventListener('click', (e) => { if (e.target === $('restartBackdrop')) closeRestart(); });
 
+// ── Créditos (atribuições CC-BY dos modelos 3D) ────────────────────────────────
+function openCredits() {
+  $('creditsBackdrop').classList.remove('hidden');
+}
+function closeCredits() {
+  $('creditsBackdrop').classList.add('hidden');
+}
+if ($('creditsButton')) {
+  $('creditsButton').addEventListener('click', openCredits);
+}
+if ($('creditsClose')) {
+  $('creditsClose').addEventListener('click', closeCredits);
+}
+if ($('creditsOk')) {
+  $('creditsOk').addEventListener('click', closeCredits);
+}
+if ($('creditsBackdrop')) {
+  $('creditsBackdrop').addEventListener('click', (e) => { if (e.target === $('creditsBackdrop')) closeCredits(); });
+}
+
 $('soundButton').addEventListener('click', () => {
   state.sound = !state.sound;
   setMuted(!state.sound);
