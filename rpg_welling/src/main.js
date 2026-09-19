@@ -2,6 +2,11 @@
 // Slice vertical do spec §38: escola → biblioteca → pista → trilha na mata.
 
 import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { uiText, lang } from './i18n.js';
 import { ensureAudio, setMuted, sounds } from './audio.js';
 import { loadState, saveState, CHARACTERS, MAP_PIECES } from './state.js';
@@ -46,7 +51,7 @@ const OBJECTIVE_KEYS = {
 };
 
 // ── three.js: base ────────────────────────────────────────────────────────────
-let renderer, scene, camera, clock;
+let renderer, scene, camera, clock, composer;
 let zone = null;
 let playerObj = null, owlObj = null, companionObj = null, companionOwl = null;
 const npcs = {};
@@ -69,6 +74,7 @@ function initThree() {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
+    if (composer) composer.setSize(window.innerWidth, window.innerHeight);
   });
 }
 
@@ -90,6 +96,24 @@ function buildScene(zoneName) {
   zone = zoneName === 'woods' ? buildWoods(scene) : buildSchool(scene);
   scene.background = new THREE.Color(zone.background);
   scene.fog = new THREE.Fog(zone.fog[0], zone.fog[1], zone.fog[2]);
+
+  // composer de pós-processamento (bloom + SMAA): só cria uma vez, atualiza
+  // a cena renderizada após rebuilds (a cena nova sobrescreve o scene do RenderPass).
+  if (!composer) {
+    composer = new EffectComposer(renderer);
+    composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+    composer.setSize(window.innerWidth, window.innerHeight);
+    composer.addPass(new RenderPass(scene, camera));
+    const bloom = new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 0.4, 0.55, 0.86);
+    composer.addPass(bloom);
+    const smaa = new SMAAPass(window.innerWidth * Math.min(window.devicePixelRatio || 1, 2), window.innerHeight * Math.min(window.devicePixelRatio || 1, 2));
+    composer.addPass(smaa);
+    composer.addPass(new OutputPass());
+  }
+  const renderPass = composer.passes[0];
+  renderPass.scene = scene;
+  renderPass.camera = camera;
+
   const hemi = new THREE.HemisphereLight(zone.hemi[0], zone.hemi[1], zone.hemi[2]);
   scene.add(hemi);
   const sun = new THREE.DirectionalLight(zone.sun.color, zone.sun.intensity);
@@ -397,6 +421,28 @@ $('questChip').addEventListener('click', toggleJournal);
 $('journalClose').addEventListener('click', toggleJournal);
 
 $('homeButton').addEventListener('click', () => { location.href = '../index.html'; });
+
+// reiniciar (apaga o save desta jogadora e volta à escolha de personagem)
+function openRestart() {
+  const overlay = $('restartBackdrop');
+  overlay.classList.remove('hidden');
+  const focusable = $('restartCancel');
+  setTimeout(() => focusable.focus(), 0);
+}
+function closeRestart() { $('restartBackdrop').classList.add('hidden'); }
+function confirmRestart() {
+  try {
+    const all = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {};
+    delete all[player.trim().toLowerCase().slice(0, 32)];
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(all));
+  } catch {}
+  location.reload();
+}
+$('restartButton').addEventListener('click', openRestart);
+$('restartCancel').addEventListener('click', closeRestart);
+$('restartConfirm').addEventListener('click', confirmRestart);
+$('restartBackdrop').addEventListener('click', (e) => { if (e.target === $('restartBackdrop')) closeRestart(); });
+
 $('soundButton').addEventListener('click', () => {
   state.sound = !state.sound;
   setMuted(!state.sound);
@@ -501,10 +547,14 @@ function showEnding() {
     el('p', 'rpg-ending-text', uiText(language, 'endCard')),
     el('div', 'rpg-ending-badge', uiText(language, 'badgeEarned'))
   );
-  const button = el('button', 'rpg-button primary', uiText(language, 'playAgain'));
-  button.type = 'button';
-  button.addEventListener('click', () => { location.href = '../index.html'; });
-  overlay.appendChild(button);
+  const playAgain = el('button', 'rpg-button primary', uiText(language, 'playAgain'));
+  playAgain.type = 'button';
+  playAgain.addEventListener('click', () => { location.href = '../index.html'; });
+  const restart = el('button', 'rpg-button ghost', `🔄 ${uiText(language, 'restart')}`);
+  restart.type = 'button';
+  restart.addEventListener('click', confirmRestart);
+  const buttons = el('div', 'rpg-ending-buttons', playAgain, restart);
+  overlay.append(playAgain, restart);
   root.appendChild(overlay);
   confetti(root, 120, 2400);
 }
@@ -718,7 +768,7 @@ function animate() {
     showEnding();
   }
 
-  renderer.render(scene, camera);
+  composer.render();
 }
 
 // ── boot ─────────────────────────────────────────────────────────────────────

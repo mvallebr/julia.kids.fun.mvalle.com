@@ -23,6 +23,94 @@ function canvasTexture(w, h, draw) {
   return texture;
 }
 
+// mesma coisa, mas devolve o canvas junto (precisamos dele para gerar normal/rough)
+function canvasWithRaw(w, h, draw) {
+  const canvas = document.createElement('canvas');
+  canvas.width = w; canvas.height = h;
+  draw(canvas.getContext('2d'), w, h);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return { texture, canvas };
+}
+
+// normal map derivado do canal de luminância do canvas de origem (Sobel simples)
+function normalMapFrom(canvas, strength = 1.6) {
+  const w = canvas.width, h = canvas.height;
+  const src = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  const octx = out.getContext('2d');
+  const data = octx.createImageData(w, h);
+  for (let y = 0; y < h; y += 1) {
+    for (let x = 0; x < w; x += 1) {
+      const xl = (x - 1 + w) % w;
+      const xr = (x + 1) % w;
+      const yu = (y - 1 + h) % h;
+      const yd = (y + 1) % h;
+      const hl = src[(y * w + xl) * 4] / 255;
+      const hr = src[(y * w + xr) * 4] / 255;
+      const hu = src[(yu * w + x) * 4] / 255;
+      const hd = src[(yd * w + x) * 4] / 255;
+      const dx = (hr - hl) * strength;
+      const dy = (hd - hu) * strength;
+      const nz = 1 / Math.sqrt(dx * dx + dy * dy + 1);
+      const nx = -dx * nz;
+      const ny = -dy * nz;
+      const i = (y * w + x) * 4;
+      data.data[i] = (nx * 0.5 + 0.5) * 255 | 0;
+      data.data[i + 1] = (ny * 0.5 + 0.5) * 255 | 0;
+      data.data[i + 2] = (nz * 0.5 + 0.5) * 255 | 0;
+      data.data[i + 3] = 255;
+    }
+  }
+  octx.putImageData(data, 0, 0);
+  const tex = new THREE.CanvasTexture(out);
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
+// material PBR pronto: albedo + normal + roughness, com tiling configurável
+function pbrFrom({ texture, canvas }, repeat, normalScale = 1.0, roughnessRange = [0.65, 1.0]) {
+  texture.wrapS = texture.wrapT = THREE.RepeatWrapping;
+  if (repeat) texture.repeat.set(repeat[0], repeat[1]);
+  const normal = normalMapFrom(canvas, 1.4);
+  if (repeat) normal.repeat.set(repeat[0], repeat[1]);
+  const rough = roughnessMapFrom(canvas, roughnessRange[0], roughnessRange[1]);
+  if (repeat) rough.repeat.set(repeat[0], repeat[1]);
+  return new THREE.MeshStandardMaterial({
+    map: texture,
+    normalMap: normal,
+    normalScale: new THREE.Vector2(normalScale, normalScale),
+    roughnessMap: rough,
+    metalness: 0,
+  });
+}
+
+// mapa de rugosidade: luminância do albedo mapeada para [lo, hi]
+function roughnessMapFrom(canvas, lo = 0.65, hi = 1.0) {
+  const w = canvas.width, h = canvas.height;
+  const src = canvas.getContext('2d').getImageData(0, 0, w, h).data;
+  const out = document.createElement('canvas');
+  out.width = w; out.height = h;
+  const octx = out.getContext('2d');
+  const data = octx.createImageData(w, h);
+  for (let i = 0; i < w * h; i += 1) {
+    const r = src[i * 4] / 255;
+    const g = src[i * 4 + 1] / 255;
+    const b = src[i * 4 + 2] / 255;
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    const v = (lo + (1 - lum) * (hi - lo)) * 255 | 0;
+    data.data[i * 4] = data.data[i * 4 + 1] = data.data[i * 4 + 2] = v;
+    data.data[i * 4 + 3] = 255;
+  }
+  octx.putImageData(data, 0, 0);
+  const tex = new THREE.CanvasTexture(out);
+  tex.colorSpace = THREE.NoColorSpace;
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  return tex;
+}
+
 function box(parent, w, h, d, color, x, y, z, { collider, rotY = 0, cast = true, receive = true } = {}) {
   const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat(color));
   mesh.position.set(x, y, z);
@@ -106,13 +194,13 @@ function glowSprite(parent, zone, color, size, x, y, z, { opacity = 0.5, amp = 0
 
 // ── texturas pintadas ────────────────────────────────────────────────────────
 function brickTexture() {
-  return canvasTexture(512, 512, (ctx) => {
+  return canvasWithRaw(1024, 1024, (ctx) => {
     ctx.fillStyle = '#cbb9a4';
-    ctx.fillRect(0, 0, 512, 512);
+    ctx.fillRect(0, 0, 1024, 1024);
     const bw = 128, bh = 64;
-    for (let row = 0; row < 8; row += 1) {
+    for (let row = 0; row < 16; row += 1) {
       const offset = (row % 2) * bw / 2;
-      for (let col = -1; col < 5; col += 1) {
+      for (let col = -1; col < 9; col += 1) {
         const tone = 165 + Math.random() * 40;
         ctx.fillStyle = `rgb(${tone + 25}, ${tone * 0.62}, ${tone * 0.45})`;
         ctx.fillRect(col * bw + offset + 3, row * bh + 3, bw - 6, bh - 6);
@@ -122,10 +210,10 @@ function brickTexture() {
 }
 
 function plasterTexture() {
-  return canvasTexture(256, 256, (ctx) => {
+  return canvasWithRaw(1024, 1024, (ctx) => {
     ctx.fillStyle = '#efe3c8';
-    ctx.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 700; i += 1) {
+    ctx.fillRect(0, 0, 1024, 1024);
+    for (let i = 0; i < 3000; i += 1) {
       ctx.fillStyle = `rgba(${180 + Math.random() * 60 | 0}, ${165 + Math.random() * 55 | 0}, ${120 + Math.random() * 40 | 0}, .12)`;
       ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
     }
@@ -133,45 +221,52 @@ function plasterTexture() {
 }
 
 function planksTexture() {
-  return canvasTexture(512, 512, (ctx) => {
-    for (let col = 0; col < 8; col += 1) {
+  return canvasWithRaw(1024, 1024, (ctx) => {
+    for (let col = 0; col < 16; col += 1) {
       const tone = 150 + Math.random() * 30;
       ctx.fillStyle = `rgb(${tone + 30}, ${tone * 0.82}, ${tone * 0.52})`;
-      ctx.fillRect(col * 64, 0, 64, 512);
-      ctx.strokeStyle = 'rgba(90, 58, 28, .35)';
-      ctx.lineWidth = 2;
-      for (let g = 0; g < 5; g += 1) {
+      ctx.fillRect(col * 64, 0, 64, 1024);
+      // grão: traços finos e aleatórios (não linhas horizontais paralelas)
+      for (let g = 0; g < 9; g += 1) {
+        ctx.strokeStyle = `rgba(90, 58, 28, ${0.08 + Math.random() * 0.1})`;
+        ctx.lineWidth = 1;
         ctx.beginPath();
-        const gx = col * 64 + 8 + Math.random() * 48;
-        ctx.moveTo(gx, 0);
-        ctx.bezierCurveTo(gx + 6, 170, gx - 6, 340, gx + 4, 512);
+        const sx = col * 64 + 4 + Math.random() * 56;
+        const sy = Math.random() * 1024;
+        ctx.moveTo(sx, sy);
+        ctx.bezierCurveTo(
+          sx + (Math.random() - 0.5) * 18, sy + 80 + Math.random() * 200,
+          sx + (Math.random() - 0.5) * 18, sy + 160 + Math.random() * 200,
+          sx + (Math.random() - 0.5) * 12, sy + 240 + Math.random() * 600
+        );
         ctx.stroke();
       }
-      ctx.fillStyle = 'rgba(70, 44, 20, .8)';
-      ctx.fillRect(col * 64, 0, 3, 512);
+      // junta entre tábuas: traço mais escuro e estreito
+      ctx.fillStyle = 'rgba(40, 26, 14, .8)';
+      ctx.fillRect(col * 64 + 62, 0, 2, 1024);
     }
   });
 }
 
 function tilesTexture() {
-  return canvasTexture(512, 512, (ctx) => {
-    for (let row = 0; row < 4; row += 1) {
-      for (let col = 0; col < 4; col += 1) {
+  return canvasWithRaw(1024, 1024, (ctx) => {
+    for (let row = 0; row < 8; row += 1) {
+      for (let col = 0; col < 8; col += 1) {
         const dark = (row + col) % 2 === 0;
         ctx.fillStyle = dark ? '#9a6a48' : '#d9c49a';
         ctx.fillRect(col * 128, row * 128, 128, 128);
         ctx.fillStyle = 'rgba(0,0,0,.08)';
-        for (let n = 0; n < 14; n += 1) ctx.fillRect(col * 128 + Math.random() * 128, row * 128 + Math.random() * 128, 3, 3);
+        for (let n = 0; n < 28; n += 1) ctx.fillRect(col * 128 + Math.random() * 128, row * 128 + Math.random() * 128, 3, 3);
       }
     }
   });
 }
 
 function carpetTexture() {
-  return canvasTexture(256, 256, (ctx) => {
+  return canvasWithRaw(1024, 1024, (ctx) => {
     ctx.fillStyle = '#8e3b46';
-    ctx.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 900; i += 1) {
+    ctx.fillRect(0, 0, 1024, 1024);
+    for (let i = 0; i < 4000; i += 1) {
       ctx.fillStyle = Math.random() > 0.5 ? 'rgba(60, 20, 26, .18)' : 'rgba(220, 150, 150, .1)';
       ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
     }
@@ -179,35 +274,35 @@ function carpetTexture() {
 }
 
 function grassTexture() {
-  return canvasTexture(512, 512, (ctx) => {
+  return canvasWithRaw(1024, 1024, (ctx) => {
     ctx.fillStyle = '#3c7a40';
-    ctx.fillRect(0, 0, 512, 512);
-    for (let i = 0; i < 2400; i += 1) {
+    ctx.fillRect(0, 0, 1024, 1024);
+    for (let i = 0; i < 9000; i += 1) {
       ctx.fillStyle = Math.random() > 0.5 ? 'rgba(30, 70, 32, .25)' : 'rgba(120, 190, 100, .16)';
-      ctx.fillRect(Math.random() * 512, Math.random() * 512, 3, 3 + Math.random() * 4);
+      ctx.fillRect(Math.random() * 1024, Math.random() * 1024, 3, 3 + Math.random() * 4);
     }
   });
 }
 
 function dirtTexture() {
-  return canvasTexture(256, 256, (ctx) => {
+  return canvasWithRaw(512, 512, (ctx) => {
     ctx.fillStyle = '#8a6a42';
-    ctx.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 500; i += 1) {
+    ctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 2000; i += 1) {
       ctx.fillStyle = Math.random() > 0.5 ? 'rgba(70, 50, 28, .3)' : 'rgba(190, 160, 110, .25)';
       const r = 2 + Math.random() * 6;
       ctx.beginPath();
-      ctx.arc(Math.random() * 256, Math.random() * 256, r, 0, 7);
+      ctx.arc(Math.random() * 512, Math.random() * 512, r, 0, 7);
       ctx.fill();
     }
     // bordas com alpha suave (a trilha se funde na grama)
     ctx.globalCompositeOperation = 'destination-out';
-    const left = ctx.createLinearGradient(0, 0, 60, 0);
+    const left = ctx.createLinearGradient(0, 0, 120, 0);
     left.addColorStop(0, 'rgba(0,0,0,1)'); left.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = left; ctx.fillRect(0, 0, 60, 256);
-    const right = ctx.createLinearGradient(256, 0, 196, 0);
+    ctx.fillStyle = left; ctx.fillRect(0, 0, 120, 512);
+    const right = ctx.createLinearGradient(512, 0, 392, 0);
     right.addColorStop(0, 'rgba(0,0,0,1)'); right.addColorStop(1, 'rgba(0,0,0,0)');
-    ctx.fillStyle = right; ctx.fillRect(196, 0, 60, 256);
+    ctx.fillStyle = right; ctx.fillRect(392, 0, 120, 512);
   });
 }
 
@@ -274,12 +369,12 @@ function paperTexture() {
 }
 
 function stoneTexture() {
-  return canvasTexture(256, 256, (ctx) => {
+  return canvasWithRaw(512, 512, (ctx) => {
     ctx.fillStyle = '#8d8a80';
-    ctx.fillRect(0, 0, 256, 256);
-    for (let i = 0; i < 700; i += 1) {
+    ctx.fillRect(0, 0, 512, 512);
+    for (let i = 0; i < 2000; i += 1) {
       ctx.fillStyle = Math.random() > 0.5 ? 'rgba(50, 48, 44, .2)' : 'rgba(200, 198, 188, .2)';
-      ctx.fillRect(Math.random() * 256, Math.random() * 256, 3, 3);
+      ctx.fillRect(Math.random() * 512, Math.random() * 512, 3, 3);
     }
   });
 }
@@ -724,34 +819,20 @@ export function buildSchool(scene) {
   scene.userData.zone = zone;
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
 
-  const plasterTex = plasterTexture();
-  plasterTex.wrapS = plasterTex.wrapT = THREE.RepeatWrapping;
-  const plaster = new THREE.MeshLambertMaterial({ map: plasterTex });
-  const brickTex = brickTexture();
-  brickTex.wrapS = brickTex.wrapT = THREE.RepeatWrapping;
-  brickTex.repeat.set(2, 0.7);
-  const brick = new THREE.MeshLambertMaterial({ map: brickTex });
+  const plaster = pbrFrom(plasterTexture(), [3, 2]);
+  const brick = pbrFrom(brickTexture(), [2, 0.7], 1.2);
 
-  const hallTex = planksTexture();
-  hallTex.wrapS = hallTex.wrapT = THREE.RepeatWrapping;
-  hallTex.repeat.set(4, 3);
-  const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(14.4, 10.4), new THREE.MeshLambertMaterial({ map: hallTex }));
+  const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(14.4, 10.4), pbrFrom(planksTexture(), [4, 3], 0.45, [0.55, 0.95]));
   hallFloor.rotation.x = -Math.PI / 2;
   hallFloor.position.set(0, 0, -1);
   hallFloor.receiveShadow = true;
   scene.add(hallFloor);
-  const tilesTex = tilesTexture();
-  tilesTex.wrapS = tilesTex.wrapT = THREE.RepeatWrapping;
-  tilesTex.repeat.set(1.4, 3.4);
-  const corridorFloor = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 10.4), new THREE.MeshLambertMaterial({ map: tilesTex }));
+  const corridorFloor = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 10.4), pbrFrom(tilesTexture(), [1.4, 3.4], 1.0, [0.5, 0.9]));
   corridorFloor.rotation.x = -Math.PI / 2;
   corridorFloor.position.set(0, 0.001, -11);
   corridorFloor.receiveShadow = true;
   scene.add(corridorFloor);
-  const carpetTex = carpetTexture();
-  carpetTex.wrapS = carpetTex.wrapT = THREE.RepeatWrapping;
-  carpetTex.repeat.set(5, 4);
-  const libraryFloor = new THREE.Mesh(new THREE.PlaneGeometry(16.4, 12.4), new THREE.MeshLambertMaterial({ map: carpetTex }));
+  const libraryFloor = new THREE.Mesh(new THREE.PlaneGeometry(16.4, 12.4), pbrFrom(carpetTexture(), [5, 4], 0.4, [0.7, 1.0]));
   libraryFloor.rotation.x = -Math.PI / 2;
   libraryFloor.position.set(0, 0.001, -22);
   libraryFloor.receiveShadow = true;
@@ -963,18 +1044,20 @@ export function buildWoods(scene) {
   scene.userData.zone = zone;
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
 
-  const grassTex = grassTexture();
-  grassTex.wrapS = grassTex.wrapT = THREE.RepeatWrapping;
-  grassTex.repeat.set(10, 13);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(44, 60), new THREE.MeshLambertMaterial({ map: grassTex }));
+  const grassTexRaw = grassTexture();
+  grassTexRaw.texture.wrapS = grassTexRaw.texture.wrapT = THREE.RepeatWrapping;
+  grassTexRaw.texture.repeat.set(10, 13);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(44, 60), pbrFrom(grassTexRaw, [10, 13], 1.4, [0.75, 1.0]));
   ground.rotation.x = -Math.PI / 2;
   ground.position.set(0, 0, 4);
   ground.receiveShadow = true;
   scene.add(ground);
-  const dirtTex = dirtTexture();
-  dirtTex.wrapS = dirtTex.wrapT = THREE.RepeatWrapping;
-  dirtTex.repeat.set(1, 7);
-  const path = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 46), new THREE.MeshLambertMaterial({ map: dirtTex, transparent: true }));
+  const dirtTexRaw = dirtTexture();
+  dirtTexRaw.texture.wrapS = dirtTexRaw.texture.wrapT = THREE.RepeatWrapping;
+  dirtTexRaw.texture.repeat.set(1, 7);
+  const dirtMaterial = pbrFrom(dirtTexRaw, [1, 7], 1.0, [0.75, 1.0]);
+  dirtMaterial.transparent = true;
+  const path = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 46), dirtMaterial);
   path.rotation.x = -Math.PI / 2;
   path.position.set(0, 0.005, 4);
   path.receiveShadow = true;
@@ -1070,7 +1153,7 @@ export function buildWoods(scene) {
   });
 
   // marco de pedra com a árvore + heras
-  const markerMaterial = new THREE.MeshLambertMaterial({ map: stoneTexture() });
+  const markerMaterial = pbrFrom(stoneTexture(), [1, 1], 1.6, [0.7, 1.0]);
   const marker = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.5, 0.4), markerMaterial);
   marker.position.set(3.1, 0.75, -8.2);
   marker.castShadow = true;
@@ -1098,7 +1181,7 @@ export function buildWoods(scene) {
   addInteract('clueOak', 3.3, -5.4, 1.5);
 
   // portão secreto: pilares de pedra, heras, árvore dourada brilhando
-  const gateMaterial = new THREE.MeshLambertMaterial({ map: stoneTexture() });
+  const gateMaterial = pbrFrom(stoneTexture(), [1, 2], 1.6, [0.7, 1.0]);
   for (const px of [-1.7, 1.7]) {
     const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.7, 3.2, 0.7), gateMaterial);
     pillar.position.set(px, 1.6, -16);

@@ -192,6 +192,29 @@
       #dialog { padding: 12px 12px; }
       .rpg-choice { flex-basis: 100%; }
     }
+
+    /* modal genérico (reiniciar, etc.) */
+    .backdrop {
+      position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center;
+      padding: 16px; background: rgba(10, 6, 28, .7); backdrop-filter: blur(4px);
+    }
+    .backdrop.hidden { display: none; }
+    .rpg-panel {
+      width: min(440px, 100%); padding: 22px 22px 20px; color: #293354; text-align: left;
+      background: #fffaf0; border: 2px solid rgba(245, 197, 66, .55); border-radius: 22px;
+      box-shadow: 0 20px 50px rgba(0,0,0,.45);
+    }
+    .rpg-panel h2 { margin: 0 0 8px; color: #1f2c66; font-family: 'Fredoka', sans-serif; font-size: 22px; }
+    .rpg-panel p { margin: 0; color: #5a678d; font-size: 14px; line-height: 1.5; }
+    .rpg-panel .rpg-panel-buttons { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+    .rpg-panel .rpg-btn {
+      padding: 10px 18px; border: 1px solid rgba(0,0,0,.18); border-radius: 999px;
+      color: #293354; background: #fff;
+      font: 700 14px 'Fredoka', sans-serif; cursor: pointer;
+    }
+    .rpg-panel .rpg-btn:hover { background: #fff3d4; }
+    .rpg-panel .rpg-btn.warn { background: #ffe3a8; }
+    .rpg-panel .rpg-btn.warn:hover { background: #ffd166; }
   </style>
 </head>
 <body>
@@ -200,6 +223,7 @@
     <div class="rpg-hud">
       <div class="rpg-hud-group">
         <button class="hud-chip icon" id="homeButton" type="button" aria-label="Menu">🏠</button>
+        <button class="hud-chip icon" id="restartButton" type="button" aria-label="Reiniciar">🔄</button>
         <button class="hud-chip" id="questChip" type="button">📜 …</button>
       </div>
       <div class="rpg-hud-group">
@@ -231,6 +255,17 @@
 
     <div id="fatal"></div>
   </div>
-  <script src="lib/bundle.js?v=20260919e"></script>
+
+  <div class="backdrop hidden" id="restartBackdrop">
+    <aside class="rpg-panel" role="dialog" aria-modal="true">
+      <h2>🔄 Reiniciar o jogo?</h2>
+      <p>O progresso desta jogadora no RPG Welling será apagado e você volta para a escolha de personagem.</p>
+      <div class="rpg-panel-buttons">
+        <button class="rpg-btn" id="restartCancel" type="button">Cancelar</button>
+        <button class="rpg-btn warn" id="restartConfirm" type="button">🔄 Reiniciar</button>
+      </div>
+    </aside>
+  </div>
+  <script src="lib/bundle.js?v=20260919g"></script>
 </body>
 </html>
