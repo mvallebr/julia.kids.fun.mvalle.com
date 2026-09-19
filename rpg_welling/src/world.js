@@ -1268,6 +1268,27 @@ export function buildSchool(scene) {
   }
   addInteract('clueTable', 0.5, -21.5, 2.1);
 
+  // pilhas de livros reais (Antique Book Set, CC-BY) na mesa e pelo chão da biblioteca
+  const bookSrc = glbSource('books.glb');
+  if (bookSrc) {
+    for (const [bx, by, bz, ry, s] of [
+      [2.7, 0.78, -21.6, 0.4, 1.0],
+      [3.6, 0.78, -21.3, 2.2, 0.8],
+      [0.9, 0.045, -20.2, 1.1, 0.9],
+      [-2.4, 0.045, -20.8, 0.2, 0.7],
+      [6.9, 0.045, -24.0, 2.8, 1.0],
+    ]) {
+      const stack = bookSrc.scene.clone(true);
+      stack.traverse((c) => {
+        if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+      });
+      stack.position.set(bx, by, bz);
+      stack.rotation.y = ry;
+      stack.scale.setScalar(s * 1.6);
+      scene.add(stack);
+    }
+  }
+
   // mesa da Sra. Page + globo
   box(scene, 1.9, 0.75, 0.9, 0x5d3f26, -5.5, 0.375, -26.4, { collider: true });
   const globe = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 12), mat(0x3e6cb0));
@@ -1436,6 +1457,40 @@ export function buildWoods(scene) {
   });
 
   // marco de pedra com a árvore + heras
+  // arbustos reais (Stylized Bush, CC-BY) ao longo do caminho da mata
+  const bushSrc = glbSource('bush.glb');
+  if (bushSrc) {
+    for (const [bx, bz, s] of [
+      [2.6, 20.5, 1.0], [-2.7, 17.0, 0.8], [2.8, 12.5, 1.1], [-2.6, 8.0, 0.9],
+      [2.7, 5.5, 1.0], [-2.8, 1.5, 0.8], [2.6, -4.5, 1.0], [-2.7, -9.0, 0.9],
+      [2.5, -12.0, 1.1], [3.0, 16.5, 0.7], [-3.0, -5.5, 1.0],
+    ]) {
+      const bush = bushSrc.scene.clone(true);
+      bush.traverse((c) => {
+        if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+      });
+      bush.position.set(bx, 0, bz);
+      bush.rotation.y = Math.random() * Math.PI * 2;
+      bush.scale.setScalar(s * 0.9);
+      scene.add(bush);
+    }
+  }
+
+  // baú do tesouro escondido (Stylized Treasure Chest, CC-BY) atrás do marco
+  const chestSrc = glbSource('chest.glb');
+  if (chestSrc) {
+    const chest = chestSrc.scene.clone(true);
+    chest.traverse((c) => {
+      if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
+    });
+    chest.position.set(4.1, 0, -9.4);
+    chest.rotation.y = -0.9;
+    chest.scale.setScalar(1.35);
+    scene.add(chest);
+    // brilho dourado sutil indicando que ali tem coisa
+    glowSprite(scene, zone, 0xffd166, 0.7, 4.1, 0.45, -9.4, { opacity: 0.35, amp: 0.15, speed: 2 });
+  }
+
   const markerMaterial = pbrFrom(stoneTexture(), [1, 1], 1.6, [0.7, 1.0]);
   const marker = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.5, 0.4), markerMaterial);
   marker.position.set(3.1, 0.75, -8.2);
