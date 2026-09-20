@@ -281,8 +281,10 @@ function inputVector() {
 }
 
 // ── câmera orbital: arraste na tela gira, scroll/pinça dá zoom ───────────────
+// Funciona igual em desktop e touch: Pointer Events unificam mouse e dedos,
+// e a pinça mede distância 2D real entre os dois dedos (não só horizontal).
 const camDrag = { yawId: null, lastX: 0 };
-const camPointers = new Map(); // pointerId → clientX
+const camPointers = new Map(); // pointerId → {x, y}
 let pinchDist = 0;
 function clampZoom(z) {
   return Math.max(CAM_ZOOM_MIN, Math.min(CAM_ZOOM_MAX, z));
@@ -293,25 +295,36 @@ window.addEventListener('wheel', (e) => {
 
 function setupCameraControls(canvas) {
   canvas.style.touchAction = 'none';
+  canvas.style.cursor = 'grab';
+  // right-click no desktop é arraste de câmera também, não menu de contexto
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+  // iOS Safari: bloqueia o zoom de página por pinça por cima do jogo
+  document.addEventListener('gesturestart', (e) => e.preventDefault());
+
+  const setPointer = (e) => camPointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  const pinchGap = () => {
+    const [a, b] = [...camPointers.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y);
+  };
+
   canvas.addEventListener('pointerdown', (e) => {
-    camPointers.set(e.pointerId, e.clientX);
+    setPointer(e);
+    canvas.style.cursor = 'grabbing';
     if (camPointers.size === 1) {
       camDrag.yawId = e.pointerId;
       camDrag.lastX = e.clientX;
     } else if (camPointers.size === 2) {
-      const [a, b] = [...camPointers.values()];
-      pinchDist = Math.abs(a - b);
+      pinchDist = pinchGap();
       camDrag.yawId = null; // dois dedos = pinch, não girar
     }
   });
   canvas.addEventListener('pointermove', (e) => {
     if (!camPointers.has(e.pointerId)) return;
-    camPointers.set(e.pointerId, e.clientX);
+    setPointer(e);
     if (camPointers.size === 2) {
-      const [a, b] = [...camPointers.values()];
-      const dist = Math.abs(a - b);
-      if (pinchDist > 0) camZoom = clampZoom(camZoom * (dist / pinchDist));
-      pinchDist = dist;
+      const gap = pinchGap();
+      if (pinchDist > 0) camZoom = clampZoom(camZoom * (gap / pinchDist));
+      pinchDist = gap;
     } else if (e.pointerId === camDrag.yawId) {
       camYaw -= (e.clientX - camDrag.lastX) * 0.006;
       camDrag.lastX = e.clientX;
@@ -319,10 +332,11 @@ function setupCameraControls(canvas) {
   });
   const endPointer = (e) => {
     camPointers.delete(e.pointerId);
+    if (camPointers.size === 0) canvas.style.cursor = 'grab';
     if (e.pointerId === camDrag.yawId) camDrag.yawId = null;
     if (camPointers.size < 2) pinchDist = 0;
     const remaining = [...camPointers.keys()];
-    if (remaining.length === 1) { camDrag.yawId = remaining[0]; camDrag.lastX = camPointers.get(remaining[0]); }
+    if (remaining.length === 1) { camDrag.yawId = remaining[0]; camDrag.lastX = camPointers.get(remaining[0]).x; }
   };
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', endPointer);
