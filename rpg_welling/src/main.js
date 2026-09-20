@@ -59,6 +59,15 @@ const OBJECTIVE_KEYS = {
   cross: 'objCross', gate: 'objGate', done: 'objDone',
 };
 
+// nomes das zonas exibidos ao entrar (toast flutuante)
+const ZONE_NAMES = {
+  school: { pt: '🏫 Escola Welling', en: '🏫 Welling School', es: '🏫 Escuela Welling' },
+  woods: { pt: '🌳 Oxleas Woods', en: '🌳 Oxleas Woods', es: '🌳 Bosque de Oxleas' },
+  highstreet: { pt: '🏪 High Street', en: '🏪 High Street', es: '🏪 High Street' },
+  academy: { pt: '🏰 Academia Owlburt', en: '🏰 Owlburt Academy', es: '🏰 Academia Owlburt' },
+  classroom: { pt: '🪑 Sala de Aula', en: '🪑 Classroom', es: '🪑 Salón de Clases' },
+};
+
 // ── three.js: base ────────────────────────────────────────────────────────────
 let renderer, scene, camera, clock, composer;
 let zone = null;
@@ -112,6 +121,9 @@ function buildScene(zoneName) {
     : zoneName === 'academy' ? buildAcademy(scene)
     : zoneName === 'classroom' ? buildClassroom(scene)
     : buildSchool(scene);
+  if (ZONE_NAMES[zoneName]) {
+    setTimeout(() => toast(root, lang(ZONE_NAMES[zoneName], language), { duration: 2600 }), 600);
+  }
   scene.background = new THREE.Color(zone.background);
   scene.fog = new THREE.Fog(zone.fog[0], zone.fog[1], zone.fog[2]);
   setZoneAmbience(zoneName);
@@ -171,7 +183,8 @@ function buildScene(zoneName) {
   companionObj.add(companionOwl);
   companionOwl.position.set(0.24, 1.62, -0.08);
 
-  // NPCs (só na escola neste slice)
+  // NPCs (por zona, via npcSpots) — limpa referências da zona anterior
+  for (const id of Object.keys(npcs)) delete npcs[id];
   for (const id of Object.keys(NPCS)) {
     const spot = zone.npcSpots?.[id];
     if (!spot) continue;
@@ -604,13 +617,16 @@ function openReport() {
   const total = Object.keys(state.words).length;
   const mastered = Object.values(state.words).filter((w) => (w.streak || 0) >= 3).length;
   const due = dueWords(state.words).length;
+  const ALL_ZONES = ['school', 'woods', 'highstreet', 'academy', 'classroom'];
+  const visited = ALL_ZONES.filter((z) => z === 'school' || state.flags[`visited_${z}`]).length;
   const rows = [
     ['📖 Palavras conhecidas', String(total)],
     ['🏆 Palavras dominadas (3+ acertos)', String(mastered)],
     ['📌 Revisões para hoje', String(due)],
     ['🗺️ Partes do mapa', `${pieceCount(state)} de 4`],
     ['🧩 Desafios resolvidos', String(Object.values(state.challenges).filter(Boolean).length)],
-    ['🌍 Zonas descobertas', String(['school', 'woods', 'highstreet'].filter((z) => z === 'school' || state.flags[`visited_${z}`]).length + 0) + ' de 3'],
+    ['⚔️ Duelo vencido', state.flags.duelWon ? 'Sim 🏅' : 'Ainda não'],
+    ['🌍 Zonas descobertas', `${visited} de ${ALL_ZONES.length}`],
   ];
   $('reportBody').innerHTML = rows.map(([label, val]) =>
     `<div class="word-row"><span>${label}</span><span style="margin-left:auto;font-weight:700;color:#ffd166">${val}</span></div>`
@@ -1137,6 +1153,11 @@ function animate() {
       companionObj.userData.animate?.(t, 0);
     }
     companionOwl.userData.animate?.(t, distanceToPlayer > 2);
+
+    // NPCs IA: atualiza o AnimationMixer (idle) de cada um
+    for (const id of Object.keys(npcs)) {
+      npcs[id]?.userData.animate?.(t, 0);
+    }
 
     camera.position.lerp(new THREE.Vector3().copy(playerObj.position).add(cameraOffset), 1 - Math.exp(-dt * 5));
     lookTarget.set(playerObj.position.x, 0.6, playerObj.position.z);
