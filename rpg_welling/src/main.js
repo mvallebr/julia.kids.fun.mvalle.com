@@ -1046,6 +1046,7 @@ async function interact(id) {
   }
   if (id === 'gate') {
     if (!state.flags.gateOpen) await openGate();
+    else runConversation([{ who: 'owl', text: { pt: 'O portão está aberto. A High Street fica do outro lado — e a Academia Owlburt logo depois…', en: 'The gate is open. The High Street is just outside — and Owlburt Academy right after…', es: 'El portón está abierto. La High Street queda afuera — y la Academia Owlburt justo después…' } }, { gloss: 'gate' }]);
     return;
   }
 }
