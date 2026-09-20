@@ -86,6 +86,7 @@ export const CONVERSATIONS = {
         es: '¡Casi! Peculiar es algo extraño, raro. Piensen otra vez…',
       },
     } },
+    { gloss: 'map' },
   ],
   finchAfter: [
     { who: 'finch', text: {
@@ -129,6 +130,7 @@ export const CONVERSATIONS = {
         es: 'Relean la frase de la carta: "oí alas sobre…" ¿Cuál era el lugar?',
       },
     } },
+    { gloss: 'library' },
   ],
   pageAfter: [
     { who: 'page', text: {
@@ -306,5 +308,20 @@ export const GLOSSES = {
     pt: 'roots = raízes',
     en: 'roots = the part of a plant under the ground',
     es: 'roots = raíces',
+  },
+  map: {
+    pt: 'map = mapa',
+    en: 'map = a drawing that shows the way',
+    es: 'map = mapa',
+  },
+  library: {
+    pt: 'library = biblioteca',
+    en: 'library = a place full of books',
+    es: 'library = biblioteca',
+  },
+  gate: {
+    pt: 'gate = portão, portão grande',
+    en: 'gate = a big door in a fence',
+    es: 'gate = portón',
   },
 };
