@@ -283,7 +283,7 @@ function inputVector() {
 // ── câmera orbital: arraste na tela gira, scroll/pinça dá zoom ───────────────
 // Funciona igual em desktop e touch: Pointer Events unificam mouse e dedos,
 // e a pinça mede distância 2D real entre os dois dedos (não só horizontal).
-const camDrag = { yawId: null, lastX: 0 };
+const camDrag = { yawId: null, lastX: 0, lastY: 0 };
 const camPointers = new Map(); // pointerId → {x, y}
 let pinchDist = 0;
 function clampZoom(z) {
@@ -313,6 +313,7 @@ function setupCameraControls(canvas) {
     if (camPointers.size === 1) {
       camDrag.yawId = e.pointerId;
       camDrag.lastX = e.clientX;
+      camDrag.lastY = e.clientY;
     } else if (camPointers.size === 2) {
       pinchDist = pinchGap();
       camDrag.yawId = null; // dois dedos = pinch, não girar
@@ -327,7 +328,9 @@ function setupCameraControls(canvas) {
       pinchDist = gap;
     } else if (e.pointerId === camDrag.yawId) {
       camYaw -= (e.clientX - camDrag.lastX) * 0.006;
+      camPitch = Math.max(CAM_PITCH_MIN, Math.min(CAM_PITCH_MAX, camPitch + (e.clientY - camDrag.lastY) * 0.004));
       camDrag.lastX = e.clientX;
+      camDrag.lastY = e.clientY;
     }
   });
   const endPointer = (e) => {
@@ -336,7 +339,11 @@ function setupCameraControls(canvas) {
     if (e.pointerId === camDrag.yawId) camDrag.yawId = null;
     if (camPointers.size < 2) pinchDist = 0;
     const remaining = [...camPointers.keys()];
-    if (remaining.length === 1) { camDrag.yawId = remaining[0]; camDrag.lastX = camPointers.get(remaining[0]).x; }
+    if (remaining.length === 1) {
+      camDrag.yawId = remaining[0];
+      const p = camPointers.get(remaining[0]);
+      camDrag.lastX = p.x; camDrag.lastY = p.y;
+    }
   };
   canvas.addEventListener('pointerup', endPointer);
   canvas.addEventListener('pointercancel', endPointer);
@@ -1159,10 +1166,15 @@ function chooseCharacter() {
 }
 
 // ── loop principal ───────────────────────────────────────────────────────────
-const cameraOffset = new THREE.Vector3(0, 8.6, 7.2);
-// câmera orbital: arraste na tela gira (camYaw), scroll/pinça dá zoom (camZoom)
+// câmera orbital: arraste na tela gira (camYaw), inclina (camPitch —
+// arrastar pra cima abaixa a câmera e mostra os rostos) e pinça/scroll
+// dá zoom (camZoom). CAM_R é a distância base.
 let camYaw = 0;
 let camZoom = 1;
+let camPitch = 0.55; // rad; arraste vertical ajusta — baixo = vê os rostos
+const CAM_R = 11.2; // distância base da câmera (× camZoom)
+const CAM_PITCH_MIN = 0.22; // ~13°: quase atrás da jogadora
+const CAM_PITCH_MAX = 1.15; // ~66°: visão de cima
 const CAM_ZOOM_MIN = 0.55;
 const CAM_ZOOM_MAX = 2.2;
 const lookTarget = new THREE.Vector3();
@@ -1231,13 +1243,14 @@ function animate() {
       npcs[id]?.userData.animate?.(t, 0);
     }
 
-    // câmera orbital: offset base girado por camYaw e afastado por camZoom
-    const cos = Math.cos(camYaw);
-    const sin = Math.sin(camYaw);
+    // câmera orbital esférica: yaw (arraste horizontal), pitch (arraste
+    // vertical — baixo = mais perto do chão, vê os rostos) e zoom (pinça/scroll)
+    const dist = CAM_R * camZoom;
+    const horiz = dist * Math.cos(camPitch);
     const off = new THREE.Vector3(
-      (cameraOffset.x * cos - cameraOffset.z * sin) * camZoom,
-      cameraOffset.y * (0.6 + 0.4 * camZoom),
-      (cameraOffset.x * sin + cameraOffset.z * cos) * camZoom
+      Math.sin(camYaw) * horiz,
+      dist * Math.sin(camPitch),
+      Math.cos(camYaw) * horiz
     );
     camera.position.lerp(new THREE.Vector3().copy(playerObj.position).add(off), 1 - Math.exp(-dt * 5));
     lookTarget.set(playerObj.position.x, 0.6, playerObj.position.z);
