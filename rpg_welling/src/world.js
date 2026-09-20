@@ -884,7 +884,13 @@ export function makeOwl(variant = 0) {
 
 export function makeAdult(dress, face = 'mustache') {
   // ── 1ª escolha: modelo IA dedicado do NPC (id → arquivo) ──────────────────
-  const DEDICATED_FILES = { baker: 'crumb-rigged.glb', raven: 'raven-rigged.glb', willow: 'willow-rigged.glb' };
+  const DEDICATED_FILES = {
+    finch: 'finch-rigged.glb',
+    page: 'page-rigged.glb',
+    baker: 'crumb-rigged.glb',
+    raven: 'raven-rigged.glb',
+    willow: 'willow-rigged.glb',
+  };
   const dedicated = glbSource(DEDICATED_FILES[face] || '__none__');
   if (dedicated) {
     const g = new THREE.Group();
