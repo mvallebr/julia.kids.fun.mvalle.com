@@ -98,6 +98,7 @@ function initThree() {
     renderer.setSize(window.innerWidth, window.innerHeight);
     if (composer) composer.setSize(window.innerWidth, window.innerHeight);
   });
+  setupCameraControls(renderer.domElement);
 }
 
 function disposeScene() {
@@ -277,6 +278,54 @@ function inputVector() {
   const len = Math.hypot(x, y);
   if (len > 1) { x /= len; y /= len; }
   return [x, y];
+}
+
+// ── câmera orbital: arraste na tela gira, scroll/pinça dá zoom ───────────────
+const camDrag = { yawId: null, lastX: 0 };
+const camPointers = new Map(); // pointerId → clientX
+let pinchDist = 0;
+function clampZoom(z) {
+  return Math.max(CAM_ZOOM_MIN, Math.min(CAM_ZOOM_MAX, z));
+}
+window.addEventListener('wheel', (e) => {
+  camZoom = clampZoom(camZoom * (1 + e.deltaY * 0.0009));
+}, { passive: true });
+
+function setupCameraControls(canvas) {
+  canvas.style.touchAction = 'none';
+  canvas.addEventListener('pointerdown', (e) => {
+    camPointers.set(e.pointerId, e.clientX);
+    if (camPointers.size === 1) {
+      camDrag.yawId = e.pointerId;
+      camDrag.lastX = e.clientX;
+    } else if (camPointers.size === 2) {
+      const [a, b] = [...camPointers.values()];
+      pinchDist = Math.abs(a - b);
+      camDrag.yawId = null; // dois dedos = pinch, não girar
+    }
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (!camPointers.has(e.pointerId)) return;
+    camPointers.set(e.pointerId, e.clientX);
+    if (camPointers.size === 2) {
+      const [a, b] = [...camPointers.values()];
+      const dist = Math.abs(a - b);
+      if (pinchDist > 0) camZoom = clampZoom(camZoom * (dist / pinchDist));
+      pinchDist = dist;
+    } else if (e.pointerId === camDrag.yawId) {
+      camYaw -= (e.clientX - camDrag.lastX) * 0.006;
+      camDrag.lastX = e.clientX;
+    }
+  });
+  const endPointer = (e) => {
+    camPointers.delete(e.pointerId);
+    if (e.pointerId === camDrag.yawId) camDrag.yawId = null;
+    if (camPointers.size < 2) pinchDist = 0;
+    const remaining = [...camPointers.keys()];
+    if (remaining.length === 1) { camDrag.yawId = remaining[0]; camDrag.lastX = camPointers.get(remaining[0]); }
+  };
+  canvas.addEventListener('pointerup', endPointer);
+  canvas.addEventListener('pointercancel', endPointer);
 }
 
 // ── colisão simples (círculo vs AABBs, resolvida por eixo) ──────────────────
@@ -1097,6 +1146,11 @@ function chooseCharacter() {
 
 // ── loop principal ───────────────────────────────────────────────────────────
 const cameraOffset = new THREE.Vector3(0, 8.6, 7.2);
+// câmera orbital: arraste na tela gira (camYaw), scroll/pinça dá zoom (camZoom)
+let camYaw = 0;
+let camZoom = 1;
+const CAM_ZOOM_MIN = 0.55;
+const CAM_ZOOM_MAX = 2.2;
 const lookTarget = new THREE.Vector3();
 
 function animate() {
@@ -1107,8 +1161,11 @@ function animate() {
   const [inputX, inputY] = overlayCount > 0 ? [0, 0] : inputVector();
   const running = Math.hypot(inputX, inputY) > 0.92; // joystick/teclas no máximo
   const speed = 3.8 * (running ? 1.55 : 1);
-  const dx = inputX * speed * dt;
-  const dz = inputY * speed * dt;
+  // movimento relativo à câmera: gira o vetor de input por camYaw
+  const cy = Math.cos(camYaw);
+  const sy = Math.sin(camYaw);
+  const dx = (inputX * cy - inputY * sy) * speed * dt;
+  const dz = (inputX * sy + inputY * cy) * speed * dt;
   const moving = Math.abs(inputX) + Math.abs(inputY) > 0.05;
 
   if (playerObj) {
@@ -1122,7 +1179,8 @@ function animate() {
       stepTimer = running ? 0.28 : 0.4;
     }
     if (moving && walked > 0.0005) {
-      const targetAngle = Math.atan2(inputX, inputY);
+      // personagem olha na direção em que realmente anda (relativa à câmera)
+      const targetAngle = Math.atan2(dx, dz);
       let delta = targetAngle - playerObj.rotation.y;
       while (delta > Math.PI) delta -= Math.PI * 2;
       while (delta < -Math.PI) delta += Math.PI * 2;
@@ -1159,7 +1217,15 @@ function animate() {
       npcs[id]?.userData.animate?.(t, 0);
     }
 
-    camera.position.lerp(new THREE.Vector3().copy(playerObj.position).add(cameraOffset), 1 - Math.exp(-dt * 5));
+    // câmera orbital: offset base girado por camYaw e afastado por camZoom
+    const cos = Math.cos(camYaw);
+    const sin = Math.sin(camYaw);
+    const off = new THREE.Vector3(
+      (cameraOffset.x * cos - cameraOffset.z * sin) * camZoom,
+      cameraOffset.y * (0.6 + 0.4 * camZoom),
+      (cameraOffset.x * sin + cameraOffset.z * cos) * camZoom
+    );
+    camera.position.lerp(new THREE.Vector3().copy(playerObj.position).add(off), 1 - Math.exp(-dt * 5));
     lookTarget.set(playerObj.position.x, 0.6, playerObj.position.z);
     camera.lookAt(lookTarget);
 

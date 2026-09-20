@@ -55,8 +55,11 @@ Props do Sketchfab sob CC-BY: ver `assets/CREDITS.md` e o botão ℹ️ no jogo.
 
 - **Joystick virtual** (canto inferior esquerdo) ou setas/WASD: andar.
   Joystick no máximo = **correr** (×1.55).
+- **Arrastar a tela**: girar a câmera ao redor da jogadora.
+- **Scroll do mouse / pinça de dois dedos**: zoom in e zoom out.
 - **Botão flutuante** (canto inferior direito): interagir com o que estiver
   no círculo amarelo.
+- O movimento é relativo à câmera: "pra cima" sempre anda pra longe dela.
 - HUD: 🏠 menu · ℹ️ créditos · 🔄 reiniciar (à prova de abas duplicadas) ·
   🦉 dica/revisão · 📖 diário de palavras · 📊 progresso · 🔊 som.
 
