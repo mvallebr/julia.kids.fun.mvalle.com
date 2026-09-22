@@ -60,15 +60,16 @@ Props do Sketchfab sob CC-BY: ver `assets/CREDITS.md` e o botão ℹ️ no jogo.
 
 ## Controles
 
-- **Joystick virtual** (canto inferior esquerdo) ou setas/WASD: andar.
-  Joystick no máximo = **correr** (×1.55).
+- **Toque/clique no chão** (click-to-move): a personagem anda até o ponto
+  marcado com um anel verde — longe ela **corre**, chegando perto ela caminha.
+- **Setas/WASD** (teclado): andar; teclas no máximo = **correr** (×1.55).
 - **Arrastar a tela**: girar a câmera (horizontal) e mudar o ângulo
   (vertical) — arrastar pra cima abaixa a câmera e mostra os rostos;
   arrastar pra baixo sobe pra uma visão de cima.
 - **Scroll do mouse / pinça de dois dedos**: zoom in e zoom out.
 - **Botão flutuante** (canto inferior direito): interagir com o que estiver
   no círculo amarelo.
-- O movimento é relativo à câmera: "pra cima" sempre anda pra longe dela.
+- O teclado é relativo à câmera: "pra cima" sempre anda pra longe dela.
 - HUD: 🏠 menu · ℹ️ créditos · 🔄 reiniciar (à prova de abas duplicadas) ·
   🦉 dica/revisão · 📖 diário de palavras · 📊 progresso · 🔊 som ·
   🌐 idioma (pt/en/es, persiste por jogadora).

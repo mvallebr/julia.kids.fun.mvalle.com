@@ -82,6 +82,7 @@ let zone = null;
 let playerObj = null, owlObj = null, companionObj = null, companionOwl = null;
 const npcs = {};
 let ring = null;
+let clickMarker = null; // anel verde do destino do toque (click-to-move)
 let overlayCount = 0; // >0 = menus/diálogos abertos, movimento travado
 let ended = false;
 let restarting = false; // confirmRestart: bloqueia autosave/beforeunload até o reload
@@ -217,6 +218,16 @@ function buildScene(zoneName) {
   ring.visible = false;
   scene.add(ring);
 
+  // marcador do destino do toque (click-to-move)
+  clickMarker = new THREE.Mesh(
+    new THREE.RingGeometry(0.3, 0.45, 28),
+    new THREE.MeshBasicMaterial({ color: 0x7ee8a2, transparent: true, opacity: 0.95 })
+  );
+  clickMarker.rotation.x = -Math.PI / 2;
+  clickMarker.visible = false;
+  scene.add(clickMarker);
+  moveTarget = null; // troca de zona: destino antigo não faz sentido
+
   camera.position.set(playerObj.position.x, 7.5, playerObj.position.z + 8.5);
   camera.lookAt(playerObj.position.x, 0.6, playerObj.position.z);
 
@@ -236,7 +247,7 @@ function buildScene(zoneName) {
   }
 }
 
-// ── entrada: teclado + joystick de toque ─────────────────────────────────────
+// ── entrada: teclado (WASD/setas) — no toque, quem manda é o tap-to-move ────
 const keys = new Set();
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' || event.key === ' ') advanceDialog?.();
@@ -246,42 +257,9 @@ window.addEventListener('keydown', (event) => {
 });
 window.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 
-const joystick = { active: false, x: 0, y: 0, id: null };
-const joyBase = $('joy'), joyKnob = $('joyKnob');
-function setKnob(dx, dy) {
-  joyKnob.style.transform = `translate(${dx}px, ${dy}px)`;
-}
-joyBase.addEventListener('pointerdown', (event) => {
-  joystick.active = true;
-  joystick.id = event.pointerId;
-  joyBase.setPointerCapture(event.pointerId);
-});
-joyBase.addEventListener('pointermove', (event) => {
-  if (!joystick.active || event.pointerId !== joystick.id) return;
-  const rect = joyBase.getBoundingClientRect();
-  const cx = rect.left + rect.width / 2;
-  const cy = rect.top + rect.height / 2;
-  let dx = event.clientX - cx;
-  let dy = event.clientY - cy;
-  const max = rect.width / 2;
-  const len = Math.hypot(dx, dy);
-  if (len > max) { dx = (dx / len) * max; dy = (dy / len) * max; }
-  setKnob(dx, dy);
-  joystick.x = dx / max;
-  joystick.y = dy / max;
-});
-function releaseJoystick(event) {
-  if (event.pointerId !== joystick.id) return;
-  joystick.active = false;
-  joystick.x = 0; joystick.y = 0;
-  setKnob(0, 0);
-}
-joyBase.addEventListener('pointerup', releaseJoystick);
-joyBase.addEventListener('pointercancel', releaseJoystick);
-
 function inputVector() {
-  let x = joystick.x;
-  let y = joystick.y;
+  let x = 0;
+  let y = 0;
   if (keys.has('w') || keys.has('arrowup')) y -= 1;
   if (keys.has('s') || keys.has('arrowdown')) y += 1;
   if (keys.has('a') || keys.has('arrowleft')) x -= 1;
@@ -289,6 +267,31 @@ function inputVector() {
   const len = Math.hypot(x, y);
   if (len > 1) { x /= len; y /= len; }
   return [x, y];
+}
+
+// ── click-to-move: toque/clique curto no chão anda até o ponto ───────────────
+// Arrastar continua girando a câmera; só o toque "parado" (até ~9px) move.
+let moveTarget = null; // {x, z} destino do toque; null = parada
+let targetStuck = 0; // segundos sem progresso a caminho do destino (parede)
+const raycaster = new THREE.Raycaster();
+const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
+const ndc = new THREE.Vector2();
+const groundHit = new THREE.Vector3();
+function tapToMove(clientX, clientY) {
+  if (!playerObj || !camera || overlayCount > 0) return;
+  ndc.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
+  raycaster.setFromCamera(ndc, camera);
+  if (!raycaster.ray.intersectPlane(groundPlane, groundHit)) return;
+  const dx = groundHit.x - playerObj.position.x;
+  const dz = groundHit.z - playerObj.position.z;
+  const dist = Math.hypot(dx, dz);
+  if (dist < 0.25) { moveTarget = null; return; } // toque nela mesma
+  if (dist > 26) { // alcance limitado: o caminho é em linha reta
+    groundHit.x = playerObj.position.x + (dx / dist) * 26;
+    groundHit.z = playerObj.position.z + (dz / dist) * 26;
+  }
+  moveTarget = { x: groundHit.x, z: groundHit.z };
+  targetStuck = 0;
 }
 
 // ── câmera orbital: arraste na tela gira, scroll/pinça dá zoom ───────────────
@@ -318,6 +321,7 @@ function setupCameraControls(canvas) {
     return Math.hypot(a.x - b.x, a.y - b.y);
   };
 
+  const tap = { id: null, x: 0, y: 0, valid: false };
   canvas.addEventListener('pointerdown', (e) => {
     setPointer(e);
     canvas.style.cursor = 'grabbing';
@@ -325,9 +329,17 @@ function setupCameraControls(canvas) {
       camDrag.yawId = e.pointerId;
       camDrag.lastX = e.clientX;
       camDrag.lastY = e.clientY;
-    } else if (camPointers.size === 2) {
-      pinchDist = pinchGap();
-      camDrag.yawId = null; // dois dedos = pinch, não girar
+      // toque que não virar arraste = andar até o ponto (click-to-move)
+      tap.id = e.pointerId;
+      tap.x = e.clientX;
+      tap.y = e.clientY;
+      tap.valid = true;
+    } else {
+      tap.valid = false; // segundo dedo = pinça, não toque
+      if (camPointers.size === 2) {
+        pinchDist = pinchGap();
+        camDrag.yawId = null; // dois dedos = pinch, não girar
+      }
     }
   });
   canvas.addEventListener('pointermove', (e) => {
@@ -338,6 +350,8 @@ function setupCameraControls(canvas) {
       if (pinchDist > 0) camZoom = clampZoom(camZoom * (gap / pinchDist));
       pinchDist = gap;
     } else if (e.pointerId === camDrag.yawId) {
+      if (tap.valid && e.pointerId === tap.id
+        && Math.hypot(e.clientX - tap.x, e.clientY - tap.y) > 9) tap.valid = false;
       camYaw -= (e.clientX - camDrag.lastX) * 0.006;
       camPitch = Math.max(CAM_PITCH_MIN, Math.min(CAM_PITCH_MAX, camPitch + (e.clientY - camDrag.lastY) * 0.004));
       camDrag.lastX = e.clientX;
@@ -346,6 +360,10 @@ function setupCameraControls(canvas) {
   });
   const endPointer = (e) => {
     camPointers.delete(e.pointerId);
+    if (tap.valid && e.pointerId === tap.id) {
+      tap.valid = false;
+      tapToMove(tap.x, tap.y);
+    }
     if (camPointers.size === 0) canvas.style.cursor = 'grab';
     if (e.pointerId === camDrag.yawId) camDrag.yawId = null;
     if (camPointers.size < 2) pinchDist = 0;
@@ -1283,20 +1301,54 @@ function animate() {
   const dt = Math.min(0.05, clock.getDelta());
   const t = clock.elapsedTime;
 
+  // movimento: teclado (relativo à câmera) OU destino do toque (click-to-move)
+  if (overlayCount > 0) moveTarget = null; // diálogo/menu aberto: desiste do destino
   const [inputX, inputY] = overlayCount > 0 ? [0, 0] : inputVector();
-  const running = Math.hypot(inputX, inputY) > 0.92; // joystick/teclas no máximo
-  const speed = 3.8 * (running ? 1.55 : 1);
-  // movimento relativo à câmera: gira o vetor de input por camYaw
-  const cy = Math.cos(camYaw);
-  const sy = Math.sin(camYaw);
-  const dx = (inputX * cy - inputY * sy) * speed * dt;
-  const dz = (inputX * sy + inputY * cy) * speed * dt;
-  const moving = Math.abs(inputX) + Math.abs(inputY) > 0.05;
+  const keyboard = Math.hypot(inputX, inputY) > 0.05;
+  let dx = 0;
+  let dz = 0;
+  let running = false;
+  let moving = keyboard;
+  if (keyboard) {
+    moveTarget = null; // teclado assume o controle
+    // relativo à câmera: "cima" anda pra longe dela em qualquer rotação
+    // (rotação do vetor de input por -camYaw; o sinal aqui é o que faz
+    // "cima" apontar pro horizonte — invertido, virava em direção à câmera a 90°)
+    const cy = Math.cos(camYaw);
+    const sy = Math.sin(camYaw);
+    running = Math.hypot(inputX, inputY) > 0.92; // teclas no máximo
+    const speed = 3.8 * (running ? 1.55 : 1);
+    dx = (inputX * cy + inputY * sy) * speed * dt;
+    dz = (-inputX * sy + inputY * cy) * speed * dt;
+  } else if (moveTarget && playerObj) {
+    const tox = moveTarget.x - playerObj.position.x;
+    const toz = moveTarget.z - playerObj.position.z;
+    const dist = Math.hypot(tox, toz);
+    if (dist < 0.16) {
+      moveTarget = null; // chegou
+    } else {
+      running = dist > 3; // longe = corre, chegando perto = caminha
+      const speed = 3.8 * (running ? 1.55 : 1);
+      const step = Math.min(dist, speed * dt);
+      dx = (tox / dist) * step;
+      dz = (toz / dist) * step;
+      moving = true;
+    }
+  }
 
   if (playerObj) {
     const [nx, nz] = moveWithCollision(playerObj.position.x, playerObj.position.z, dx, dz);
     const walked = Math.hypot(nx - playerObj.position.x, nz - playerObj.position.z);
     playerObj.position.set(nx, 0, nz);
+    if (moveTarget) {
+      // sem progresso por 0,6s = parede no caminho → desiste do destino
+      if (walked < 0.001) {
+        targetStuck += dt;
+        if (targetStuck > 0.6) { moveTarget = null; targetStuck = 0; }
+      } else {
+        targetStuck = 0;
+      }
+    }
     // passos sincronizados com o walk cycle (~0.4s por passo)
     stepTimer -= dt;
     if (moving && walked > 0.0005 && stepTimer <= 0) {
@@ -1426,6 +1478,15 @@ function animate() {
     ring.visible = false;
   }
 
+  // marcador do destino do toque (pulsa enquanto existe destino)
+  if (clickMarker) {
+    clickMarker.visible = Boolean(moveTarget);
+    if (moveTarget) {
+      clickMarker.position.set(moveTarget.x, 0.05, moveTarget.z);
+      clickMarker.scale.setScalar(1 + 0.15 * Math.sin(t * 6));
+    }
+  }
+
   zone?.update?.(dt, t);
 
   composer.render();
@@ -1528,6 +1589,7 @@ window.__rpgWelling = {
   debug: () => ({
     zone: zone?.name,
     overlay: overlayCount,
+    moveTarget,
     cooldown: Math.max(0, (exitAllowedAt - performance.now()) / 1000),
     gateOpen: Boolean(state.flags.gateOpen),
     exits: zone?.exits,
