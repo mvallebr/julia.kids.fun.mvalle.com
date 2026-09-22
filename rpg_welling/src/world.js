@@ -12,6 +12,17 @@ const glbPromises = new Map(); // filename → Promise<{scene, animations}>
 const glbScenes = new Map(); // filename → {scene, animations} (preenchido por preloadModels)
 const ASSETS = './assets/';
 
+// progresso global do carregamento: o GLTFLoader usa o LoadingManager padrão
+// do three.js, então todos os GLB (e texturas) contam no mesmo contador
+let modelProgressCb = null;
+export function onModelProgress(cb) {
+  modelProgressCb = cb;
+}
+THREE.DefaultLoadingManager.onProgress = (_url, loaded, total) => {
+  if (total) modelProgressCb?.(loaded / total);
+};
+THREE.DefaultLoadingManager.onLoad = () => modelProgressCb?.(1);
+
 export function loadGlb(filename) {
   if (!glbPromises.has(filename)) {
     glbPromises.set(filename, new Promise((resolve, reject) => {
@@ -1436,6 +1447,14 @@ export function buildHighStreet(scene) {
   }
   addInteract('baker', 2.2, -6, 1.7);
 
+  // lojas da rua viram ponto de vocabulário (story / letter / tea)
+  addInteract('bookshop', 4.3, -5.6, 1.4);
+  addInteract('postOffice', -4.1, -0.4, 1.4);
+  addInteract('teaRoom', 4.1, -0.4, 1.4);
+  // página escondida no banco da esquerda
+  addInteract('clueBench', -2.9, 4.3, 1.2);
+  glowSprite(scene, zone, 0xfff3b0, 0.8, -2.9, 1.0, 5, { opacity: 0.4, amp: 0.2, speed: 2.4 });
+
   zone.update = () => {};
   return zone;
 }
@@ -1516,6 +1535,10 @@ export function buildAcademy(scene) {
     zone.raven = raven;
   }
   addInteract('raven', 0, -7, 1.7);
+
+  // página escondida junto à torre
+  addInteract('clueScroll', 4.2, -8.6, 1.3);
+  glowSprite(scene, zone, 0xfff3b0, 0.8, 4.2, 1.0, -8.6, { opacity: 0.4, amp: 0.2, speed: 2.4 });
 
   zone.update = (dt, t) => {
     if (zone.duelRing) zone.duelRing.material.opacity = 0.55 + 0.3 * Math.sin(t * 2.4);
@@ -1620,6 +1643,10 @@ export function buildClassroom(scene) {
     zone.willow = willow;
   }
   addInteract('willow', -2.2, -5.6, 1.7);
+
+  // página escondida na verga da janela direita
+  addInteract('clueChalk', 3, -7.5, 1.2);
+  glowSprite(scene, zone, 0xfff3b0, 0.8, 3, 2.2, -8.4, { opacity: 0.4, amp: 0.2, speed: 2.4 });
 
   zone.update = () => {};
   return zone;

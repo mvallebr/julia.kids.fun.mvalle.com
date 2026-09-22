@@ -37,21 +37,52 @@ export function answerWrong(words, word, now = Date.now()) {
   w.due = now + 10 * 60 * 1000;
 }
 
-// quiz de múltipla escolha: prompt em pt, 3 opções em en, 1 correta
-export function buildQuiz(words, word) {
+// opções falsas quando o diário ainda tem menos de 3 palavras — NO IDIOMA ATIVO
+// (antes eram sempre em inglês e vazavam num quiz cujo prompt é em pt/es)
+const FALLBACK_DISTRACTORS = {
+  pt: ['uma parede alta', 'uma porta baixa', 'um mapa velho'],
+  en: ['a tall wall', 'a small door', 'an old map'],
+  es: ['una pared alta', 'una puerta baja', 'un mapa viejo'],
+};
+
+// Fisher–Yates: o sort(() => Math.random() - 0.5) é enviesado
+function shuffle(list) {
+  for (let i = list.length - 1; i > 0; i -= 1) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [list[i], list[j]] = [list[j], list[i]];
+  }
+  return list;
+}
+
+// ordem de prática: vencidas primeiro (mais atrasada primeiro) e, entre as
+// futuras, o streak mais baixo — revisão/duelo/lousa atacam a palavra fraca
+export function practiceOrder(words, now = Date.now()) {
+  return Object.entries(words || {})
+    .sort(([, a], [, b]) => {
+      const dueA = a.due <= now ? 0 : 1;
+      const dueB = b.due <= now ? 0 : 1;
+      if (dueA !== dueB) return dueA - dueB;
+      if (dueA === 0 && a.due !== b.due) return a.due - b.due;
+      return (a.streak || 0) - (b.streak || 0);
+    })
+    .map(([w]) => w);
+}
+
+// quiz de múltipla escolha: prompt no idioma da UI, 3 opções em en, 1 correta
+export function buildQuiz(words, word, language = 'pt') {
   const correct = words[word];
   if (!correct) return null;
-  const distractors = Object.entries(words)
-    .filter(([w]) => w !== word)
-    .map(([, w]) => w.pt)
-    .sort(() => Math.random() - 0.5)
-    .slice(0, 2);
+  const distractors = shuffle(
+    Object.entries(words).filter(([w]) => w !== word).map(([, w]) => w.pt),
+  ).filter((text) => text !== correct.pt).slice(0, 2);
+  const fallback = shuffle([...(FALLBACK_DISTRACTORS[language] || FALLBACK_DISTRACTORS.pt)]);
   while (distractors.length < 2) {
-    distractors.push(['a tall wall', 'a small door', 'an old map', 'a red hat'][Math.floor(Math.random() * 4)]);
+    const next = fallback.pop();
+    if (next !== correct.pt) distractors.push(next);
   }
-  const options = [correct.pt, ...distractors]
-    .map((text) => ({ text, correct: text === correct.pt }))
-    .sort(() => Math.random() - 0.5);
+  const options = shuffle(
+    [correct.pt, ...distractors].map((text) => ({ text, correct: text === correct.pt })),
+  );
   return { word, options };
 }
 

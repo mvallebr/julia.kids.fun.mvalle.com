@@ -16,9 +16,9 @@ longas, só uma cortina rápida.
 |---|---|
 | 🏫 **Welling School** | Sala, biblioteca com livros e pista, mural, Sr. Finch (zelador) e Sra. Page (bibliotecária), porta oeste para a sala de aula |
 | 🌳 **Oxleas Woods** | Riacho com pedras numeradas (puzzle de frações), árvores e arbustos, cogumelos, baú do tesouro diário, marco de pedra, portão para a High Street |
-| 🏪 **High Street** | Padaria do Sr. Crumb, bookshop, correio, tea room, postes, bancos — saída para a Academia |
-| 🏰 **Academia Owlburt** | Escola rival: duelo de feitiços melhor-de-3 contra a Prof. Raven |
-| 🪑 **Sala de Aula** | Prof. Willow e a lousa interativa: lição emoji → palavra em inglês |
+| 🏪 **High Street** | Padaria do Sr. Crumb, bookshop, correio e tea room interativos (glosas story/letter/tea), postes, bancos com página escondida — saída para a Academia |
+| 🏰 **Academia Owlburt** | Escola rival: duelo de feitiços melhor-de-3 contra a Prof. Raven, pergaminho escondido e medalhas 🥉🥈🥇 por vitórias |
+| 🪑 **Sala de Aula** | Prof. Willow e a lousa interativa: lição emoji → palavra em inglês, priorizando o que a criança ainda não sabe |
 
 ## O loop de aprendizado
 
@@ -28,8 +28,15 @@ longas, só uma cortina rápida.
    revisões vencidas — quiz "Como se diz X?" com 3 alternativas.
 3. **Repetição espaçada** (Leitner): acertou, o intervalo dobra (até 30
    dias); errou, volta em 10 minutos. Dominar = 3 acertos seguidos.
-4. **Use o que sabe**: o Duelo de Feitiços da Academia sortea 3 palavras
-   do SEU diário — quanto maior o vocabulário, mais forte o duelo.
+4. **Use o que sabe**: o Duelo de Feitiços da Academia sortea as 3 palavras
+   mais fracas do SEU diário — quanto maior o vocabulário, mais forte o duelo.
+5. **Escute primeiro**: a revisão da coruja é modo escuta — a palavra é falada
+   (speechSynthesis) e a criança escolhe o significado; o 🔊 repete a fala.
+6. **Meta pós-final**: medalhas da Academia (3/6/10 duelos → 🥉🥈🥇),
+   relatório dos pais com histórico de 7 dias e dias seguidos de estudo.
+
+As segundas quests ativas (encomenda da Sra. Page, duelo, baú do dia) aparecem
+no Diário da missão (chip 📜), embaixo do objetivo principal.
 
 ## Personagens
 
@@ -63,13 +70,14 @@ Props do Sketchfab sob CC-BY: ver `assets/CREDITS.md` e o botão ℹ️ no jogo.
   no círculo amarelo.
 - O movimento é relativo à câmera: "pra cima" sempre anda pra longe dela.
 - HUD: 🏠 menu · ℹ️ créditos · 🔄 reiniciar (à prova de abas duplicadas) ·
-  🦉 dica/revisão · 📖 diário de palavras · 📊 progresso · 🔊 som.
+  🦉 dica/revisão · 📖 diário de palavras · 📊 progresso · 🔊 som ·
+  🌐 idioma (pt/en/es, persiste por jogadora).
 
 ## Desenvolvimento
 
 ```bash
 npm run build   # bundle via esbuild (lib/bundle.js, commitado)
-npm test        # 16 testes (state + vocab)
+npm test        # 24 testes (state + vocab + quest)
 npm run dev     # esbuild --watch
 ```
 
@@ -78,7 +86,13 @@ npm run dev     # esbuild --watch
   state.js (save com gerações à prova de abas), audio.js (sfx ambiente
   100% sintetizados), i18n.js (pt/en/es).
 - **QA**: `?zone=woods|highstreet|academy|classroom` pula direto pra zona;
-  `window.__rpgWelling.setPos(x, z)` teleporta; `kids()` lista estados.
+  `window.__rpgWelling.setPos(x, z)` teleporta; `kids()` lista estados;
+  `debug()` mostra overlay/cooldown/saídas da zona atual.
+- **Spec**: os comentários `spec §N` vêm das notas de design da sessão de
+  planejamento — o documento não está no repositório (histórico, inofensivo).
+- **PWA**: `manifest.webmanifest` + `sw.js` na raiz — cache por runtime
+  (navegação network-first, estáticos cache-first), instalável na tela
+  inicial do tablet e partida offline após a primeira visita.
 - **Save**: `localStorage`, slot com geração (`v1.g<N>`) — o restart
   incrementa a geração, então abas velhas não ressuscitam save apagado.
 

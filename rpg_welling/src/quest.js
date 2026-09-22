@@ -57,3 +57,29 @@ export function hintKey(state) {
   if (objective.id === 'find') return 'hintFind';
   return 'hintNoPieces';
 }
+
+// Medalhas da Academia por duelos vencidos (pós-final: meta de longo prazo)
+export const MEDAL_TIERS = [3, 6, 10];
+export const MEDAL_EMOJI = [' ', '🥉', '🥈', '🥇'];
+
+export function medalTier(wins) {
+  let tier = 0;
+  for (const needed of MEDAL_TIERS) if (wins >= needed) tier += 1;
+  return tier;
+}
+// Segundas quests ativas — o chip 📜 continua mostrando só a principal,
+// o Diário (journal) lista estas embaixo. fatos derivados chegam prontos:
+//   wordCount → Object.keys(state.words).length
+//   today     → new Date().toISOString().slice(0, 10)
+export const ORDER_ITEMS = ['orderMint', 'orderBun', 'orderFeather'];
+
+export function secondaryObjectives(state, { wordCount = 0, today = '' } = {}) {
+  const flags = state.flags || {};
+  const list = [];
+  if (flags.orderStarted && !flags.orderDone) {
+    list.push({ id: 'order', key: 'objOrder', progress: ORDER_ITEMS.filter((f) => flags[f]).length, total: ORDER_ITEMS.length });
+  }
+  if (wordCount >= 3 && !flags.duelWon) list.push({ id: 'duel', key: 'objDuel' });
+  if (today && flags.chestDay !== today) list.push({ id: 'chest', key: 'objChest' });
+  return list;
+}

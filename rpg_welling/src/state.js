@@ -45,6 +45,9 @@ export function emptyState() {
     challenges: {}, // challengeId → true quando resolvido
     words: {}, // vocabulário aprendido (vocab.js, repetição espaçada)
     sound: true,
+    language: '', // idioma escolhido no HUD ('' = seguir o launcher/URL)
+    history: {}, // 'YYYY-MM-DD' → { added, right, wrong } — dias de estudo p/ relatório
+    duelWins: 0, // total de duelos vencidos (conta medalhas da Academia)
   };
 }
 
@@ -73,12 +76,64 @@ export function normalizeState(value = {}) {
     }
   }
   state.sound = source.sound !== false && source.sound !== 0;
+  state.language = ['pt', 'en', 'es'].includes(source.language) ? source.language : '';
+  state.duelWins = Number.isFinite(source.duelWins) ? Math.max(0, Math.min(999, Math.floor(source.duelWins))) : 0;
+  if (source.history && typeof source.history === 'object') {
+    const int0 = (n) => (Number.isFinite(n) ? Math.max(0, Math.min(1e6, Math.floor(n))) : 0);
+    for (const [day, entry] of Object.entries(source.history)) {
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || !entry || typeof entry !== 'object') continue;
+      state.history[day] = { added: int0(entry.added), right: int0(entry.right), wrong: int0(entry.wrong) };
+    }
+    // corta nos 60 dias mais recentes (ordem lexicográfica = cronológica)
+    const keys = Object.keys(state.history).sort().slice(-60);
+    state.history = Object.fromEntries(keys.map((k) => [k, state.history[k]]));
+  }
   state.words = normalizeWords(source.words);
   return state;
 }
 
 function profileKey(name) {
   return String(name || '').trim().toLowerCase().slice(0, 32);
+}
+
+// data local no padrão YYYY-MM-DD (toISOString é UTC e mudaria "hoje" perto da meia-noite)
+export function dayKey(d) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+// registra um evento do dia: 'added' (palavra nova), 'right' ou 'wrong'
+export function recordHistory(state, field, amount = 1) {
+  const day = dayKey(new Date());
+  const entry = state.history[day] || (state.history[day] = { added: 0, right: 0, wrong: 0 });
+  entry[field] = (entry[field] || 0) + amount;
+}
+
+// soma dos últimos `days` dias (inclusive hoje) → { added, right, wrong, active }
+export function historyWeek(history, now = new Date(), days = 7) {
+  const sum = { added: 0, right: 0, wrong: 0, active: 0 };
+  for (let i = 0; i < days; i += 1) {
+    const entry = history?.[dayKey(new Date(now.getFullYear(), now.getMonth(), now.getDate() - i))];
+    if (!entry) continue;
+    sum.added += entry.added || 0;
+    sum.right += entry.right || 0;
+    sum.wrong += entry.wrong || 0;
+    sum.active += 1;
+  }
+  return sum;
+}
+
+// dias consecutivos de estudo terminando hoje (ou ontem, se hoje ainda não jogou)
+export function studyStreak(history, now = new Date()) {
+  let streak = 0;
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  for (let i = 0; ; i += 1) {
+    const entry = history?.[dayKey(new Date(today.getFullYear(), today.getMonth(), today.getDate() - i))];
+    if (entry) { streak += 1; continue; }
+    if (i === 0) continue; // hoje ainda sem registro não quebra a sequência
+    break;
+  }
+  return streak;
 }
 
 export function loadState(storage, player) {

@@ -182,6 +182,21 @@ export const CONVERSATIONS = {
 
 // Cenografia: olhar objetos não conta ponto, mas alimenta o mundo.
 export const FLAVOR = {
+  bookshop: {
+    pt: 'A vitrine da bookshop empilha histórias em inglês — a de cima se chama "The Golden Tree". Alguém deixou um marcador brilhando…',
+    en: 'The bookshop window stacks English stories — the top one is called "The Golden Tree". Someone left a shiny bookmark…',
+    es: 'El escaparate de la librería apila cuentos en inglés — el de arriba se llama "The Golden Tree". Alguien dejó un marcapáginas brillando…',
+  },
+  postOffice: {
+    pt: 'Caixa de correio verde: uma carta sem endereço, só o desenho de uma árvore dourada. O carimbo diz "Candy Castle".',
+    en: 'A green post box: a letter with no address, just a drawing of a golden tree. The stamp says "Candy Castle".',
+    es: 'Un buzón verde: una carta sin dirección, solo el dibujo de un árbol dorada. El sello dice "Candy Castle".',
+  },
+  teaRoom: {
+    pt: 'O cheiro de chá e bolo sai da porta aberta. Na quadro: "Today\'s special — cinnamon tea with honey".',
+    en: 'The smell of tea and cake drifts through the open door. On the board: "Today\'s special — cinnamon tea with honey".',
+    es: 'El olor a té y pastel entra por la puerta abierta. En el cartel: "Today\'s special — cinnamon tea with honey".',
+  },
   board: {
     pt: 'Mural: "Clube de Xadrez quinta-feira" · "Fotos da excursão à padaria" · e um rabisco antigo de… uma árvore dourada?',
     en: 'Notice board: "Chess Club Thursday" · "Bakery trip photos" · and an old doodle of… a golden tree?',
@@ -201,6 +216,21 @@ export const FLAVOR = {
 
 // Páginas de história escondidas (spec §44: recompensas de descoberta).
 export const CLUES = {
+  benchPoster: {
+    pt: 'Cartaz rasgado preso no banco da rua: "…e o Castelo de Açúcar trocava estrelas por perguntas bem respondidas."',
+    en: 'A torn poster pinned to the street bench: "…and the Candy Castle traded stars for well-answered questions."',
+    es: 'Un cartel rasgado en el banco de la calle: "…y el Castillo de Azúcar cambiaba estrellas por preguntas bien respondidas."',
+  },
+  chalkNote: {
+    pt: 'Bilhete embaixo da janela da sala: "…a Prof. Willow guardava um giz que escrevia sozinho — sumiu na noite dourada."',
+    en: 'A note under the classroom window: "…Prof. Willow kept a chalk that wrote by itself — it vanished on golden night."',
+    es: 'Una nota bajo la ventana del salón: "…la Prof. Willow guardaba un giz que escribía solo — desapareció en la noche dorada."',
+  },
+  duelScroll: {
+    pt: 'Pergaminho caído no pátio da academia: "…o duelo só começa quando as duas corujas cantam juntas."',
+    en: 'A scroll dropped in the academy yard: "…the duel only begins when both owls sing together."',
+    es: 'Un pergamino en el patio de la academia: "…el duelo solo empieza cuando las dos búhos cantan juntas."',
+  },
   libraryTable: {
     pt: 'Página rasgada de um livro de histórias: "…e o Castelo de Açúcar dava frutas a quem provava legumes primeiro."',
     en: 'A torn page from a storybook: "…and the Candy Castle gave fruit to anyone who tasted vegetables first."',
@@ -224,6 +254,9 @@ export const PIECE_NAMES = {
 // Glosas ✨ mostradas como brindes de vocabulário (spec §9) — cada uma vira
 // carta no Diário de Palavras com revisão espaçada (src/vocab.js).
 export const GLOSSES = {
+  story: { pt: 'story = história, conto', en: 'story = a tale', es: 'story = cuento' },
+  letter: { pt: 'letter = carta', en: 'letter = a letter in the post', es: 'letter = carta' },
+  tea: { pt: 'tea = chá', en: 'tea = a warm drink', es: 'tea = té' },
   peculiar: {
     pt: 'peculiar = esquisito, diferente das outras',
     en: 'peculiar = strange, unusual',

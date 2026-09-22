@@ -8,6 +8,14 @@
   <link rel="canonical" href="https://julia.kids.fun.mvalle.com/rpg_welling/">
   <title>RPG Welling 🦉</title>
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🦉</text></svg>">
+  <meta name="theme-color" content="#131a38">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="RPG Welling">
+  <link rel="manifest" href="../manifest.webmanifest">
+  <link rel="apple-touch-icon" href="icon-192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
   <link rel="stylesheet" href="../julia_world/fonts/fonts.css">
   <style>
     * { box-sizing: border-box; }
@@ -25,6 +33,21 @@
       background: radial-gradient(ellipse at center, transparent 58%, rgba(8, 5, 20, .34) 100%);
     }
     .hidden { display: none !important; }
+
+    /* tela de carregamento dos modelos 3D (fica atrás do select de personagem) */
+    #boot {
+      position: fixed; inset: 0; z-index: 40; transition: opacity .4s;
+      display: flex; align-items: center; justify-content: center;
+      background: radial-gradient(1200px 800px at 70% -10%, rgba(122, 78, 207, .45), transparent 60%),
+        linear-gradient(165deg, #131a38 0%, #0e1230 60%, #191238 100%);
+    }
+    #boot.done { opacity: 0; pointer-events: none; }
+    .boot-card { display: grid; gap: 12px; justify-items: center; text-align: center; }
+    .boot-owl { font-size: 46px; animation: promptPulse 1.6s ease-in-out infinite; }
+    .boot-card p { margin: 0; font-size: 15px; color: #f3efff; }
+    .boot-bar { width: min(320px, 70vw); height: 12px; border-radius: 999px; background: rgba(255,255,255,.14); overflow: hidden; }
+    #bootFill { height: 100%; width: 0; border-radius: 999px; background: linear-gradient(90deg, #ffd166, #f0a63a); transition: width .2s; }
+    #bootPct { font-size: 13px !important; font-weight: 700; color: #ffd166 !important; }
 
     button { font-family: inherit; }
     .rpg-button {
@@ -62,7 +85,8 @@
     }
     #journal h3 { margin: 0 0 8px; font-size: 16px; color: #ffd166; }
     #journalObjective { margin: 0 0 10px; font-size: 13.5px; color: #e9e4ff; }
-    #journalPieces { margin: 0; padding: 0 0 0 4px; list-style: none; font-size: 13.5px; display: grid; gap: 5px; color: #fff; }
+    #journalPieces, #journalSecondary { margin: 0; padding: 0 0 0 4px; list-style: none; font-size: 13.5px; display: grid; gap: 5px; color: #fff; }
+    #journalSecondary { margin-top: 8px; color: #d9c9ff; }
     #journalClose {
       position: absolute; top: 8px; right: 8px; width: 26px; height: 26px;
       border: 0; border-radius: 50%; background: rgba(255,255,255,.14); color: #fff; cursor: pointer;
@@ -254,6 +278,15 @@
     #wordsList .word-ok { margin-left: auto; font-size: 11px; color: #7ec97e; }
     #wordsList .word-stars { font-size: 11px; color: #b8d8ff; }
     #quizPrompt { font-size: 16px; color: #fff; margin: 0 0 12px; text-align: center; }
+    .quiz-head { display: flex; align-items: center; justify-content: center; gap: 10px; }
+    .quiz-head #quizPrompt { margin-bottom: 0; }
+    .quiz-head + #quizOptions, .quiz-head ~ #quizOptions { margin-top: 12px; }
+    #quizVoice {
+      border: 0; border-radius: 50%; width: 38px; height: 38px; cursor: pointer; flex: none;
+      background: rgba(255,255,255,.14); color: #fff; font-size: 17px;
+      transition: transform .15s, background .2s;
+    }
+    #quizVoice:hover { transform: scale(1.08); background: rgba(255,255,255,.24); }
     #quizOptions { display: grid; gap: 8px; }
     #quizOptions button {
       padding: 11px 14px; border: 1px solid rgba(255,255,255,.2); border-radius: 10px;
@@ -265,9 +298,27 @@
     #quizOptions button.wrong { background: #7a3028; border-color: #e5533d; }
     #quizFeedback { text-align: center; font-size: 13.5px; color: #ffd166; min-height: 20px; margin: 10px 0 0; }
     .rpg-words-empty { text-align: center; color: rgba(255,255,255,.6); font-size: 13.5px; padding: 18px 0; }
+    /* Movimento reduzido — mesmo padrão dos outros jogos do site */
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: .01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: .01ms !important;
+        scroll-behavior: auto !important;
+      }
+      .rpg-confetti { display: none; }
+    }
   </style>
 </head>
 <body>
+  <div id="boot">
+    <div class="boot-card">
+      <div class="boot-owl">🦉</div>
+      <p data-i18n="loading">Carregando a aventura…</p>
+      <div class="boot-bar"><div id="bootFill"></div></div>
+      <p id="bootPct">0%</p>
+    </div>
+  </div>
   <div id="rpg" aria-label="RPG Welling">
     <div class="rpg-vignette"></div>
     <div class="rpg-hud">
@@ -278,6 +329,7 @@
         <button class="hud-chip" id="questChip" type="button">📜 …</button>
       </div>
       <div class="rpg-hud-group">
+        <button class="hud-chip" id="langButton" type="button" aria-label="Idioma">🌐</button>
         <button class="hud-chip icon" id="hintButton" type="button" aria-label="Dica da coruja">🦉<span id="reviewBadge" class="review-badge hidden">!</span></button>
         <button class="hud-chip icon" id="wordsButton" type="button" aria-label="Diário de palavras">📖</button>
         <button class="hud-chip icon" id="reportButton" type="button" aria-label="Progresso">📊</button>
@@ -287,9 +339,10 @@
 
     <div id="journal" class="hidden">
       <button id="journalClose" type="button" aria-label="Fechar">✕</button>
-      <h3>🗺️ O Mapa Antigo</h3>
+      <h3 data-i18n="journalTitle">🗺️ O Mapa Antigo</h3>
       <p id="journalObjective"></p>
       <ul id="journalPieces"></ul>
+      <ul id="journalSecondary"></ul>
     </div>
 
     <button id="prompt" class="hidden" type="button"></button>
@@ -311,19 +364,19 @@
 
   <div class="backdrop hidden" id="restartBackdrop">
     <aside class="rpg-panel" role="dialog" aria-modal="true">
-      <h2>🔄 Reiniciar o jogo?</h2>
-      <p>O progresso desta jogadora no RPG Welling será apagado e você volta para a escolha de personagem.</p>
+      <h2 data-i18n="restartTitle">🔄 Reiniciar o jogo?</h2>
+      <p data-i18n="restartBody">O progresso desta jogadora no RPG Welling será apagado e você volta para a escolha de personagem.</p>
       <div class="rpg-panel-buttons">
-        <button class="rpg-btn" id="restartCancel" type="button">Cancelar</button>
-        <button class="rpg-btn warn" id="restartConfirm" type="button">🔄 Reiniciar</button>
+        <button class="rpg-btn" id="restartCancel" type="button" data-i18n="restartCancel">Cancelar</button>
+        <button class="rpg-btn warn" id="restartConfirm" type="button" data-i18n="restartConfirm">🔄 Reiniciar</button>
       </div>
     </aside>
   </div>
   <div class="backdrop hidden" id="creditsBackdrop">
     <aside class="rpg-panel rpg-credits-panel" role="dialog" aria-modal="true">
       <button class="rpg-close" id="creditsClose" type="button" aria-label="Fechar">✕</button>
-      <h2>ℹ️ Créditos &amp; Atribuições</h2>
-      <p class="rpg-credits-intro">Os modelos 3D deste jogo foram criados pela comunidade do <a href="https://sketchfab.com" target="_blank" rel="noopener">Sketchfab</a> e estão sob licenças Creative Commons (atribuição ao autor). Obrigado a todos os artistas que compartilharam seu trabalho!</p>
+      <h2 data-i18n="creditsTitle">ℹ️ Créditos &amp; Atribuições</h2>
+      <p class="rpg-credits-intro" data-i18n="creditsIntro">Os modelos 3D deste jogo foram criados pela comunidade do <a href="https://sketchfab.com" target="_blank" rel="noopener">Sketchfab</a> e estão sob licenças Creative Commons (atribuição ao autor). Obrigado a todos os artistas que compartilharam seu trabalho!</p>
       <ul class="rpg-credits-list">
         <li><strong>Kids (Ivy &amp; Oakley)</strong> — <em>"Mini Chibi Kid"</em>, CC-BY, 18 animações rigadas.</li>
         <li><strong>Corujas (Pip &amp; Marlow)</strong> — base: <em>"Cute Ghost"</em>, CC-BY. Modificada: cor + 2 olhos.</li>
@@ -343,35 +396,42 @@
   <div class="backdrop hidden" id="wordsBackdrop">
     <aside class="rpg-panel rpg-credits-panel" role="dialog" aria-modal="true">
       <button class="rpg-close" id="wordsClose" type="button" aria-label="Fechar">✕</button>
-      <h2>📖 Meu Diário de Palavras</h2>
+      <h2 data-i18n="wordsTitle">📖 Meu Diário de Palavras</h2>
       <div id="wordsList"></div>
       <div class="rpg-panel-buttons">
-        <button class="rpg-btn" id="wordsClose2" type="button">Fechar</button>
+        <button class="rpg-btn" id="wordsClose2" type="button" data-i18n="close">Fechar</button>
       </div>
     </aside>
   </div>
   <div class="backdrop hidden" id="quizBackdrop">
     <aside class="rpg-panel rpg-credits-panel" role="dialog" aria-modal="true">
       <button class="rpg-close" id="quizClose" type="button" aria-label="Fechar">✕</button>
-      <h2>🦉 A coruja quer saber…</h2>
-      <p id="quizPrompt"></p>
+      <h2 data-i18n="quizTitle">🦉 A coruja quer saber…</h2>
+      <div class="quiz-head">
+        <p id="quizPrompt"></p>
+        <button id="quizVoice" type="button" aria-label="Ouvir em inglês">🔊</button>
+      </div>
       <div id="quizOptions"></div>
       <p id="quizFeedback"></p>
       <div class="rpg-panel-buttons">
-        <button class="rpg-btn" id="quizClose2" type="button">Depois</button>
+        <button class="rpg-btn" id="quizClose2" type="button" data-i18n="quizLater">Depois</button>
       </div>
     </aside>
   </div>
   <div class="backdrop hidden" id="reportBackdrop">
     <aside class="rpg-panel rpg-credits-panel" role="dialog" aria-modal="true">
       <button class="rpg-close" id="reportClose" type="button" aria-label="Fechar">✕</button>
-      <h2>📊 Progresso da aventura</h2>
+      <h2 data-i18n="reportTitle">📊 Progresso da aventura</h2>
       <div id="reportBody"></div>
       <div class="rpg-panel-buttons">
-        <button class="rpg-btn" id="reportClose2" type="button">Fechar</button>
+        <button class="rpg-btn" id="reportClose2" type="button" data-i18n="close">Fechar</button>
       </div>
     </aside>
   </div>
-  <script src="lib/bundle.js?v=20260922d"></script>
+  <script>
+    // offline + "adicionar à tela inicial": cache por runtime, sem pre-cache
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(() => {});
+  </script>
+  <script src="lib/bundle.js?v=20260922e"></script>
 </body>
 </html>

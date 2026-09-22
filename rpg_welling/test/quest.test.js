@@ -1,7 +1,7 @@
 // RPG Welling — testes da lógica de missões (spec §6/§39: aprendizado no mundo).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { currentObjective, canAssembleMap, pieceCount, checkStone, STONE_ANSWER, hintKey, FRACTION_ANSWER, VOCAB_ANSWER, COMP_ANSWER } from '../src/quest.js';
+import { currentObjective, canAssembleMap, pieceCount, checkStone, STONE_ANSWER, hintKey, secondaryObjectives, medalTier, MEDAL_EMOJI, FRACTION_ANSWER, VOCAB_ANSWER, COMP_ANSWER } from '../src/quest.js';
 import { emptyState, MAP_PIECES } from '../src/state.js';
 
 function stateWith(changes) {
@@ -59,4 +59,59 @@ test('respostas dos desafios embutidos (fração, vocabulário, compreensão)', 
   assert.equal(FRACTION_ANSWER, 'quarter');
   assert.equal(VOCAB_ANSWER, 'strange');
   assert.equal(COMP_ANSWER, 'courtyard');
+});
+
+test('segundas quests: encomenda progride, duelo exige 3 palavras, baú é diário', () => {
+  const today = '2026-09-22';
+  // sem `today` o baú não é cobrado → lista vazia de verdade
+  assert.deepEqual(secondaryObjectives(stateWith({}), { wordCount: 0 }), []);
+
+  // encomenda em andamento com 1 de 3 itens (today='' isola o baú)
+  const order = secondaryObjectives(
+    stateWith({ flags: { orderStarted: true, orderMint: true } }),
+    { wordCount: 0, today: '' },
+  );
+  assert.equal(order.length, 1);
+  assert.equal(order[0].id, 'order');
+  assert.equal(order[0].progress, 1);
+  assert.equal(order[0].total, 3);
+
+  // encomenda entregue some da lista
+  const doneOrder = secondaryObjectives(
+    stateWith({ flags: { orderStarted: true, orderDone: true } }),
+    { wordCount: 0, today: '' },
+  );
+  assert.ok(!doneOrder.some((o) => o.id === 'order'));
+
+  // duelo só aparece com vocabulário e some depois de vencer (today='' isola o baú)
+  assert.deepEqual(secondaryObjectives(stateWith({}), { wordCount: 2, today: '' }).map((o) => o.id), []);
+  assert.deepEqual(secondaryObjectives(stateWith({}), { wordCount: 3, today: '' }).map((o) => o.id), ['duel']);
+  assert.deepEqual(
+    secondaryObjectives(stateWith({ flags: { duelWon: true } }), { wordCount: 5, today: '' }).map((o) => o.id),
+    [],
+  );
+
+  // baú diário: some quando já aberto hoje
+  assert.deepEqual(secondaryObjectives(stateWith({}), { wordCount: 0, today }).map((o) => o.id), ['chest']);
+  assert.deepEqual(
+    secondaryObjectives(stateWith({ flags: { chestDay: today } }), { wordCount: 0, today }).map((o) => o.id),
+    [],
+  );
+  // sem `today` (caller não passou) o baú não é cobrado
+  assert.deepEqual(secondaryObjectives(stateWith({}), { wordCount: 0 }).map((o) => o.id), []);
+});
+
+test('medalhas da Academia: 3 → 🥉, 6 → 🥈, 10 → 🥇', () => {
+  assert.equal(medalTier(0), 0);
+  assert.equal(medalTier(2), 0);
+  assert.equal(medalTier(3), 1);
+  assert.equal(medalTier(5), 1);
+  assert.equal(medalTier(6), 2);
+  assert.equal(medalTier(9), 2);
+  assert.equal(medalTier(10), 3);
+  assert.equal(medalTier(100), 3);
+  assert.equal(MEDAL_EMOJI[medalTier(0)], ' ');
+  assert.equal(MEDAL_EMOJI[medalTier(3)], '🥉');
+  assert.equal(MEDAL_EMOJI[medalTier(6)], '🥈');
+  assert.equal(MEDAL_EMOJI[medalTier(10)], '🥇');
 });

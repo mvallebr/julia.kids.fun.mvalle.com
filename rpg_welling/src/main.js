@@ -9,21 +9,23 @@ import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { uiText, lang } from './i18n.js';
 import { ensureAudio, setMuted, setZoneAmbience, footstep, sounds } from './audio.js';
-import { loadState, saveState, bumpGeneration, CHARACTERS, MAP_PIECES } from './state.js';
-import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount } from './quest.js';
-import { buildSchool, buildWoods, buildHighStreet, buildAcademy, buildClassroom, makeKid, makeOwl, makeAdult, blobShadow, preloadModels } from './world.js';
+import { loadState, saveState, bumpGeneration, recordHistory, historyWeek, studyStreak, dayKey, CHARACTERS, MAP_PIECES } from './state.js';
+import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount, medalTier, MEDAL_EMOJI, secondaryObjectives } from './quest.js';
+import { buildSchool, buildWoods, buildHighStreet, buildAcademy, buildClassroom, makeKid, makeOwl, makeAdult, blobShadow, preloadModels, onModelProgress } from './world.js';
 import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES } from './content.js';
-import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz } from './vocab.js';
+import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz, practiceOrder } from './vocab.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
 
 // ── parâmetros da lançadora ───────────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
 const player = (params.get('name') || 'Exploradora').trim().slice(0, 32);
-const language = ['pt', 'en', 'es'].includes(params.get('language')) ? params.get('language') : 'pt';
 // QA: ?zone=woods pula direto para a mata sem poluir o save real
 const warp = ['woods', 'school', 'highstreet', 'academy', 'classroom'].includes(params.get('zone')) ? params.get('zone') : null;
 
 let state = loadState(localStorage, player);
+// idioma: escolha no HUD (persistida por jogadora) > param do launcher > pt
+const paramLanguage = ['pt', 'en', 'es'].includes(params.get('language')) ? params.get('language') : null;
+const language = ['pt', 'en', 'es'].includes(state.language) ? state.language : (paramLanguage || 'pt');
 if (warp) {
   state = { ...state, character: state.character || 'ivy', zone: warp, flags: { ...state.flags, introSeen: true, mapAssembled: true } };
 }
@@ -51,6 +53,12 @@ const PROMPTS = {
   orderMint: { pt: '🌿 Colher menta fresca', en: '🌿 Pick fresh mint', es: '🌿 Recoger menta fresca' },
   orderBun: { pt: '🥐 Pegar o pão de canela', en: '🥐 Get the cinnamon bun', es: '🥐 Tomar el pan de canela' },
   orderFeather: { pt: '🪶 Pegar a pena azul', en: '🪶 Get the blue feather', es: '🪶 Tomar la pluma azul' },
+  bookshop: { pt: '📚 Olhar a vitrine da bookshop', en: '📚 Look at the bookshop window', es: '📚 Mirar el escaparate' },
+  postOffice: { pt: '✉️ Ver o correio', en: '✉️ Check the post box', es: '✉️ Mirar el buzón' },
+  teaRoom: { pt: '🍵 Ouvir o tea room', en: '🍵 Listen at the tea room', es: '🍵 Escuchar la sala de té' },
+  clueBench: { pt: '🔍 Olhar o cartaz no banco', en: '🔍 Look at the poster on the bench', es: '🔍 Mirar el cartel del banco' },
+  clueChalk: { pt: '🔍 Olhar a janela', en: '🔍 Look at the window', es: '🔍 Mirar la ventana' },
+  clueScroll: { pt: '🔍 Ler o pergaminho', en: '🔍 Read the scroll', es: '🔍 Leer el pergamino' },
   baker: { pt: '🗣️ Falar com o padeiro', en: '🗣️ Talk to the baker', es: '🗣️ Hablar con el panadero' },
 };
 
@@ -78,7 +86,9 @@ let overlayCount = 0; // >0 = menus/diálogos abertos, movimento travado
 let ended = false;
 let restarting = false; // confirmRestart: bloqueia autosave/beforeunload até o reload
 let stepTimer = 0; // cadência dos passos sincronizada com o walk cycle
-let exitCooldown = 0; // anti-retrigger das saídas de zona logo após a transição
+let exitAllowedAt = 0; // instante (performance.now) em que as saídas voltam a valer — relógio
+// real de verdade: com dt clampado a 0.05, tablet/fps baixo esticava cooldown de 2.5s
+// para vários segundos reais (reproduzido a 5fps no headless: 17s)
 let exitHintAt = 0; // anti-spam do aviso de saída bloqueada (independe do teleport)
 window.__BUNDLE_V = 'n'; // marcador de versão pra debug de cache
 
@@ -437,11 +447,20 @@ function sayLine(who, text) {
   });
 }
 
+// rastreio pro relatório dos pais: palavra nova, acerto e erro do dia
+function registerWordTracked(word, gloss) {
+  const isNew = !state.words[word];
+  registerWord(state.words, word, gloss);
+  if (isNew && state.words[word]) recordHistory(state, 'added');
+}
+function markRight(word) { answerCorrect(state.words, word); recordHistory(state, 'right'); }
+function markWrong(word) { answerWrong(state.words, word); recordHistory(state, 'wrong'); }
+
 function showGloss(word) {
   const gloss = GLOSSES[word];
   if (gloss) {
     toast(root, `✨ ${lang(gloss, language)}`, { duration: 3400 });
-    registerWord(state.words, word, gloss);
+    registerWordTracked(word, gloss);
     saveState(localStorage, player, state);
     updateReviewBadge();
   }
@@ -461,16 +480,15 @@ function renderWordsList() {
   if (!list) return;
   const entries = Object.entries(state.words).sort((a, b) => a[0].localeCompare(b[0]));
   if (entries.length === 0) {
-    list.innerHTML = '<p class="rpg-words-empty">Nenhuma palavra ainda — converse com o Sr. Finch e a Sra. Page! ✨</p>';
+    list.innerHTML = `<p class="rpg-words-empty">${uiText(language, 'wordsEmpty')}</p>`;
     return;
   }
   const now = Date.now();
+  const due = w => w.due <= now
+    ? `<span class="word-due">${uiText(language, 'wordsReviewMark')}</span>`
+    : '<span class="word-ok">✓</span>';
   list.innerHTML = entries.map(([word, w]) => {
-    const due = w.due <= now
-      ? '<span class="word-due">📌 revisar</span>'
-      : '<span class="word-ok">✓</span>';
-    const stars = '⭐'.repeat(Math.min(w.streak || 0, 5));
-    return `<div class="word-row"><span class="word-en">${word}</span><span>${w.pt}</span><span class="word-stars">${stars}</span>${due}</div>`;
+    return `<div class="word-row"><span class="word-en">${word}</span><span>${w.pt}</span><span class="word-stars">${'⭐'.repeat(Math.min(w.streak || 0, 5))}</span>${due(w)}</div>`;
   }).join('');
 }
 
@@ -480,6 +498,7 @@ function renderWordsList() {
 // isso, fechar no meio da lousa/duelo travava o movimento pra sempre.
 let quizSession = null;
 let quizSessionCounter = 0;
+let quizWord = ''; // palavra atual do quiz aberto — o 🔊 repete a fala (modo escuta)
 function beginQuizSession(kind) {
   if (quizSession) return null;
   quizSession = { token: ++quizSessionCounter, kind };
@@ -508,7 +527,9 @@ function openQuiz() {
   if (due.length === 0 || quizSession) return;
   const token = beginQuizSession('review');
   if (token === null) return;
-  const queue = due.map(([w]) => w);
+  // prática na ordem das fracas: vencidas mais atrasadas primeiro, depois streak baixo
+  const dueSet = new Set(dueWords(state.words).map(([w]) => w));
+  const queue = practiceOrder(state.words).filter((w) => dueSet.has(w));
 
   const nextQuestion = () => {
     if (liveToken(token) === null) return; // sessão cancelada
@@ -517,9 +538,12 @@ function openQuiz() {
       updateReviewBadge();
       return;
     }
-    const quiz = buildQuiz(state.words, queue.shift());
+    const quiz = buildQuiz(state.words, queue.shift(), language);
     if (!quiz) return nextQuestion();
-    $('quizPrompt').textContent = `Como se diz “${quiz.word}”?`;
+    // modo escuta: o prompt esconde a palavra e a coruja fala — traduzir pelo ouvido
+    quizWord = quiz.word;
+    $('quizPrompt').textContent = uiText(language, 'quizListen');
+    speakEnglish(quiz.word);
     const optionsEl = $('quizOptions');
     optionsEl.innerHTML = '';
     $('quizFeedback').textContent = '';
@@ -530,14 +554,14 @@ function openQuiz() {
       btn.addEventListener('click', () => {
         if (liveToken(token) === null) return;
         if (option.correct) {
-          answerCorrect(state.words, quiz.word);
+          markRight(quiz.word);
           btn.classList.add('correct');
-          $('quizFeedback').textContent = '🎉 Isso! A coruja fica orgulhosa.';
+          $('quizFeedback').textContent = uiText(language, 'reviewRight');
           sounds.star();
         } else {
-          answerWrong(state.words, quiz.word);
+          markWrong(quiz.word);
           btn.classList.add('wrong');
-          $('quizFeedback').textContent = `🐣 Quase! A resposta era “${quiz.word}”.`;
+          $('quizFeedback').textContent = uiText(language, 'reviewWrong', { word: quiz.word });
           sounds.wrong();
         }
         saveState(localStorage, player, state);
@@ -612,6 +636,8 @@ function updateHUD() {
   const objective = currentObjective(state);
   $('questChip').textContent = `📜 ${uiText(language, OBJECTIVE_KEYS[objective.id], { count: objective.progress ?? 0 })}`;
   $('soundButton').textContent = state.sound ? '🔊' : '🔇';
+  const langButton = $('langButton');
+  if (langButton) langButton.textContent = `🌐 ${language.toUpperCase()}`;
 }
 
 function toggleJournal() {
@@ -622,6 +648,16 @@ function toggleJournal() {
     for (const piece of MAP_PIECES) {
       const owned = state.mapPieces.includes(piece);
       list.appendChild(el('li', undefined, `${owned ? '✅' : '⬜'} ${lang(PIECE_NAMES[piece], language)}`));
+    }
+    // segundas quests ativas (encomenda / duelo / baú de hoje)
+    const seconds = secondaryObjectives(state, {
+      wordCount: Object.keys(state.words).length,
+      today: dayKey(new Date()),
+    });
+    const secList = $('journalSecondary');
+    secList.replaceChildren();
+    for (const sec of seconds) {
+      secList.appendChild(el('li', undefined, `▫️ ${uiText(language, sec.key, { n: sec.progress, total: sec.total })}`));
     }
     $('journalObjective').textContent = $('questChip').textContent;
     panel.classList.remove('hidden');
@@ -692,18 +728,26 @@ function openReport() {
   const due = dueWords(state.words).length;
   const ALL_ZONES = ['school', 'woods', 'highstreet', 'academy', 'classroom'];
   const visited = ALL_ZONES.filter((z) => z === 'school' || state.flags[`visited_${z}`]).length;
+  const week = historyWeek(state.history);
+  const streak = studyStreak(state.history);
+  const t = (key, vars) => uiText(language, key, vars);
+  const value = (val) => `<span style="margin-left:auto;font-weight:700;color:#ffd166">${val}</span>`;
+  const row = (label, val) => `<div class="word-row"><span>${label}</span>${val === undefined ? '' : value(val)}</div>`;
   const rows = [
-    ['📖 Palavras conhecidas', String(total)],
-    ['🏆 Palavras dominadas (3+ acertos)', String(mastered)],
-    ['📌 Revisões para hoje', String(due)],
-    ['🗺️ Partes do mapa', `${pieceCount(state)} de 4`],
-    ['🧩 Desafios resolvidos', String(Object.values(state.challenges).filter(Boolean).length)],
-    ['⚔️ Duelo vencido', state.flags.duelWon ? 'Sim 🏅' : 'Ainda não'],
-    ['🌍 Zonas descobertas', `${visited} de ${ALL_ZONES.length}`],
+    row(t('repWords'), String(total)),
+    row(t('repMastered'), String(mastered)),
+    row(t('repDue'), String(due)),
+    row(t('repClues', { n: state.clues.length, total: Object.keys(CLUES).length })),
+    row(t('repPieces', { n: pieceCount(state) })),
+    row(t('repChallenges'), String(Object.values(state.challenges).filter(Boolean).length)),
+    row(t('repDuelWins', { n: state.duelWins, medal: MEDAL_EMOJI[medalTier(state.duelWins)] })),
+    row(t('repChapter'), state.flags.endingSeen ? t('repYes') : t('repNo')),
+    row(t('repZones', { n: visited, total: ALL_ZONES.length })),
+    row(t('repWeek', { added: week.added, right: week.right, answers: week.right + week.wrong })),
+    row(t('repStreak', { n: streak })),
   ];
-  $('reportBody').innerHTML = rows.map(([label, val]) =>
-    `<div class="word-row"><span>${label}</span><span style="margin-left:auto;font-weight:700;color:#ffd166">${val}</span></div>`
-  ).join('') + '<p style="font-size:11.5px;color:rgba(255,255,255,.55);margin:10px 0 0">Dominar uma palavra = acertar a revisão da coruja 3 vezes seguidas.</p>';
+  $('reportBody').innerHTML = rows.join('')
+    + `<p style="font-size:11.5px;color:rgba(255,255,255,.55);margin:10px 0 0">${t('repMasterHint')}</p>`;
   $('reportBackdrop').classList.remove('hidden');
 }
 function closeReport() {
@@ -719,8 +763,9 @@ function closeQuiz() {
 // ── Duelo de Feitiços vs Prof. Raven (melhor de 3, usando o diário) ────────────
 function runDuel() {
   if (quizSession) return;
-  const learned = Object.keys(state.words);
-  const picked = [...learned].sort(() => Math.random() - 0.5).slice(0, 3);
+  // duelo sortea as 3 mais fracas do diário (vencidas/streak baixo primeiro)
+  const learned = practiceOrder(state.words);
+  const picked = learned.slice(0, 3);
   const token = beginQuizSession('duel');
   if (token === null) return;
   let score = 0;
@@ -729,13 +774,15 @@ function runDuel() {
   const nextRound = () => {
     if (liveToken(token) === null) return;
     if (idx >= picked.length) return endDuel();
-    const quiz = buildQuiz(state.words, picked[idx]);
+    const quiz = buildQuiz(state.words, picked[idx], language);
     if (!quiz) return endDuel();
     idx += 1;
     $('quizPrompt').textContent = `⚡ ${quiz.word}?`;
+    quizWord = quiz.word;
+    speakEnglish(quiz.word);
     const optionsEl = $('quizOptions');
     optionsEl.innerHTML = '';
-    $('quizFeedback').textContent = `Pergunta ${idx} de ${picked.length} · placar ${score}`;
+    $('quizFeedback').textContent = uiText(language, 'duelRound', { n: idx, m: picked.length, score });
     for (const option of quiz.options) {
       const btn = document.createElement('button');
       btn.type = 'button';
@@ -743,15 +790,15 @@ function runDuel() {
       btn.addEventListener('click', () => {
         if (liveToken(token) === null) return;
         if (option.correct) {
-          answerCorrect(state.words, quiz.word);
+          markRight(quiz.word);
           score += 1;
           btn.classList.add('correct');
-          $('quizFeedback').textContent = '✨ Acertou! Feitiço lançado!';
+          $('quizFeedback').textContent = uiText(language, 'duelRight');
           sounds.magic();
         } else {
-          answerWrong(state.words, quiz.word);
+          markWrong(quiz.word);
           btn.classList.add('wrong');
-          $('quizFeedback').textContent = `💥 Errou! Era “${quiz.word}”.`;
+          $('quizFeedback').textContent = uiText(language, 'duelWrong', { word: quiz.word });
           sounds.wrong();
         }
         saveState(localStorage, player, state);
@@ -768,11 +815,17 @@ function runDuel() {
     const won = score >= 2;
     const finish = () => {
       if (won) {
+        const before = medalTier(state.duelWins);
         state.flags.duelWon = true;
+        state.duelWins += 1;
         saveState(localStorage, player, state);
         updateHUD();
         sounds.fanfare();
         confetti(root, 140);
+        const tier = medalTier(state.duelWins);
+        if (tier > before) {
+          toast(root, uiText(language, 'medalEarned', { medal: MEDAL_EMOJI[tier] }), { duration: 4600 });
+        }
       }
     };
     if (won) {
@@ -807,6 +860,17 @@ $('soundButton').addEventListener('click', () => {
   saveState(localStorage, player, state);
   updateHUD();
   sounds.tap();
+});
+// 🔊 do quiz repete a palavra falada (funciona em qualquer uma das 3 sessões)
+$('quizVoice').addEventListener('click', () => {
+  if (quizWord && !($('quizBackdrop').classList.contains('hidden'))) speakEnglish(quizWord);
+});
+// 🌐 cicla pt → en → es e recarrega: o boot inteiro se renderiza no idioma novo
+$('langButton').addEventListener('click', () => {
+  const cycle = { pt: 'en', en: 'es', es: 'pt' };
+  state.language = cycle[language] || 'en';
+  saveState(localStorage, player, state);
+  location.reload();
 });
 $('hintButton').addEventListener('click', () => {
   sounds.hoot();
@@ -964,7 +1028,11 @@ async function interact(id) {
     ];
     const token = beginQuizSession('lesson');
     if (token === null) return;
-    const lessons = [...LESSON].sort(() => Math.random() - 0.5).slice(0, 3);
+    // prioriza o que ainda não viu e o que tem streak baixo — aula ataca o fraco
+    const ranked = LESSON
+      .map((l, i) => ({ l, i, streak: state.words[l.en]?.streak ?? -1 }))
+      .sort((a, b) => a.streak - b.streak || a.i - b.i);
+    const lessons = ranked.slice(0, 3).map((r) => r.l);
     let round = 0;
     const nextLesson = () => {
       if (liveToken(token) === null) return;
@@ -980,7 +1048,9 @@ async function interact(id) {
       const wrongs = LESSON.filter((l) => l.en !== lesson.en).sort(() => Math.random() - 0.5).slice(0, 2).map((l) => l.en);
       const options = [lesson.en, ...wrongs].sort(() => Math.random() - 0.5);
       $('quizPrompt').textContent = `${lesson.emoji} = ?`;
-      $('quizFeedback').textContent = `Palavra ${round} de ${lessons.length}`;
+      quizWord = lesson.en;
+      speakEnglish(lesson.en);
+      $('quizFeedback').textContent = uiText(language, 'lessonProgress', { n: round, m: lessons.length });
       const optionsEl = $('quizOptions');
       optionsEl.innerHTML = '';
       for (const opt of options) {
@@ -989,14 +1059,14 @@ async function interact(id) {
         btn.textContent = opt;
         btn.addEventListener('click', () => {
           if (liveToken(token) === null) return;
-          if (!state.words[lesson.en]) registerWord(state.words, lesson.en, { pt: `${lesson.en} = ${lesson.pt}`, en: lesson.en, es: lesson.en });
+          if (!state.words[lesson.en]) registerWordTracked(lesson.en, { pt: `${lesson.en} = ${lesson.pt}`, en: lesson.en, es: lesson.en });
           if (opt === lesson.en) {
-            answerCorrect(state.words, lesson.en);
+            markRight(lesson.en);
             btn.classList.add('correct');
             $('quizFeedback').textContent = `✨ ${lesson.en} = ${lesson.pt}!`;
             sounds.star();
           } else {
-            answerWrong(state.words, lesson.en);
+            markWrong(lesson.en);
             btn.classList.add('wrong');
             $('quizFeedback').textContent = `🐣 ${lesson.emoji} = ${lesson.en}`;
             sounds.wrong();
@@ -1024,9 +1094,9 @@ async function interact(id) {
     state.flags.chestOpened = true;
     state.flags.chestDay = today;
     // recompensa diária: 3 palavras bônus entram no diário
-    registerWord(state.words, 'treasure', GLOSSES.treasure);
-    registerWord(state.words, 'sparkle', GLOSSES.sparkle);
-    registerWord(state.words, 'secret', GLOSSES.secret);
+    registerWordTracked('treasure', GLOSSES.treasure);
+    registerWordTracked('sparkle', GLOSSES.sparkle);
+    registerWordTracked('secret', GLOSSES.secret);
     saveState(localStorage, player, state);
     updateReviewBadge();
     sounds.magic();
@@ -1059,6 +1129,14 @@ async function interact(id) {
   if (id === 'pieceTrolley') return void collectPiece('trolley');
   if (id === 'clueTable') { addClue('libraryTable'); return void runConversation([{ who: 'owl', text: FLAVOR.clueTable }, { gloss: 'curious' }]); }
   if (id === 'clueOak') { addClue('oak'); return void runConversation([{ who: 'owl', text: FLAVOR.clueOak }, { gloss: 'roots' }]); }
+  // páginas escondidas novas (addClue já mostra CLUES[id])
+  if (id === 'clueBench') return void addClue('benchPoster');
+  if (id === 'clueChalk') return void addClue('chalkNote');
+  if (id === 'clueScroll') return void addClue('duelScroll');
+  // lojas da High Street: cenatura + glosa (story / letter / tea)
+  if (id === 'bookshop') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.bookshop }, { gloss: 'story' }]); }
+  if (id === 'postOffice') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.postOffice }, { gloss: 'letter' }]); }
+  if (id === 'teaRoom') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.teaRoom }, { gloss: 'tea' }]); }
   // ── quest multi-zona: A Encomenda da Sra. Page ────────────────────────────
   if (id === 'orderStart') {
     if (state.flags.orderDone) return void runConversation([{ who: 'page', text: FLAVOR.orderDone }]);
@@ -1307,9 +1385,9 @@ function animate() {
     if (zone?.name === 'woods' && state.flags.gateOpen && !state.flags.endingSeen && playerObj.position.z < -16.0) {
       showEnding(); // overlayCount vira >0 → saídas abaixo ficam de fora neste frame
     }
-    // mundo semi-aberto: saídas de zona são pisáveis, com cooldown na chegada
-    exitCooldown = Math.max(0, exitCooldown - dt);
-    if (overlayCount === 0 && exitCooldown <= 0) {
+    // mundo semi-aberto: saídas de zona são pisáveis; logo após uma transição
+    // ficam mudas por 2.5s (tempo real, não medição por dt)
+    if (overlayCount === 0 && performance.now() >= exitAllowedAt) {
       for (const exit of zone.exits || []) {
         const dist = Math.hypot(exit.x - playerObj.position.x, exit.z - playerObj.position.z);
         if (dist > exit.radius) continue;
@@ -1326,7 +1404,7 @@ function animate() {
           }
           continue;
         }
-        exitCooldown = 2.5;
+        exitAllowedAt = performance.now() + 2500;
         void gotoZone(exit.target, exit.spawn);
         break;
       }
@@ -1354,6 +1432,31 @@ function animate() {
 }
 
 // ── boot ─────────────────────────────────────────────────────────────────────
+// aplica i18n nos textos estáticos do HTML (marcados com data-i18n);
+// innerHTML porque creditsIntro embute o link do Sketchfab
+function applyStaticI18n() {
+  for (const node of document.querySelectorAll('[data-i18n]')) {
+    node.innerHTML = uiText(language, node.dataset.i18n);
+  }
+}
+
+// barra da tela de carregamento (0–100% dos GLB)
+function setBootProgress(ratio) {
+  const pct = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+  const fill = $('bootFill');
+  const label = $('bootPct');
+  if (fill) fill.style.width = `${pct}%`;
+  if (label) label.textContent = `${pct}%`;
+}
+onModelProgress(setBootProgress);
+
+function hideBootScreen() {
+  const boot = $('boot');
+  if (!boot) return;
+  boot.classList.add('done');
+  setTimeout(() => boot.remove(), 600);
+}
+
 async function boot() {
   try {
     initThree();
@@ -1363,22 +1466,26 @@ async function boot() {
     return;
   }
   setMuted(!state.sound);
+  applyStaticI18n();
   ensureAudio();
   window.addEventListener('pointerdown', () => ensureAudio(), { once: true });
   updateHUD();
 
+  // GLBs baixam EM PARALELO com a escolha de personagem (33MB); a tela de
+  // carregamento fica em z-40, atrás do select (z-60), e some quando acaba
+  const preload = preloadModels();
   if (!state.character) state.character = await chooseCharacter();
   saveState(localStorage, player, state);
 
-  // pre-carrega os modelos 3D externos (GLBs do Sketchfab CC-BY) antes de montar a cena
   try {
-    await preloadModels();
+    await preload;
   } catch (error) {
     console.warn('Falha ao carregar modelos 3D externos; usando fallback procedural.', error);
     if (location.protocol === 'file:') {
-      toast('⚠️ Abra pelo jogar.sh — o navegador bloqueia os modelos 3D no modo arquivo.', 6000);
+      toast(root, '⚠️ Abra pelo jogar.sh — o navegador bloqueia os modelos 3D no modo arquivo.', 6000);
     }
   }
+  hideBootScreen();
 
   buildScene(state.zone);
   animate();
@@ -1421,7 +1528,7 @@ window.__rpgWelling = {
   debug: () => ({
     zone: zone?.name,
     overlay: overlayCount,
-    cooldown: exitCooldown,
+    cooldown: Math.max(0, (exitAllowedAt - performance.now()) / 1000),
     gateOpen: Boolean(state.flags.gateOpen),
     exits: zone?.exits,
   }),

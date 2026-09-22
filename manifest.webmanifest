@@ -1,0 +1,17 @@
+{
+  "name": "RPG Welling 🦉",
+  "short_name": "RPG Welling",
+  "description": "Aventura 3D de aprendizado de inglês: escola, bosques de Oxleas e magia — aprenda explorando.",
+  "lang": "pt-BR",
+  "start_url": "./rpg_welling/",
+  "scope": "./rpg_welling/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#131a38",
+  "theme_color": "#131a38",
+  "icons": [
+    { "src": "./rpg_welling/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./rpg_welling/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./rpg_welling/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

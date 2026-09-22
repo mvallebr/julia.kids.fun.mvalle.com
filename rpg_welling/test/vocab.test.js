@@ -8,6 +8,7 @@ import {
   answerWrong,
   buildQuiz,
   normalizeWords,
+  practiceOrder,
 } from '../src/vocab.js';
 
 const DAY = 24 * 60 * 60 * 1000;
@@ -83,4 +84,43 @@ test('normalizeWords descarta entradas malformadas', () => {
   });
   assert.deepEqual(Object.keys(out), ['boa']);
   assert.equal(out.boa.streak, 2);
+});
+
+test('buildQuiz com pool <3 usa distratores no idioma pedido (não inglês fixo)', () => {
+  const words = { owl: { pt: 'owl = coruja', streak: 0, due: 0 } };
+  const pt = buildQuiz(words, 'owl', 'pt');
+  assert.equal(pt.options.length, 3);
+  assert.equal(pt.options.filter((o) => o.correct).length, 1);
+  const wrong = pt.options.filter((o) => !o.correct).map((o) => o.text);
+  for (const text of wrong) assert.ok(/[a-záéíóúãõç]/i.test(text) && text !== 'owl = coruja');
+  assert.ok(wrong.every((t) => t.includes(' '))); // opções falsas em pt, não "a tall wall"
+  const es = buildQuiz(words, 'owl', 'es');
+  const esWrong = es.options.filter((o) => !o.correct);
+  assert.equal(esWrong.length, 2);
+  assert.ok(esWrong.every((o) => o.text.includes(' ')) && !esWrong.some((o) => o.text.includes(' = ')));
+});
+
+test('buildQuiz nunca repete opções nem oferece o texto correto como errada', () => {
+  const words = {
+    owl: { pt: 'owl = coruja', streak: 0, due: 0 },
+    bat: { pt: 'bat = morcego', streak: 0, due: 0 },
+    cat: { pt: 'cat = gato', streak: 0, due: 0 },
+  };
+  for (let i = 0; i < 20; i += 1) {
+    const quiz = buildQuiz(words, 'owl');
+    const texts = quiz.options.map((o) => o.text);
+    assert.equal(new Set(texts).size, 3, `opções repetidas: ${texts}`);
+    assert.equal(quiz.options.filter((o) => o.correct).length, 1);
+  }
+});
+
+test('practiceOrder prioriza vencidas e depois o streak mais baixo', () => {
+  const now = 1_000_000;
+  const words = {
+    futuraForte: { pt: 'a', streak: 5, due: now + 10_000 },
+    vencidaNova: { pt: 'b', streak: 4, due: now - 100 },
+    vencidaVelha: { pt: 'c', streak: 9, due: now - 5_000 },
+    futuraFraca: { pt: 'd', streak: 0, due: now + 9_000 },
+  };
+  assert.deepEqual(practiceOrder(words, now), ['vencidaVelha', 'vencidaNova', 'futuraFraca', 'futuraForte']);
 });
