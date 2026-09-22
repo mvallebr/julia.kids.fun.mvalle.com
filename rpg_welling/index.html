@@ -311,15 +311,18 @@
   </style>
 </head>
 <body>
-  <div id="boot">
-    <div class="boot-card">
-      <div class="boot-owl">🦉</div>
-      <p data-i18n="loading">Carregando a aventura…</p>
-      <div class="boot-bar"><div id="bootFill"></div></div>
-      <p id="bootPct">0%</p>
-    </div>
-  </div>
   <div id="rpg" aria-label="RPG Welling">
+    <!-- #boot DENTRO de #rpg: como #rpg é fixed, ele cria stacking context
+         próprio e um #boot irmão (z-40) pintaria POR CIMA do select (z-60),
+         escondendo a escolha de personagem atrás do "Carregando…" para sempre -->
+    <div id="boot">
+      <div class="boot-card">
+        <div class="boot-owl">🦉</div>
+        <p data-i18n="loading">Carregando a aventura…</p>
+        <div class="boot-bar"><div id="bootFill"></div></div>
+        <p id="bootPct">0%</p>
+      </div>
+    </div>
     <div class="rpg-vignette"></div>
     <div class="rpg-hud">
       <div class="rpg-hud-group">
