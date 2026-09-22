@@ -79,6 +79,7 @@ let ended = false;
 let restarting = false; // confirmRestart: bloqueia autosave/beforeunload até o reload
 let stepTimer = 0; // cadência dos passos sincronizada com o walk cycle
 let exitCooldown = 0; // anti-retrigger das saídas de zona logo após a transição
+let exitHintAt = 0; // anti-spam do aviso de saída bloqueada (independe do teleport)
 window.__BUNDLE_V = 'n'; // marcador de versão pra debug de cache
 
 function initThree() {
@@ -673,9 +674,11 @@ document.addEventListener('click', (e) => {
   else if (id === 'restartButton') openRestart();
   else if (id === 'creditsClose' || id === 'creditsOk') closeCredits();
   else if (id === 'creditsButton') openCredits();
-  else if (id === 'wordsButton' || id === 'wordsClose' || id === 'wordsClose2') openWords();
+  else if (id === 'wordsButton') openWords();
+  else if (id === 'wordsClose' || id === 'wordsClose2') closeWords();
   else if (id === 'quizClose' || id === 'quizClose2') closeQuiz();
-  else if (id === 'reportButton' || id === 'reportClose' || id === 'reportClose2') openReport();
+  else if (id === 'reportButton') openReport();
+  else if (id === 'reportClose' || id === 'reportClose2') closeReport();
   else if (e.target.id === 'restartBackdrop') closeRestart();
   else if (e.target.id === 'creditsBackdrop') closeCredits();
   else if (e.target.id === 'wordsBackdrop') closeWords();
@@ -894,6 +897,8 @@ async function openGate() {
 function showEnding() {
   if (ended) return;
   ended = true;
+  state.flags.endingSeen = true; // mostra uma vez só; depois o portão vira saída normal
+  saveState(localStorage, player, state);
   overlayCount += 1;
   hidePrompt();
   sounds.fanfare();
@@ -904,14 +909,30 @@ function showEnding() {
     el('p', 'rpg-ending-text', uiText(language, 'endCard')),
     el('div', 'rpg-ending-badge', uiText(language, 'badgeEarned'))
   );
-  const playAgain = el('button', 'rpg-button primary', uiText(language, 'playAgain'));
+  // continuar: fecha o card e segue pela saída até a High Street
+  const keepGoing = el('button', 'rpg-button primary', `🏰 ${uiText(language, 'keepExploring')}`);
+  keepGoing.type = 'button';
+  keepGoing.addEventListener('click', () => {
+    overlay.remove();
+    ended = false;
+    overlayCount = Math.max(0, overlayCount - 1);
+    // recua pra fora do raio da saída: "continuar" dá o controle de volta,
+    // não teleporta sozinho pra High Street no mesmo clique
+    if (zone?.name === 'woods' && playerObj && playerObj.position.z < -15.6) {
+      playerObj.position.z = -15.6;
+      if (companionObj) companionObj.position.z = -15.2;
+    }
+    updateHUD();
+  });
+  const playAgain = el('button', 'rpg-button ghost', uiText(language, 'playAgain'));
   playAgain.type = 'button';
   playAgain.addEventListener('click', () => { location.href = '../index.html'; });
   const restart = el('button', 'rpg-button ghost', `🔄 ${uiText(language, 'restart')}`);
   restart.type = 'button';
   restart.addEventListener('click', confirmRestart);
-  const buttons = el('div', 'rpg-ending-buttons', playAgain, restart);
-  overlay.append(playAgain, restart);
+  const buttons = el('div', 'rpg-ending-buttons');
+  buttons.append(keepGoing, playAgain, restart);
+  overlay.append(buttons);
   root.appendChild(overlay);
   confetti(root, 120, 2400);
 }
@@ -1280,16 +1301,34 @@ function animate() {
         nearestInteractable = candidate;
       }
     }
+    // final do capítulo: atravessar o portão aberto — ANTES das saídas de
+    // zona, senão o teleport pra High Street (raio até z=-16.0) roubava o
+    // avanço e o fim nunca aparecia (bug confirmado em jogada real).
+    if (zone?.name === 'woods' && state.flags.gateOpen && !state.flags.endingSeen && playerObj.position.z < -16.0) {
+      showEnding(); // overlayCount vira >0 → saídas abaixo ficam de fora neste frame
+    }
     // mundo semi-aberto: saídas de zona são pisáveis, com cooldown na chegada
     exitCooldown = Math.max(0, exitCooldown - dt);
-    if (exitCooldown <= 0) {
+    if (overlayCount === 0 && exitCooldown <= 0) {
       for (const exit of zone.exits || []) {
         const dist = Math.hypot(exit.x - playerObj.position.x, exit.z - playerObj.position.z);
-        if (dist <= exit.radius) {
-          exitCooldown = 2.5;
-          void gotoZone(exit.target, exit.spawn);
-          break;
+        if (dist > exit.radius) continue;
+        // saída condicional (ex.: mata só pelo portão, quando aberto): avisa só
+        // quando encosta, e sem segurar o cooldown das saídas livres
+        if (exit.flag && !state.flags[exit.flag]) {
+          if (performance.now() - exitHintAt > 4000) {
+            exitHintAt = performance.now();
+            toast(root, lang({
+              pt: '🔒 O portão secreto ainda está fechado — procure outro caminho!',
+              en: '🔒 The secret gate is still closed — find another way!',
+              es: '🔒 La puerta secreta sigue cerrada — ¡busquen otro camino!',
+            }, language), { duration: 3200 });
+          }
+          continue;
         }
+        exitCooldown = 2.5;
+        void gotoZone(exit.target, exit.spawn);
+        break;
       }
     }
   }
@@ -1310,11 +1349,6 @@ function animate() {
   }
 
   zone?.update?.(dt, t);
-
-  // final: atravessar o portão aberto (spec fase 4 gancho)
-  if (zone?.name === 'woods' && state.flags.gateOpen && !ended && playerObj.position.z < -16.6) {
-    showEnding();
-  }
 
   composer.render();
 }
@@ -1384,6 +1418,13 @@ window.__rpgWelling = {
   position: () => (playerObj ? [playerObj.position.x, playerObj.position.z] : null),
   setPos: (x, z) => { if (playerObj) playerObj.position.set(x, 0, z); },
   state: () => state,
+  debug: () => ({
+    zone: zone?.name,
+    overlay: overlayCount,
+    cooldown: exitCooldown,
+    gateOpen: Boolean(state.flags.gateOpen),
+    exits: zone?.exits,
+  }),
   interact: (id) => interact(id),
   kids: () => [playerObj, companionObj].map((o) => o && ({
     pos: o.position.toArray().map((n) => +n.toFixed(2)),

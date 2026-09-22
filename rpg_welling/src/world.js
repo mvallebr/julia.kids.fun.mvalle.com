@@ -1348,7 +1348,7 @@ export function buildHighStreet(scene) {
     npcSpots: { baker: [2.2, -6] },
     // saídas: sul → woods, norte → school (mundo semi-aberto, anda-e-entra)
     exits: [
-      { x: 0, z: 15.4, radius: 1.6, target: 'woods', spawn: [0, -15.5] },
+      { x: 0, z: 15.4, radius: 1.6, target: 'woods', spawn: [0, -14], flag: 'gateOpen' },
       { x: 0, z: -15.4, radius: 1.6, target: 'school', spawn: [0, 1.2] },
       { x: 5.9, z: 0.2, radius: 1.5, target: 'academy', spawn: [0, 10.5] },
     ],
@@ -1634,7 +1634,9 @@ export function buildWoods(scene) {
     interactables: [],
     // sul da mata desemboca na High Street
     exits: [
-      { x: 0, z: -16.8, radius: 1.6, target: 'highstreet', spawn: [0, 14.6] },
+      // r pequeno e atrás do gatilho do final (z=-16): atravessar o portão
+      // primeiro mostra o fim do capítulo; só depois a saída vira High Street
+      { x: 0, z: -17.0, radius: 1.0, target: 'highstreet', spawn: [0, 14.6] },
     ],
     hemi: [0xcfe8c8, 0x24401f, 1.0],
     sun: { color: 0xffd98a, intensity: 1.75, pos: [-7, 16, -4] },
