@@ -364,7 +364,27 @@ const mk = () => Globe()(globeEl)
   .polygonSideColor((f) => (f.properties.i === hoverId ? shade(HOVER_COLOR, -60) : shade(contColor(f), -55)))
   .polygonStrokeColor(() => 'rgba(255,255,255,0.75)')
   .polygonAltitude((f) => (f.properties.i === hoverId ? 0.05 : 0.014))
-  .polygonsTransitionDuration(180);
+  .polygonsTransitionDuration(180)
+  // Malta tem ~24 km: no globo são 2-3 px e ninguém consegue clicar. O pino
+  // 🇲🇹 dá visibilidade e um alvo generoso — pedido da amiga maltesa da Julia
+  .htmlElementsData(EARTH.features.filter((f) => f.properties.i === 'MLT'))
+  .htmlLat((f) => countryCenter(f).lat)
+  .htmlLng((f) => countryCenter(f).lng)
+  .htmlAltitude(0.03)
+  .htmlElement((f) => {
+    const el = document.createElement('button');
+    el.type = 'button';
+    el.className = 'malta-pin';
+    el.textContent = '🇲🇹 Malta';
+    el.title = f.properties.n;
+    el.addEventListener('click', (event) => {
+      event.stopPropagation();
+      stopSpin();
+      pinCard(f);
+      pinnedId = f.properties.i;
+    });
+    return el;
+  });
 
 const world = mk();
 const earthMaterial = world.globeMaterial();
@@ -1311,7 +1331,9 @@ stars();
 
 // erro amigável se WebGL falhar
 try {
-  world.pointOfView({ lat: -8, lng: -35, altitude: 2.35 }, 0);
+  if (!(launcherConfig && launcherConfig.country)) {
+    world.pointOfView({ lat: -8, lng: -35, altitude: 2.35 }, 0);
+  }
 } catch (err) {
   console.error(err);
   const d = document.createElement('div');

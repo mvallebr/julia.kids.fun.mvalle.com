@@ -152,6 +152,16 @@
   #globe { position: fixed; inset: 0; z-index: 2; touch-action: none; }
   #globe canvas { cursor: grab; display: block; }
   #globe.over-country canvas { cursor: pointer; }
+  /* pino clicável de Malta (país de ~24 km = 3 px no globo; o pino dá alvo) */
+  .malta-pin {
+    position: absolute; transform: translate(-50%, -100%);
+    padding: 4px 10px; border: 2px solid rgba(245, 197, 66, .9); border-radius: 999px;
+    background: rgba(28, 26, 62, .92); color: #fff6dd;
+    font: 700 13px 'Fredoka', 'Trebuchet MS', sans-serif; line-height: 1.2;
+    cursor: pointer; white-space: nowrap;
+    box-shadow: 0 2px 10px rgba(8, 5, 20, .45);
+  }
+  .malta-pin:hover { background: rgba(60, 40, 110, .95); }
   body.dragging #globe canvas { cursor: grabbing; }
 
   /* ── Cabeçalho ── */
@@ -808,7 +818,7 @@
   </aside>
 </div>
 
-<script src="data/earth-data.js"></script>
-<script src="lib/app.bundle.js?v=20260915e"></script>
+<script src="data/earth-data.js?v=20260924a"></script>
+<script src="lib/app.bundle.js?v=20260924a"></script>
 </body>
 </html>
