@@ -53,6 +53,126 @@ function glbSource(filename) {
   return glbScenes.get(filename) || null;
 }
 
+// ── instanciação (roadmap 3.2) ───────────────────────────────────────────────
+// Clonar o mesmo GLB N vezes custa N draw calls POR primitiva (o pack de
+// árvores tem 6 primitivas — ~70 clones passavam de 400 draw calls só de
+// mata). Um InstancedMesh por primitiva desenha todas as cópias em 1 draw
+// call cada, com a matriz EXATA que cada clone tinha: instância = T·R·S da
+// cópia aplicado ANTES da matriz que o mesh já tinha dentro do GLB.
+// Referência do padrão no arquivo: buildFacadeWindows.
+function instantiateGlb(scene, src, instances) {
+  if (!src || !instances.length) return null;
+  src.scene.updateMatrixWorld(true);
+  const parts = [];
+  let simple = true;
+  src.scene.traverse((node) => {
+    if (!node.isMesh) return;
+    // skinned/morph precisam de mais que uma matriz por instância: fora do
+    // alcance desta troca, o chamador mantém o caminho de clone individual
+    if (node.isSkinnedMesh || (node.morphTargetInfluences?.length || 0) > 0) simple = false;
+    parts.push({ geometry: node.geometry, material: node.material, base: node.matrixWorld.clone() });
+  });
+  if (!simple || !parts.length) return null;
+  const tmp = new THREE.Object3D();
+  return parts.map(({ geometry, material, base }) => {
+    const mesh = new THREE.InstancedMesh(geometry, material, instances.length);
+    instances.forEach(({ x, y, z, rotY, scale }, i) => {
+      tmp.position.set(x, y, z);
+      tmp.rotation.set(0, rotY, 0);
+      tmp.scale.setScalar(scale);
+      tmp.updateMatrix();
+      mesh.setMatrixAt(i, tmp.matrix.clone().multiply(base));
+    });
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.castShadow = true;
+    mesh.receiveShadow = true;
+    // sem isto a bounding sphere só cobriria a geometria-base e as instâncias
+    // sumiriam do frustum quando a ORIGEM saísse da tela
+    mesh.computeBoundingSphere();
+    scene.add(mesh);
+    return mesh;
+  });
+}
+
+// InstancedMesh a partir de uma lista de {position, scale} — mesmo padrão do
+// buildFacadeWindows (matriz via Object3D temporário). Flags de sombra explícitos:
+// cada chamada repassa EXATAMENTE os flags que os meshes individuais tinham.
+function buildInstanced(scene, geometry, material, items, { cast = true, receive = true } = {}) {
+  const mesh = new THREE.InstancedMesh(geometry, material, items.length);
+  const tmp = new THREE.Object3D();
+  items.forEach(({ position, scale }, i) => {
+    tmp.position.copy(position);
+    tmp.rotation.set(0, 0, 0);
+    tmp.scale.copy(scale);
+    tmp.updateMatrix();
+    mesh.setMatrixAt(i, tmp.matrix);
+  });
+  mesh.instanceMatrix.needsUpdate = true;
+  mesh.castShadow = cast;
+  mesh.receiveShadow = receive;
+  mesh.computeBoundingSphere();
+  scene.add(mesh);
+  return mesh;
+}
+
+// ── descarte profundo dos recursos da zona anterior (roadmap 3.3) ────────────
+// disposeScene (main.js) já libera geometry e material.map da cena antiga, mas
+// NEM o material em si, NEM as outras maps (normal/roughness/emissive/…), NEM
+// materiais em array, NEM os buffers de instância do InstancedMesh — e vaza a
+// cada troca de zona. O conserto canônico mora no main.js (arquivo de outra
+// rodada), então world.js lembra o que a última zona construiu e libera o
+// resto no build seguinte. Materiais/texturas compartilhados com caches
+// persistentes (mat(), glowSprite.texture, GLBs em glbScenes) são dispostos
+// UMA vez via Set e voltam à GPU sozinhos no próximo uso — o jogo já depende
+// desse comportamento: a geometry dos clones de GLB já é disposta e reenviada
+// a cada troca de zona pelo próprio disposeScene.
+const MATERIAL_MAP_SLOTS = [
+  'map', 'normalMap', 'roughnessMap', 'metalnessMap', 'aoMap', 'emissiveMap',
+  'alphaMap', 'lightMap', 'specularMap', 'envMap', 'bumpMap', 'displacementMap',
+  'matcap', 'gradientMap',
+];
+let previousZoneResources = null; // { materials: Set, instanced: [] } do build anterior
+
+function disposeTolerant(resource) {
+  try {
+    resource.dispose();
+  } catch {
+    // dispose duplo/parcial não pode derrubar o build da zona nova
+  }
+}
+
+function disposeZoneResources(resources) {
+  if (!resources) return;
+  const textures = new Set(); // a mesma textura pode ocupar 2 slots (makeKid liga emissiveMap = map)
+  for (const material of resources.materials) {
+    for (const slot of MATERIAL_MAP_SLOTS) {
+      const texture = material[slot];
+      if (texture?.isTexture && !textures.has(texture)) textures.add(texture);
+    }
+  }
+  for (const texture of textures) disposeTolerant(texture);
+  for (const material of resources.materials) disposeTolerant(material);
+  // InstancedMesh.dispose libera instanceMatrix/instanceColor na GPU sem
+  // tocar na geometry/material (esses ficam com o disposeScene de main.js)
+  for (const instanced of resources.instanced) disposeTolerant(instanced);
+}
+
+// Chamado no FIM de cada builder: libera o que sobrou da zona anterior e
+// captura os recursos desta. Tem que ser no fim (e não depois do dispose de
+// main.js) porque scene.clear() destaca os filhos — depois deles não dá mais
+// para descobrir quais materiais a cena usava.
+function stashZoneResources(scene) {
+  disposeZoneResources(previousZoneResources);
+  const resources = { materials: new Set(), instanced: [] };
+  scene.traverse((node) => {
+    if (node.isInstancedMesh) resources.instanced.push(node);
+    if (!node.material) return;
+    if (Array.isArray(node.material)) node.material.forEach((m) => m && resources.materials.add(m));
+    else resources.materials.add(node.material);
+  });
+  previousZoneResources = resources;
+}
+
 // ── helpers básicos ──────────────────────────────────────────────────────────
 const matCache = new Map();
 function mat(color) {
@@ -1275,16 +1395,17 @@ function skyGlow(scene, zone, color, x, y, z, size = 14) {
 function hedgeRow(scene, x1, z1, x2, z2, { height = 0.9, color = 0x2e6b34, spacing = 1.1 } = {}) {
   const length = Math.hypot(x2 - x1, z2 - z1);
   const steps = Math.max(1, Math.round(length / spacing));
+  const blobs = [];
   for (let i = 0; i <= steps; i += 1) {
     const t = i / steps;
     const x = x1 + (x2 - x1) * t;
     const z = z1 + (z2 - z1) * t;
-    const blob = new THREE.Mesh(new THREE.SphereGeometry(height * 0.62, 8, 7), mat(color));
-    blob.position.set(x, height * 0.55, z);
-    blob.scale.y = 1.15;
-    blob.castShadow = true;
-    scene.add(blob);
+    // mesmas bolinhas de sempre (posição, achatamento y=1.15): só viraram
+    // instâncias de UM draw call em vez de um mesh por esfera
+    blobs.push({ position: new THREE.Vector3(x, height * 0.55, z), scale: new THREE.Vector3(1, 1.15, 1) });
   }
+  // flags de sombra idênticos ao mesh antigo: projetava, não recebia
+  buildInstanced(scene, new THREE.SphereGeometry(height * 0.62, 8, 7), mat(color), blobs, { cast: true, receive: false });
 }
 
 // Portão de um vão de parede: dois postes, verga e placa com o nome da área.
@@ -1455,7 +1576,17 @@ function schoolPlaque(text, { width = 3.6, height = 0.66, bg = '#1f3a5f', fg = '
 
 // Árvore barata (tronco + copa) para adensar a mata de fundo: o GLB é
 // bonito mas caro, e aqui a copa só precisa fechar o horizonte.
-function woodCanopy(scene, x, z, scale = 1.8) {
+// Com `sink`, em vez de criar 3 meshes por chamada a função só registra as
+// transformações — todas lineares em `scale` — e o chamador instancia cada
+// peça UMA vez (15 árvores deixam de ser 45 draw calls). As geometrias
+// canônicas (escala 1) com o `scale` na matriz dão exatamente a mesma malha.
+function woodCanopy(scene, x, z, scale = 1.8, sink = null) {
+  if (sink) {
+    sink.trunk.push({ position: new THREE.Vector3(x, scale, z), scale: new THREE.Vector3(scale, scale, scale) });
+    sink.crowns[0].push({ position: new THREE.Vector3(x, 2.5 * scale, z), scale: new THREE.Vector3(scale, 0.85 * scale, scale) });
+    sink.crowns[1].push({ position: new THREE.Vector3(x + 0.5 * scale, 3.2 * scale, z + 0.3 * scale), scale: new THREE.Vector3(scale, 0.85 * scale, scale) });
+    return;
+  }
   const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.2 * scale, 2 * scale, 6), mat(0x4a3626));
   trunk.position.set(x, scale, z);
   scene.add(trunk);
@@ -1825,19 +1956,30 @@ export function buildSchool(scene) {
   globeStand.position.set(-6.0, 0.84, -26.3);
   scene.add(globeStand);
 
+  // cartas da Memória da Biblioteca: par de cartas douradas deitadas na mesa
+  // de leitura, com brilho suave — âncora do minigame (src/games/memory.js)
+  for (const [cardX, cardZ, rot] of [[-2.3, -20.8, 0.5], [-2.55, -20.75, -0.4]]) {
+    const card = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.42), glowMat(0xffd166));
+    card.position.set(cardX, 0.56, cardZ);
+    card.rotation.y = rot;
+    card.castShadow = true;
+    scene.add(card);
+  }
+  glowSprite(scene, zone, 0xffd166, 0.7, -2.4, 0.62, -20.8, { opacity: 0.32, amp: 0.08, speed: 1.4 });
+  addInteract('memoryLibrary', -2.4, -20.8, 1.6);
+
   addInteract('page', -4.8, -25.1, 1.9);
   addInteract('finch', -4.3, 0.8, 1.9);
 
   // ── expansão: as novas áreas da escola (tudo sobre o gramado base) ──────
+  // Árvores do GLB viram instâncias (cada clone eram 6 draw calls — o pack
+  // tem 6 primitivas); posições, rotação aleatória por árvore, escala ×1,5 e
+  // colliders exatamente como no caminho de clone.
+  const schoolTreeSrc = glbSource('trees.glb');
+  const schoolTreeInstances = [];
   const schoolTree = (x, z, scale = 1.2, collider = true) => {
-    const src = glbSource('trees.glb');
-    if (!src) return;
-    const t = src.scene.clone(true);
-    t.traverse((c) => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
-    t.position.set(x, 0, z);
-    t.rotation.y = Math.random() * Math.PI * 2;
-    t.scale.setScalar(scale * 1.5);
-    scene.add(t);
+    if (!schoolTreeSrc) return;
+    schoolTreeInstances.push({ x, y: 0, z, rotY: Math.random() * Math.PI * 2, scale: scale * 1.5 });
     if (collider) addCollider(scene, x, z, 0.7 * scale, 0.7 * scale);
   };
 
@@ -2062,14 +2204,21 @@ export function buildSchool(scene) {
   // campo, copa mais barata atrás da sebe e laterais fechando o gramado.
   // Todas sem colisor: quem fecha o gramado é a sebe.
   for (let i = 0; i < 11; i += 1) schoolTree(-11 + i * 2.2, -36.3 - (i % 2) * 0.4, 1.5 + (i % 3) * 0.3, false);
-  for (let i = 0; i < 9; i += 1) woodCanopy(scene, -11 + i * 2.7, -37.2, 1.9 + (i % 3) * 0.4);
+  // copas baratas do horizonte: as 3 peças de sempre (sem sombra, como antes),
+  // agora 1 InstancedMesh por peça em vez de 3 meshes por árvore
+  const canopySink = { trunk: [], crowns: [[], []] };
+  for (let i = 0; i < 9; i += 1) woodCanopy(scene, -11 + i * 2.7, -37.2, 1.9 + (i % 3) * 0.4, canopySink);
   for (let i = 0; i < 5; i += 1) {
     schoolTree(-11.6, -2 - i * 8, 1.3, false);
     schoolTree(11.6, -2 - i * 8, 1.3, false);
   }
   for (const [cx, cz] of [[-12.1, -3], [12.1, -3], [-12.1, -19], [12.1, -19], [-12.1, -35], [12.1, -35]]) {
-    woodCanopy(scene, cx, cz, 1.7);
+    woodCanopy(scene, cx, cz, 1.7, canopySink);
   }
+  instantiateGlb(scene, schoolTreeSrc, schoolTreeInstances);
+  buildInstanced(scene, new THREE.CylinderGeometry(0.12, 0.2, 2, 6), mat(0x4a3626), canopySink.trunk, { cast: false, receive: false });
+  buildInstanced(scene, new THREE.SphereGeometry(1.15, 8, 7), mat(0x2f5d33), canopySink.crowns[0], { cast: false, receive: false });
+  buildInstanced(scene, new THREE.SphereGeometry(0.82, 8, 7), mat(0x3a6b3c), canopySink.crowns[1], { cast: false, receive: false });
 
   // barreiras de borda: sebes fecham o gramado (nada de "fora do mundo")
   hedgeRow(scene, -11.8, 3.0, -11.8, -36.8, { height: 1.0 });
@@ -2084,6 +2233,7 @@ export function buildSchool(scene) {
     ivyEmblem.scale.setScalar(1 + 0.04 * Math.sin(t * 2.4));
     for (const cloud of zone.clouds) cloud.position.x += dt * 0.35; // nuvens derivam
   };
+  stashZoneResources(scene); // roadmap 3.3: lembra os recursos p/ liberar na próxima troca
   return zone;
 }
 
@@ -2232,6 +2382,7 @@ export function buildHighStreet(scene) {
     updatePulses(zone, t);
     for (const cloud of zone.clouds) cloud.position.x += dt * 0.35;
   };
+  stashZoneResources(scene); // roadmap 3.3: lembra os recursos p/ liberar na próxima troca
   return zone;
 }
 
@@ -2326,6 +2477,7 @@ export function buildAcademy(scene) {
     for (const cloud of zone.clouds) cloud.position.x += dt * 0.2;
     if (zone.duelRing) zone.duelRing.material.opacity = 0.55 + 0.3 * Math.sin(t * 2.4);
   };
+  stashZoneResources(scene); // roadmap 3.3: lembra os recursos p/ liberar na próxima troca
   return zone;
 }
 
@@ -2432,6 +2584,7 @@ export function buildClassroom(scene) {
   glowSprite(scene, zone, 0xfff3b0, 0.8, 3, 2.2, -8.4, { opacity: 0.4, amp: 0.2, speed: 2.4 });
 
   zone.update = () => {};
+  stashZoneResources(scene); // roadmap 3.3: lembra os recursos p/ liberar na próxima troca
   return zone;
 }
 
@@ -2504,27 +2657,19 @@ export function buildWoods(scene) {
   addInteract('orderMint', 2.1, -6.4, 1.5);
 
   // árvores (corredor livre |x| < 4.5; fundo maior longe)
-  // tenta GLB pack; se preloadModels não rodou, fallback procedural
+  // tenta GLB pack; se preloadModels não rodou, fallback procedural.
+  // Com pack, as 28 cópias viram instâncias (cada clone eram 6 draw calls);
+  // rotação/escala/colisores idênticos ao caminho de clone.
   const treeSrc = glbSource('trees.glb');
+  const treeInstances = [];
   const tree = (x, z, scale = 1, collider = true) => {
-    const group = new THREE.Group();
     if (treeSrc) {
-      // clone recursivo; pack inteiro vira UMA "super tree" (todas as variações juntas).
-      // Pra ter variedade entre árvores, aplicamos random rotation/scale por instância.
-      const t = treeSrc.scene.clone(true);
-      t.traverse((c) => {
-        if (c.isMesh) {
-          c.castShadow = true;
-          c.receiveShadow = true;
-        }
-      });
-      // Pack tem ~1.7m de altura (várias árvores sobrepostas). Aplicar scale 1.5x pra
-      // floresta ficar densa (scale 1.0–2.2 conforme o parâmetro da função).
-      t.scale.setScalar(scale * 1.5);
-      // pequena rotação aleatória pra variedade (pack contém várias árvores sobrepostas)
-      t.rotation.y = Math.random() * Math.PI * 2;
-      group.add(t);
-    } else {
+      treeInstances.push({ x, y: 0, z, rotY: Math.random() * Math.PI * 2, scale: scale * 1.5 });
+      if (collider) addCollider(scene, x, z, 0.8 * scale, 0.8 * scale);
+      return;
+    }
+    const group = new THREE.Group();
+    {
       // ── fallback procedural ─────────────────────────────────────────────────
       const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.2 * scale, 0.36 * scale, 2.4 * scale, 8), mat(0x5d4326));
       trunk.position.y = 1.2 * scale;
@@ -2551,6 +2696,7 @@ export function buildWoods(scene) {
     [-12.5, 30, 2.1], [12.5, 24, 2.0], [-13, 14, 2.2], [13, 6, 2.0], [-13, -2, 2.1], [12.5, -10, 2.2],
     [-8, 24, 1.6], [7.5, 20, 1.5], [-6, -13, 1.5], [6.5, -17, 1.5],
   ]) tree(x, z, s, Math.abs(x) < 6);
+  instantiateGlb(scene, treeSrc, treeInstances);
 
   // riacho + pedras numeradas (padrão 2, 4, 6, ? — embaralhado)
   const stream = new THREE.Mesh(new THREE.PlaneGeometry(44, 2.6), glowMat(0x4f8fc8, 0.9));
@@ -2596,24 +2742,20 @@ export function buildWoods(scene) {
   });
 
   // marco de pedra com a árvore + heras
-  // arbustos reais (Stylized Bush, CC-BY) ao longo do caminho da mata
+  // arbustos reais (Stylized Bush, CC-BY) ao longo do caminho da mata:
+  // mesmas 15 cópias de sempre, agora 1 InstancedMesh por primitiva do GLB
   const bushSrc = glbSource('bush.glb');
   if (bushSrc) {
+    const bushInstances = [];
     for (const [bx, bz, s] of [
       [2.6, 29.5, 1.0], [-2.7, 25.0, 0.8], [2.8, 20.5, 1.1], [-2.6, 16.0, 0.9],
       [2.7, 11.5, 1.0], [-2.8, 6.5, 0.8], [2.6, 0.5, 1.0], [-2.7, -4.0, 0.9],
       [2.5, -9.0, 1.1], [3.0, -13.5, 0.7], [-3.0, -16.0, 1.0], [-2.6, 22.5, 0.9],
       [2.7, 15.0, 0.8], [3.0, 32.0, 0.9], [-3.0, -18.5, 0.8],
     ]) {
-      const bush = bushSrc.scene.clone(true);
-      bush.traverse((c) => {
-        if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; }
-      });
-      bush.position.set(bx, 0, bz);
-      bush.rotation.y = Math.random() * Math.PI * 2;
-      bush.scale.setScalar(s * 0.9);
-      scene.add(bush);
+      bushInstances.push({ x: bx, y: 0, z: bz, rotY: Math.random() * Math.PI * 2, scale: s * 0.9 });
     }
+    instantiateGlb(scene, bushSrc, bushInstances);
   }
 
   // baú do tesouro escondido (Stylized Treasure Chest, CC-BY) atrás do marco
@@ -2930,5 +3072,6 @@ export function buildWoods(scene) {
       sparkles[i].position.y = 0.06 + 0.03 * Math.sin(t * 2 + i);
     }
   };
+  stashZoneResources(scene); // roadmap 3.3: lembra os recursos p/ liberar na próxima troca
   return zone;
 }

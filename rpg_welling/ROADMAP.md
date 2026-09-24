@@ -1,7 +1,7 @@
 # Roadmap — RPG Welling
 
-Status deste arquivo: **vivo**. Atualizado em 2026-09-24 depois da rodada
-"conteúdo + acessibilidade + qualidade" (live `?v=20260924l`, 77 testes).
+Status deste arquivo: **vivo**. Atualizado em 2026-09-24 depois da rodada 2
+"Capítulo 2 + minigames + opções + performance" (live `?v=20260924m`, 141 testes).
 
 Este é o plano de evolução do jogo da Julia. Ele existe para que qualquer sessão
 futura saiba o que já foi feito, o que está em andamento e o que é próximo —
@@ -83,9 +83,9 @@ mapa; depois do portão da mata, acabou.
 
 | # | Item | Tamanho | Status |
 |---|---|---|---|
-| 1.1 | Missões roláveis a partir de tabelas (gerar objetivos, não lista fixa) | M-G | planejado |
-| 1.2 | Glossário de 34 → 120–150 palavras por tema, trilingue | M | **entregue (parcial)** — 150 glosas em `GLOSSES`, **92 alcançáveis** no jogo (era 7); faltam asnão alcançáveis |
-| 1.3 | Capítulo 2 (e 3): um ramo de mapa + NPC + minigame por capítulo | G | planejado |
+| 1.1 | Missões roláveis a partir de tabelas (gerar objetivos, não lista fixa) | M-G | **entregue (base)** — `chapters.js` define o esquema de missão por tabela (giver/steps/flag/reward) consumido por um runner genérico em `main.js`; "rolável" (geração procedural) continua planejado |
+| 1.2 | Glossário de 34 → 120–150 palavras por tema, trilingue | M | **entregue (parcial)** — 154 glosas em `GLOSSES`, ~95 alcançáveis; faltam as ainda não ancoradas no mundo |
+| 1.3 | Capítulo 2 (e 3): um ramo de mapa + NPC + minigame por capítulo | G | **Capítulo 2 entregue** — "A Torre de Severndroog": 4 missões (lousa, memória, carta, duelo+ditado), 4 fragmentos de estrela, fim na torre com conquista `chapter-two`; Capítulo 3 planejado |
 | 1.4 | 12–20 conquistas com painel próprio | M | **entregue** — 18 conquistas em `achievements.js`, painel "🏅 Conquistas" no relatório, toast em cadeia ao ganhar |
 
 ## 4. Fase 2 — Minigames
@@ -95,8 +95,8 @@ Cada um é um arquivo novo, sem tocar nos outros.
 | # | Item | Tamanho | Status |
 |---|---|---|---|
 | 2.1 | Escutar e repetir (fala com pontuação por semelhança) | M | planejado |
-| 2.2 | Sequência / memória (4–6 itens) | M | planejado |
-| 2.3 | Ditado de campo (3 frases escondidas no mundo) | M | planejado |
+| 2.2 | Sequência / memória (4–6 itens) | M | **entregue** — `games/memory.js` na biblioteca da escola (âncora `memoryLibrary`), 4 rodadas 3→6 cartas, dica no 2º erro, erro repete a sequência |
+| 2.3 | Ditado de campo (3 frases escondidas no mundo) | M | **entregue** — `games/dictation.js` no correio (High Street), placa do Green Chain e torre Severndroog (woods); flags `dictation1/2/3`, 1 deslize de digitação perdoado, revelação gentil após 3 tentativas |
 | 2.4 | Vocabulário no cenário (tocar no objeto oferece 4 palavras) | M | planejado |
 
 ## 5. Fase 3 — Payload, performance e acesso
@@ -104,11 +104,11 @@ Cada um é um arquivo novo, sem tocar nos outros.
 | # | Item | Tamanho | Status |
 |---|---|---|---|
 | 3.1 | Personagens sob demanda (só quem está na zona; cache em disco) | M-G | planejado |
-| 3.2 | Instanciar vegetação (InstancedMesh, como a fachada) | M | planejado |
-| 3.3 | Corrigir `disposeScene` (material + normal/roughness) | P | planejado |
-| 3.4 | Toque ≥44px, `Escape` fecha modal, focus trap, aria-labels i18n | P-M | **entregue (parcial)** — focus trap, `Escape` no modal do topo, `aria-label`/`aria-pressed` traduzidos, movimento reduzido, contraste do `.word-due` corrigido; **alvos de toque pequenos (X do diário) ainda por padronizar** |
-| 3.5 | Tela de opções (efeitos / ambiente / fala / idioma / tamanho de texto) | P | planejado |
-| 3.6 | README e CREDITS desatualizados | P | **entregue** — números reais (77 testes, payload atual) e atribuição Hunyuan3D/Blender correta |
+| 3.2 | Instanciar vegetação (InstancedMesh, como a fachada) | M | **entregue** — árvores da escola e da mata, arbustos, sebes e copas em InstancedMesh por primitiva do GLB (~28 clones × 6 primitivas → 6 draw calls na mata) |
+| 3.3 | Corrigir `disposeScene` (material + normal/roughness) | P | **entregue** — `stashZoneResources` no fim dos 5 builders: materiais, todas as maps e buffers de instância da zona anterior liberados na troca |
+| 3.4 | Toque ≥44px, `Escape` fecha modal, focus trap, aria-labels i18n | P-M | **entregue** — (rodada 1: foco/Escape/aria/reduced-motion/contraste; os alvos de toque já estavam em 44px desde então — a nota de "X do diário pequeno" estava desatualizada) |
+| 3.5 | Tela de opções (efeitos / ambiente / fala / idioma / tamanho de texto) | P | **entregue (parcial)** — `options.js` com tamanho de texto (normal/grande/gigante) e sons de ambiente; idioma e som geral já existiam no HUD; centralizar tudo num painel único ficou opcional |
+| 3.6 | README e CREDITS desatualizados | P | **entregue** |
 
 ---
 
@@ -168,7 +168,7 @@ Antes de qualquer commit:
 1. `npm run verify` passa — ele já roda o grep PCRE de CJK, o build e os testes
    (texto CJK já corrompeu arquivos três vezes).
 2. `npm run build` passa.
-3. `npm test` passa (baseline hoje: **77**, eram 39).
+3. `npm test` passa (baseline hoje: **141**, eram 39 antes das rodadas 1-2).
 4. Se tocou `world.js` ou qualquer builder: **teste de fumaça de boot** passa.
 5. Se tocou `index.html`: bump de `?v=` no `<script src="lib/bundle.js?v=…">`.
 6. Depois do push: conferir o `?v=` no ar e o **md5 do bundle live = local**.

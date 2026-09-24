@@ -311,6 +311,125 @@
     .achievement-text { display: flex; flex-direction: column; gap: 2px; }
     .achievement-text strong { color: #ffd166; font-size: 13px; }
     .achievement-text small { color: rgba(255,255,255,.72); font-size: 11.5px; line-height: 1.4; }
+    /* ── Opções (roadmap 3.5): escala de texto — normal = hoje; large ≈ +12%; xlarge ≈ +25% ── */
+    /* Diálogo, prompt, HUD, diário e toasts ficam DENTRO de #rpg */
+    #rpg[data-text-scale="large"] #dialogName { font-size: 17.5px; }
+    #rpg[data-text-scale="xlarge"] #dialogName { font-size: 19.5px; }
+    #rpg[data-text-scale="large"] #dialogText { font-size: 18px; }
+    #rpg[data-text-scale="xlarge"] #dialogText { font-size: 20px; }
+    #rpg[data-text-scale="large"] .rpg-choice { font-size: 17px; }
+    #rpg[data-text-scale="xlarge"] .rpg-choice { font-size: 19px; }
+    #rpg[data-text-scale="large"] #prompt { font-size: 18.5px; }
+    #rpg[data-text-scale="xlarge"] #prompt { font-size: 21px; }
+    #rpg[data-text-scale="large"] .hud-chip { font-size: 16px; }
+    #rpg[data-text-scale="xlarge"] .hud-chip { font-size: 17.5px; }
+    #rpg[data-text-scale="large"] .hud-chip.icon { font-size: 19px; }
+    #rpg[data-text-scale="xlarge"] .hud-chip.icon { font-size: 21px; }
+    #rpg[data-text-scale="large"] #journal h3 { font-size: 18px; }
+    #rpg[data-text-scale="xlarge"] #journal h3 { font-size: 20px; }
+    #rpg[data-text-scale="large"] #journalObjective,
+    #rpg[data-text-scale="large"] #journalPieces,
+    #rpg[data-text-scale="large"] #journalSecondary { font-size: 15px; }
+    #rpg[data-text-scale="xlarge"] #journalObjective,
+    #rpg[data-text-scale="xlarge"] #journalPieces,
+    #rpg[data-text-scale="xlarge"] #journalSecondary { font-size: 17px; }
+    #rpg[data-text-scale="large"] .rpg-toast { font-size: 16px; }
+    #rpg[data-text-scale="xlarge"] .rpg-toast { font-size: 18px; }
+    #rpg[data-text-scale="large"] .rpg-ending-text { font-size: 18px; }
+    #rpg[data-text-scale="xlarge"] .rpg-ending-text { font-size: 20px; }
+    #rpg[data-text-scale="large"] .rpg-story-text { font-size: clamp(17px, 2.7vw, 20px); }
+    #rpg[data-text-scale="xlarge"] .rpg-story-text { font-size: clamp(19px, 3vw, 22px); }
+    /* Painéis modais (quiz, diário, relatório, créditos, reiniciar, opções) ficam FORA de #rpg */
+    body[data-text-scale="large"] .rpg-panel h2 { font-size: 25px; }
+    body[data-text-scale="xlarge"] .rpg-panel h2 { font-size: 27.5px; }
+    body[data-text-scale="large"] .rpg-panel p,
+    body[data-text-scale="large"] .rpg-panel .rpg-btn { font-size: 16px; }
+    body[data-text-scale="xlarge"] .rpg-panel p,
+    body[data-text-scale="xlarge"] .rpg-panel .rpg-btn { font-size: 17.5px; }
+    body[data-text-scale="large"] #quizPrompt { font-size: 18px; }
+    body[data-text-scale="xlarge"] #quizPrompt { font-size: 20px; }
+    body[data-text-scale="large"] #quizOptions button { font-size: 16px; }
+    body[data-text-scale="xlarge"] #quizOptions button { font-size: 17.5px; }
+    body[data-text-scale="large"] #quizFeedback { font-size: 15px; }
+    body[data-text-scale="xlarge"] #quizFeedback { font-size: 17px; }
+    body[data-text-scale="large"] .rpg-credits-intro { font-size: 15px; }
+    body[data-text-scale="xlarge"] .rpg-credits-intro { font-size: 17px; }
+    body[data-text-scale="large"] .rpg-credits-list { font-size: 15px; }
+    body[data-text-scale="xlarge"] .rpg-credits-list { font-size: 16px; }
+    body[data-text-scale="large"] .rpg-words-empty { font-size: 15px; }
+    body[data-text-scale="xlarge"] .rpg-words-empty { font-size: 17px; }
+    body[data-text-scale="large"] .achievements-heading { font-size: 16px; }
+    body[data-text-scale="xlarge"] .achievements-heading { font-size: 17.5px; }
+    body[data-text-scale="large"] .achievement-text strong { font-size: 15px; }
+    body[data-text-scale="xlarge"] .achievement-text strong { font-size: 16px; }
+    body[data-text-scale="large"] .achievement-text small { font-size: 13px; }
+    body[data-text-scale="xlarge"] .achievement-text small { font-size: 14.5px; }
+    body[data-text-scale="large"] #wordsList .word-row { font-size: 15px; }
+    body[data-text-scale="xlarge"] #wordsList .word-row { font-size: 17px; }
+    /* Estilos do painel de opções (desenhado por renderOptionsPanel dentro do .rpg-panel) */
+    .rpg-options { display: grid; gap: 14px; }
+    .rpg-options-title { margin: 0 0 2px; }
+    .rpg-options-section { display: grid; gap: 8px; }
+    .rpg-options-heading { margin: 0; font-size: 16px; color: #1f2c66; }
+    .rpg-options-hint { margin: 0; font-size: 13px; line-height: 1.45; color: #5a678d; }
+    .rpg-options-radiogroup { display: flex; gap: 8px; flex-wrap: wrap; }
+    .rpg-opt-radio {
+      display: inline-flex; flex-direction: column; align-items: center; gap: 2px;
+      min-width: 72px; min-height: 56px; padding: 6px 10px; cursor: pointer;
+      border: 2px solid rgba(41, 51, 84, .25); border-radius: 14px;
+      background: #fff; color: #293354; font: 700 13px 'Fredoka', sans-serif;
+    }
+    .rpg-opt-radio[aria-checked="true"] { border-color: #e0892d; background: #fff3d4; }
+    .rpg-opt-radio-preview { line-height: 1; font-weight: 700; }
+    .rpg-opt-switch {
+      display: inline-flex; align-items: center; gap: 10px; min-height: 48px;
+      padding: 8px 16px; cursor: pointer; border-radius: 999px; text-align: left;
+      border: 2px solid rgba(41, 51, 84, .25); background: #fff; color: #293354;
+      font: 700 14px 'Fredoka', sans-serif;
+    }
+    .rpg-opt-switch[aria-checked="true"] { border-color: #2e6b34; background: #e9f7ec; }
+    .rpg-opt-switch[aria-checked="false"] { background: #f3f4f8; }
+    /* ── Minigame de memória (src/games/memory.js) ── */
+    .rpg-mem-root { display: flex; flex-direction: column; gap: 14px; align-items: center; }
+    .rpg-mem-status { margin: 0; min-height: 1.6em; font-size: 20px; font-weight: 600;
+      color: #b8d8ff; text-align: center; }
+    .rpg-mem-grid { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; }
+    .rpg-mem-cell {
+      display: flex; flex-direction: column; align-items: center; gap: 4px;
+      min-width: 76px; min-height: 76px; padding: 10px;
+      background: #2a2650; color: #f4f1ff; border: 2px solid #4a4380; border-radius: 14px;
+      font-size: 15px; cursor: pointer; transition: background .15s, transform .15s;
+    }
+    .rpg-mem-cell .rpg-mem-emoji { font-size: 30px; line-height: 1; }
+    .rpg-mem-cell:hover:not(:disabled) { background: #383266; }
+    .rpg-mem-cell:focus-visible { outline: 3px solid #f2c14e; outline-offset: 2px; }
+    .rpg-mem-cell:disabled { cursor: default; opacity: .82; }
+    .rpg-mem-cell.lit { background: #f2c14e; color: #241505; border-color: #f2c14e; transform: scale(1.05); }
+    .rpg-mem-cell.hint { border-color: #f2c14e; box-shadow: 0 0 0 3px rgba(242,193,78,.55); }
+    .rpg-mem-cell.good { border-color: #58cc72; background: #23402c; color: #d9ffe3; }
+    .rpg-mem-cell.bad { border-color: #ff5e7e; background: #45202c; }
+    .rpg-mem-mistakes { margin: 0; font-size: 13px; color: #cfc8f2; }
+    /* movimento reduzido: sem pulso/escala, só cor (o módulo já segura o 'lit' por mais tempo) */
+    .rpg-mem-calm .rpg-mem-cell { transition: none; }
+    .rpg-mem-calm .rpg-mem-cell.lit { transform: none; }
+    /* ── Ditado de campo (src/games/dictation.js) ── */
+    .rpg-dictation { display: grid; gap: 10px; }
+    .rpg-dictation-title { margin: 0; font: 700 19px 'Fredoka', sans-serif; color: #ffd166; }
+    .rpg-dictation-prompt { margin: 0; font: 600 20px/1.35 'Fredoka', sans-serif; color: #f2c14e; text-align: center; }
+    .rpg-dictation-stars { margin: 0; font-size: 18px; text-align: center; letter-spacing: 4px; color: #ffd166; }
+    .rpg-dictation-label { font: 600 14px 'Fredoka', sans-serif; color: #b8d8ff; }
+    .rpg-dictation-input {
+      width: 100%; box-sizing: border-box; min-height: 52px; padding: 10px 14px;
+      font: 600 18px 'Fredoka', sans-serif; color: #fff;
+      background: rgba(255,255,255,.08); border: 2px solid rgba(242,193,78,.55); border-radius: 12px;
+    }
+    .rpg-dictation-input:focus { outline: 3px solid #f2c14e; outline-offset: 2px; }
+    .rpg-dictation-feedback { margin: 0; min-height: 22px; font: 600 14px 'Fredoka', sans-serif; color: #ffd166; text-align: center; }
+    .rpg-dictation-feedback.bad { color: #ffb3a7; }
+    .rpg-dictation-reveal { margin: 0; padding: 10px 12px; font: 600 16px 'Fredoka', sans-serif; color: #fff; background: rgba(126,201,126,.16); border: 1px solid #7ec97e; border-radius: 10px; }
+    .rpg-dictation-buttons { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+    .rpg-dictation-button { min-height: 48px; min-width: 48px; padding: 10px 18px; font-size: 15px; }
+    .rpg-dictation-button[hidden] { display: none; }
     /* Movimento reduzido — mesmo padrão dos outros jogos do site */
     @media (prefers-reduced-motion: reduce) {
       *, *::before, *::after {
@@ -347,6 +466,7 @@
       </div>
       <div class="rpg-hud-group">
         <button class="hud-chip" id="langButton" type="button" aria-label="Idioma atual: PT" data-i18n-aria="languageCurrent" data-i18n-vars='{"lang":"PT"}'>🌐</button>
+        <button class="hud-chip icon" id="optionsButton" type="button" aria-label="Opções" data-i18n-aria="optionsButton">⚙️</button>
         <button class="hud-chip icon" id="hintButton" type="button" aria-label="Dica da coruja: 0 revisões para hoje" data-i18n-aria="hintDue" data-i18n-vars='{"n":"0"}'>🦉<span id="reviewBadge" class="review-badge hidden">!</span></button>
         <button class="hud-chip icon" id="wordsButton" type="button" aria-label="Meu Diário de Palavras" data-i18n-aria="words">📖</button>
         <button class="hud-chip icon" id="reportButton" type="button" aria-label="Progresso" data-i18n-aria="progress">📊</button>
@@ -448,10 +568,25 @@
       </div>
     </aside>
   </div>
+  <div class="backdrop hidden" id="optionsBackdrop">
+    <aside class="rpg-panel" role="dialog" aria-modal="true" aria-labelledby="rpg-options-title" tabindex="-1">
+      <button class="rpg-close" id="optionsClose" type="button" aria-label="Fechar" data-i18n-aria="close">✕</button>
+      <!-- corpo desenhado por renderOptionsPanel (src/options.js) no boot -->
+    </aside>
+  </div>
+  <!-- minigames hospedados em modal (memória da biblioteca, ditados do mundo):
+       painel escuro como o do quiz; o módulo do jogo desenha o próprio título
+       dentro de #gameBody, então o diálogo é rotulado por aria-label -->
+  <div class="backdrop hidden" id="gameBackdrop">
+    <aside class="rpg-panel rpg-credits-panel" role="dialog" aria-modal="true" aria-label="Desafio" data-i18n-aria="gameTitle" tabindex="-1">
+      <button class="rpg-close" id="gameClose" type="button" aria-label="Fechar" data-i18n-aria="close">✕</button>
+      <div id="gameBody"></div>
+    </aside>
+  </div>
   <script>
     // offline + "adicionar à tela inicial": cache por runtime, sem pre-cache
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(() => {});
   </script>
-  <script src="lib/bundle.js?v=20260924l"></script>
+  <script src="lib/bundle.js?v=20260924m"></script>
 </body>
 </html>

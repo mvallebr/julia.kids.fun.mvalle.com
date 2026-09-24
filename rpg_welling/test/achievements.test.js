@@ -59,6 +59,7 @@ function makeCompleteState() {
       visited_classroom: true,
       endingSeen: true,
       umbrellaDone: true,
+      ch2Done: true,
     },
     history: makeHistory(7, { added: 0, right: 5, wrong: 0 }),
   };
@@ -72,8 +73,8 @@ function deepFreeze(value) {
   return value;
 }
 
-test('catálogo tem 18 conquistas com conteúdo trilíngue válido', () => {
-  assert.equal(ACHIEVEMENTS.length, 18);
+test('catálogo tem 19 conquistas com conteúdo trilíngue válido', () => {
+  assert.equal(ACHIEVEMENTS.length, 19);
   assert.equal(new Set(ACHIEVEMENT_IDS).size, ACHIEVEMENTS.length);
   for (const item of ACHIEVEMENTS) {
     assert.match(item.id, /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/);
@@ -113,6 +114,7 @@ test('ids e níveis formam a lista pública estável', () => {
     ['five-right', 'silver'],
     ['chapter-one', 'gold'],
     ['kind-helper', 'bronze'],
+    ['chapter-two', 'gold'],
   ]);
 });
 
@@ -295,7 +297,7 @@ test('avaliação só devolve conquistas novas e ignora ids corrompidos', () => 
   assert.equal(result.includes('first-word'), false);
   assert.equal(result.includes('clue-hunter'), false);
   assert.equal(result.includes('missing-save-id'), false);
-  assert.equal(result.length, 16);
+  assert.equal(result.length, 17);
 });
 
 test('avaliação não muta estado nem lista de conquistas, mesmo deeply frozen', () => {

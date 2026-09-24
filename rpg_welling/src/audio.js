@@ -97,6 +97,15 @@ export const sounds = {
 
 let ambience = null; // { nodes: [], zone: null }
 
+// ambiente desligável de cara na tela de opções, sem mutar efeitos/fala
+// (setMuted corta TUDO; este corta só o fundo — a tela de opções tem os dois)
+let ambienceEnabled = true;
+
+export function setAmbienceEnabled(value) {
+  ambienceEnabled = Boolean(value);
+  if (!ambienceEnabled) stopAmbience();
+}
+
 function stopAmbience() {
   if (!ambience) return;
   for (const node of ambience.nodes) {
@@ -172,7 +181,7 @@ function startAmbience(zoneName) {
 }
 
 export function setZoneAmbience(zoneName) {
-  if (muted) { stopAmbience(); return; }
+  if (muted || !ambienceEnabled) { stopAmbience(); return; }
   if (ambience && ambience.zone === zoneName) return;
   startAmbience(zoneName);
 }

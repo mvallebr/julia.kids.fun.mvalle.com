@@ -145,6 +145,13 @@ export const ACHIEVEMENTS = Object.freeze([
     'bronze',
     (stats) => stats.helpedTeacher,
   ),
+  achievement(
+    'chapter-two',
+    ['Estrela de Severndroog', 'Severndroog Star', 'Estrella de Severndroog'],
+    ['Reúne os quatro fragmentos de estrela do Capítulo 2 e devolve a estrela ao topo da torre.', 'Gather the four star fragments of Chapter 2 and return the star to the top of the tower.', 'Reúne los cuatro fragmentos de estrella del Capítulo 2 y devuelve la estrella a la punta de la torre.'],
+    'gold',
+    (stats) => stats.chapterTwoDone,
+  ),
 ]);
 
 export const ACHIEVEMENT_IDS = Object.freeze(ACHIEVEMENTS.map((item) => item.id));
@@ -231,6 +238,7 @@ export function achievementStats(state) {
     correctDays: correctDayCount(history),
     endingSeen: Boolean(flags.endingSeen),
     helpedTeacher: Boolean(flags.umbrellaDone),
+    chapterTwoDone: Boolean(flags.ch2Done),
   };
 }
 

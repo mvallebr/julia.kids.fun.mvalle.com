@@ -772,5 +772,13 @@ export const GLOSSES = {
   crown: { pt: 'crown = coroa', en: 'crown = a special headpiece for a king or queen', es: 'crown = corona' },
   wand: { pt: 'wand = varinha', en: 'wand = a small stick used to do magic', es: 'wand = varita' },
   hero: { pt: 'hero = herói', en: 'hero = a brave person who helps others', es: 'hero = héroe' },
-  magic: { pt: 'magic = magia', en: 'magic = a special power that seems impossible', es: 'magic = poder especial que parece imposible' },
+  magic: { pt: 'magic = magia', en: 'magic = a special power that seems impossible', es: 'magic = poder especial que parece impossível' },
+
+  // Capítulo 2 — A Torre de Severndroog (roadmap 1.3): glosas usadas pelas
+  // falas de src/chapters.js. SOMENTE ADIÇÃO: as entradas acima são chave de
+  // save no Diário de Palavras e nunca podem ser renomeadas ou alteradas.
+  tower: { pt: 'tower = torre', en: 'tower = a tall building that rises into the sky', es: 'tower = torre' },
+  legend: { pt: 'legend = lenda', en: 'legend = an old story that people keep telling', es: 'legend = leyenda' },
+  fragment: { pt: 'fragment = pedaço, fragmento', en: 'fragment = a small piece that broke off something', es: 'fragment = fragmento' },
+  whole: { pt: 'whole = inteiro, completo', en: 'whole = complete, with nothing missing', es: 'whole = entero, completo' },
 };

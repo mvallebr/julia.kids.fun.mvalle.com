@@ -8,7 +8,7 @@ import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { SMAAPass } from 'three/addons/postprocessing/SMAAPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { uiText, lang } from './i18n.js';
-import { ensureAudio, setMuted, setZoneAmbience, footstep, sounds } from './audio.js';
+import { ensureAudio, setMuted, setAmbienceEnabled, setZoneAmbience, footstep, sounds } from './audio.js';
 import { loadState, saveState, bumpGeneration, recordHistory, historyWeek, studyStreak, dayKey, CHARACTERS, MAP_PIECES } from './state.js';
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount, medalTier, MEDAL_EMOJI, secondaryObjectives } from './quest.js';
 import { buildSchool, buildWoods, buildHighStreet, buildAcademy, buildClassroom, makeKid, makeOwl, makeAdult, blobShadow, preloadModels, onModelProgress } from './world.js';
@@ -16,6 +16,10 @@ import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES,
 import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz, practiceOrder, MAX_REVIEW_PER_SESSION } from './vocab.js';
 import { ACHIEVEMENTS, achievementById, evaluateAchievements } from './achievements.js';
 import { trapFocus, openModalStack, shouldReduceMotion } from './a11y.js';
+import { normalizeSettings, renderOptionsPanel } from './options.js';
+import { CHAPTER2, chapterProgress, nextQuest, nextStep, isQuestComplete } from './chapters.js';
+import { createMemoryGame } from './games/memory.js';
+import { createDictation, DICTATION_PHRASES, DICTATION_FLAGS } from './games/dictation.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
 import { buildNavGrid, findPathToNearest, canStand, nearestStandPoint } from './pathfind.js';
 
@@ -59,6 +63,7 @@ const PROMPTS = {
   bookshop: { pt: '📚 Olhar a vitrine da bookshop', en: '📚 Look at the bookshop window', es: '📚 Mirar el escaparate' },
   postOffice: { pt: '✉️ Ver o correio', en: '✉️ Check the post box', es: '✉️ Mirar el buzón' },
   teaRoom: { pt: '🍵 Ouvir o tea room', en: '🍵 Listen at the tea room', es: '🍵 Escuchar la sala de té' },
+  memoryLibrary: { pt: '🃏 Jogar a Memória da Biblioteca', en: '🃏 Play Library Memory', es: '🃏 Jugar a la Memoria de la Biblioteca' },
   clueBench: { pt: '🔍 Olhar o cartaz no banco', en: '🔍 Look at the poster on the bench', es: '🔍 Mirar el cartel del banco' },
   clueChalk: { pt: '🔍 Olhar a janela', en: '🔍 Look at the window', es: '🔍 Mirar la ventana' },
   clueScroll: { pt: '🔍 Ler o pergaminho', en: '🔍 Read the scroll', es: '🔍 Leer el pergamino' },
@@ -126,7 +131,7 @@ function armExitsAt(x, z) {
     if (Math.hypot(exit.x - x, exit.z - z) <= exit.radius) exitInside.add(`${exit.target}:${exit.x}:${exit.z}`);
   }
 }
-window.__BUNDLE_V = 'o'; // marcador de versão pra debug de cache
+window.__BUNDLE_V = 'p'; // marcador de versão pra debug de cache
 
 function initThree() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -305,6 +310,8 @@ const MODAL_CLOSERS = new Map([
   ['wordsBackdrop', () => closeWords()],
   ['reportBackdrop', () => closeReport()],
   ['quizBackdrop', () => closeQuiz()],
+  ['optionsBackdrop', () => closeOptions()],
+  ['gameBackdrop', () => closeGame()],
 ]);
 
 function closeTopModal() {
@@ -846,7 +853,19 @@ function markChallenge(id) {
 // ── HUD ──────────────────────────────────────────────────────────────────────
 function updateHUD() {
   const objective = currentObjective(state);
-  $('questChip').textContent = `📜 ${uiText(language, OBJECTIVE_KEYS[objective.id], { count: objective.progress ?? 0 })}`;
+  let chip = `📜 ${uiText(language, OBJECTIVE_KEYS[objective.id], { count: objective.progress ?? 0 })}`;
+  // Capítulo 2 ativo assume o chip: fragmentos reunidos + missão atual
+  if (state.flags.ch2Started && !state.flags.ch2Done) {
+    const quest = nextQuest(CHAPTER2, state.flags);
+    const progress = chapterProgress(CHAPTER2, state.flags);
+    chip = quest
+      ? `⭐ ${progress.fragments}/4 — ${lang(quest.title, language)}`
+      : `⭐ ${uiText(language, 'ch2GoTower')}`;
+  }
+  $('questChip').textContent = chip;
+  // fragmentos do cap. 2: cobre também passos observados (duelWon) que não
+  // têm gancho próprio; idempotente pelo challenge do reward
+  maybeChapter2Fragment();
   $('soundButton').textContent = state.sound ? '🔊' : '🔇';
   const langButton = $('langButton');
   if (langButton) langButton.textContent = `🌐 ${language.toUpperCase()}`;
@@ -868,6 +887,14 @@ function toggleJournal() {
     });
     const secList = $('journalSecondary');
     secList.replaceChildren();
+    // Capítulo 2 em andamento entra nas segundas quests do diário
+    if (state.flags.ch2Started && !state.flags.ch2Done) {
+      const progress = chapterProgress(CHAPTER2, state.flags);
+      const line = progress.endingReady
+        ? `▫️ ⭐ ${uiText(language, 'ch2GoTower')}`
+        : `▫️ ⭐ ${progress.fragments}/4 — ${lang(CHAPTER2.title, language)}`;
+      secList.appendChild(el('li', undefined, line));
+    }
     for (const sec of seconds) {
       secList.appendChild(el('li', undefined, `▫️ ${uiText(language, sec.key, { n: sec.progress, total: sec.total })}`));
     }
@@ -937,6 +964,41 @@ function closeCredits() {
   $('creditsBackdrop').classList.add('hidden');
   closeModal('creditsBackdrop');
 }
+// ── Opções (tamanho do texto, sons de ambiente) ───────────────────────────────
+function applyTextScale(settings) {
+  root.dataset.textScale = settings.textScale;
+  document.body.dataset.textScale = settings.textScale;
+}
+// o painel é desenhado uma vez no boot; depois, update() sincroniza com o estado
+let optionsPanel = null;
+function renderOptions() {
+  const body = document.querySelector('#optionsBackdrop .rpg-panel');
+  if (!body) return;
+  optionsPanel = renderOptionsPanel({
+    container: body,
+    settings: normalizeSettings(state.settings),
+    lang: language,
+    onChange: (partial) => {
+      // Espaço num rádio já marcado reemite o mesmo valor: guardar sem mudança
+      // seria um save de localStorage a cada Espaço, de graça
+      if (partial.textScale !== undefined && partial.textScale === state.settings?.textScale) return;
+      if (partial.ambience !== undefined && partial.ambience === state.settings?.ambience) return;
+      state.settings = normalizeSettings({ ...state.settings, ...partial });
+      saveState(localStorage, player, state);
+      if (partial.textScale !== undefined) applyTextScale(state.settings);
+      if (partial.ambience !== undefined) setAmbienceEnabled(state.settings.ambience);
+    },
+  });
+}
+function openOptions() {
+  optionsPanel?.update?.(normalizeSettings(state.settings));
+  $('optionsBackdrop').classList.remove('hidden');
+  openModal('optionsBackdrop');
+}
+function closeOptions() {
+  $('optionsBackdrop').classList.add('hidden');
+  closeModal('optionsBackdrop');
+}
 function openWords() {
   renderWordsList();
   $('wordsBackdrop').classList.remove('hidden');
@@ -958,11 +1020,16 @@ document.addEventListener('click', (e) => {
   else if (id === 'quizClose' || id === 'quizClose2') closeQuiz();
   else if (id === 'reportButton') openReport();
   else if (id === 'reportClose' || id === 'reportClose2') closeReport();
+  else if (id === 'optionsButton') openOptions();
+  else if (id === 'optionsClose') closeOptions();
+  else if (id === 'gameClose') closeGame();
   else if (e.target.id === 'restartBackdrop') closeRestart();
   else if (e.target.id === 'creditsBackdrop') closeCredits();
   else if (e.target.id === 'wordsBackdrop') closeWords();
   else if (e.target.id === 'quizBackdrop') closeQuiz();
   else if (e.target.id === 'reportBackdrop') closeReport();
+  else if (e.target.id === 'optionsBackdrop') closeOptions();
+  else if (e.target.id === 'gameBackdrop') closeGame();
 });
 // ── Relatório de progresso (pra pais e responsáveis) ───────────────────────────
 function openReport() {
@@ -1262,8 +1329,169 @@ function showEnding() {
   confetti(root, 120, 2400);
 }
 
+// ── Capítulo 2 ("A Torre de Severndroog"): runner da tabela em chapters.js ────
+// A lenda é contada pela Willow no 1º encontro após o fim do capítulo 1 e, na
+// mesma visita, ela já entrega a oferta da própria missão (giver == willow).
+// Os outros givers (page, baker, raven) falam a oferta da missão deles no
+// 1º passo 'talk' pendente; o resto do progresso vem de flags que sistemas
+// donos gravam (duelo, lousa, memória, ditados). Tudo idempotente por flag.
+async function maybeChapter2(npcId) {
+  if (!state.flags.endingSeen || state.flags.ch2Done) return false;
+  if (npcId === 'willow' && !state.flags.ch2Started) {
+    await runConversation(CHAPTER2.intro);
+    state.flags.ch2Started = true;
+    // a missão da própria Willow começa na sequência: a lenda JÁ foi contada
+    const quest = CHAPTER2.quests.find((q) => q.giver === npcId && !isQuestComplete(q, state.flags));
+    const step = quest ? nextStep(quest, state.flags) : null;
+    if (step?.type === 'talk') {
+      await runConversation(quest.offer);
+      state.flags[step.flag] = true;
+    }
+    saveState(localStorage, player, state);
+    sounds.magic();
+    confetti(root, 60);
+    updateHUD();
+    const hint = nextStep(quest || CHAPTER2.quests[0], state.flags);
+    if (hint) toast(root, `⭐ ${lang(hint.hint, language)}`, { duration: 5200 });
+    return true;
+  }
+  if (!state.flags.ch2Started) return false;
+  const quest = CHAPTER2.quests.find((q) => q.giver === npcId && !isQuestComplete(q, state.flags));
+  const step = quest ? nextStep(quest, state.flags) : null;
+  if (!step || step.type !== 'talk') return false;
+  await runConversation(quest.offer);
+  state.flags[step.flag] = true;
+  saveState(localStorage, player, state);
+  updateHUD();
+  const hint = nextStep(quest, state.flags);
+  if (hint) toast(root, `⭐ ${lang(hint.hint, language)}`, { duration: 5200 });
+  return true;
+}
+
+// fim do capítulo 2: com as 4 missões fechadas, a torre entrega a estrela
+async function maybeChapter2Ending() {
+  if (!state.flags.ch2Started || state.flags.ch2Done) return false;
+  if (!chapterProgress(CHAPTER2, state.flags).endingReady) return false;
+  state.flags.ch2Done = true;
+  saveState(localStorage, player, state);
+  await runConversation(CHAPTER2.ending.lines);
+  sounds.fanfare();
+  confetti(root, 140);
+  checkAchievements();
+  updateHUD();
+  return true;
+}
+
+// recompensa do fragmento: palavras da tabela + challenge ch2Star<n>. Chamado
+// DEPOIS de gravar a flag do passo — o progresso nunca depende do reward.
+function grantChapter2Reward(questId) {
+  const quest = CHAPTER2.quests.find((q) => q.id === questId);
+  if (!quest) return;
+  for (const word of quest.reward.words) registerWordTracked(word, GLOSSES[word]);
+  state.challenges[quest.reward.challenge] = true;
+  saveState(localStorage, player, state);
+  updateHUD();
+  checkAchievements();
+  toast(root, `⭐ ${uiText(language, 'ch2Fragment')} (${chapterProgress(CHAPTER2, state.flags).fragments}/4)`, { duration: 4600 });
+}
+
+// Depois de gravar QUALQUER flag de passo do cap. 2 (lousa, memória, ditado,
+// duelo), entrega o fragmento da missão que acabou de fechar. Idempotente:
+// o challenge do reward marca que a estrela já foi entregue. Chamar de
+// updateHUD é o que cobre passos observados (duelWon) sem gancho próprio.
+function maybeChapter2Fragment() {
+  if (!state.flags.ch2Started || state.flags.ch2Done) return;
+  const quest = CHAPTER2.quests.find((q) => isQuestComplete(q, state.flags) && !state.challenges[q.reward.challenge]);
+  if (quest) grantChapter2Reward(quest.id);
+}
+
+// ── Minigames em modal (memória da biblioteca, ditados do mundo) ──────────────
+// Um único modal genérico (#gameBackdrop): o módulo do jogo desenha o próprio
+// título dentro de #gameBody; fechar destrói o jogo (timers/listeners).
+let memoryGame = null;
+let dictationUi = null;
+
+function openGameModal() {
+  $('gameBackdrop').classList.remove('hidden');
+  openModal('gameBackdrop');
+}
+
+function closeGame() {
+  $('gameBackdrop').classList.add('hidden');
+  closeModal('gameBackdrop');
+  if (memoryGame) { memoryGame.destroy(); memoryGame = null; }
+  if (dictationUi) { dictationUi.destroy(); dictationUi = null; }
+  $('gameBody').replaceChildren();
+}
+
+// memória da biblioteca: palavras do diário da Julia em cartas emoji
+const MEMORY_ITEMS = [
+  { emoji: '📖', en: 'book', pt: 'livro', es: 'libro' },
+  { emoji: '✏️', en: 'pencil', pt: 'lápis', es: 'lápiz' },
+  { emoji: '🎒', en: 'bag', pt: 'mochila', es: 'mochila' },
+  { emoji: '⭐', en: 'star', pt: 'estrela', es: 'estrella' },
+  { emoji: '🌳', en: 'tree', pt: 'árvore', es: 'árbol' },
+  { emoji: '🦉', en: 'owl', pt: 'coruja', es: 'búho' },
+];
+
+function openMemoryLibrary() {
+  closeGame();
+  openGameModal();
+  memoryGame = createMemoryGame({
+    container: $('gameBody'),
+    items: MEMORY_ITEMS,
+    lang: language,
+    onWin: ({ words }) => {
+      state.flags.memoryDone = true;
+      // recompensa: até 3 palavras das cartas entram no diário (se novas)
+      for (const item of words.slice(0, 3)) {
+        if (!state.words[item.en]) registerWordTracked(item.en, GLOSSES[item.en]);
+      }
+      saveState(localStorage, player, state);
+      sounds.magic();
+      confetti(root, 90);
+      checkAchievements();
+      updateHUD();
+    },
+  });
+}
+
+// ditados escondidos: interactable → frase (DICTATION_FLAGS traduz frase→flag)
+const DICTATION_SPOTS = { greenChain: 'dictWoods', postOffice: 'dictLetter', severndroog: 'dictCastle' };
+
+// devolve true se abriu o ditado (o chamador NÃO roda o FLAVOR do ponto)
+function tryDictation(spotId) {
+  const phrase = DICTATION_PHRASES.find((p) => p.id === DICTATION_SPOTS[spotId]);
+  if (!phrase) return false;
+  if (state.flags[DICTATION_FLAGS[phrase.id]]) return false;
+  closeGame();
+  openGameModal();
+  dictationUi = createDictation({
+    container: $('gameBody'),
+    phrase,
+    lang: language,
+    onDone: ({ phraseId }) => {
+      state.flags[DICTATION_FLAGS[phraseId]] = true;
+      registerWordTracked(phrase.journal, GLOSSES[phrase.journal]);
+      saveState(localStorage, player, state);
+      sounds.magic();
+      confetti(root, 70);
+      checkAchievements();
+      updateHUD();
+      // o ditado da torre é o passo final do capítulo 2: emendar direto no fim
+      setTimeout(() => {
+        closeGame();
+        if (spotId === 'severndroog') void interact('severndroog');
+      }, 1500);
+    },
+  });
+  return true;
+}
+
 async function interact(id) {
   if (id === 'finch' || id === 'page') {
+    // Capítulo 2: a Sra. Page oferece "O Segredo da Biblioteca" antes do fluxo dela
+    if (id === 'page' && (await maybeChapter2(id))) return;
     const solvedKey = id === 'finch' ? 'vocabFinch' : 'compPage';
     const firstTime = !state.challenges[solvedKey];
     await runConversation(firstTime ? CONVERSATIONS[id] : CONVERSATIONS[`${id}After`]);
@@ -1334,6 +1562,11 @@ async function interact(id) {
         saveState(localStorage, player, state);
         updateReviewBadge();
         sounds.magic();
+        // Capítulo 2, fragmento 1: a lição completa rende a estrela da lousa
+        if (state.flags.ch2Started && !state.flags.ch2Q1Board) {
+          state.flags.ch2Q1Board = true;
+          maybeChapter2Fragment();
+        }
         return void runConversation([{ who: 'willow', text: { pt: 'Excelente aula! Essas palavras já estão no seu diário — a coruja vai cobrar depois, hein!', en: 'Excellent class! Those words are in your journal now — the owl will quiz you later!', es: '¡Excelente clase! Esas palabras ya están en tu diario — ¡el búho te va a preguntar después!' } }]);
       }
       const lesson = lessons[round];
@@ -1374,6 +1607,8 @@ async function interact(id) {
     return void nextLesson();
   }
   if (id === 'willow') {
+    // Capítulo 2: lenda da torre + oferta da missão da lousa
+    if (await maybeChapter2(id)) return;
     return void runConversation([
       { who: 'willow', text: { pt: 'Bem-vindos à minha sala! A lousa está cheia de palavras novas — toque nela e vamos praticar!', en: 'Welcome to my classroom! The blackboard is full of new words — touch it and let\'s practice!', es: '¡Bienvenidos a mi sala! La pizarra está llena de palabras nuevas — ¡tóquenla y practiquemos!' } },
       { gloss: 'practice' },
@@ -1403,12 +1638,16 @@ async function interact(id) {
     ]);
   }
   if (id === 'baker') {
+    // Capítulo 2: "A Carta sem Endereço" começa no Sr. Crumb
+    if (await maybeChapter2(id)) return;
     return void runConversation([
       { who: 'baker', text: { pt: 'Bem-vindas à padaria da High Street! O pão de canela sai quentinho às cinco.', en: 'Welcome to the High Street bakery! The cinnamon buns come out warm at five.', es: '¡Bienvenidas a la panadería de High Street! El pan de canela sale calentito a las cinco.' } },
       { gloss: 'warm' },
     ]);
   }
   if (id === 'raven') {
+    // Capítulo 2: "O Duelo da Estrela" começa na Prof. Raven
+    if (await maybeChapter2(id)) return;
     const learned = Object.keys(state.words).length;
     if (learned < 3) {
       return void runConversation([{ who: 'raven', text: { pt: 'Sou a Prof. Raven, da Academia Owlburt. Duelo de feitiços? Primeiro aprendam 3 palavras com a coruja. Voltem quando o diário estiver cheio!', en: 'I am Prof. Raven, from Owlburt Academy. A spell duel? First learn 3 words with the owl. Come back when your journal is full!', es: 'Soy la Prof. Raven, de la Academia Owlburt. ¿Un duelo de hechizos? Primero aprendan 3 palabras con el búho. ¡Vuelvan cuando el diario esté lleno!' } }]);
@@ -1431,7 +1670,11 @@ async function interact(id) {
   if (id === 'clueScroll') return void addClue('duelScroll');
   // lojas da High Street: cenatura + glosa (story / letter / tea)
   if (id === 'bookshop') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.bookshop }, { gloss: 'story' }]); }
-  if (id === 'postOffice') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.postOffice }, { gloss: 'letter' }]); }
+  if (id === 'postOffice') {
+    // ditado escondido do correio (capítulo 2, fragmento 3; jogável sempre)
+    if (tryDictation(id)) return;
+    sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.postOffice }, { gloss: 'letter' }]);
+  }
   if (id === 'teaRoom') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.teaRoom }, { gloss: 'tea' }]); }
   // ── quest multi-zona: A Encomenda da Sra. Page ────────────────────────────
   if (id === 'orderStart') {
@@ -1495,10 +1738,21 @@ async function interact(id) {
   if (id === 'garden') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.garden }, { gloss: 'greenhouse' }]); }
   if (id === 'field') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.field }, { gloss: 'pitch' }]); }
   if (id === 'woodCafe') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.cafe }, { gloss: 'meadow' }, { gloss: 'hill' }]); }
-  if (id === 'severndroog') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.severndroog }, { gloss: 'castle' }]); }
+  if (id === 'severndroog') {
+    // Capítulo 2: 1º a última frase do ditado; com os 4 fragmentos, o fim
+    if (tryDictation(id)) return;
+    if (await maybeChapter2Ending()) return;
+    sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.severndroog }, { gloss: 'castle' }]);
+  }
   if (id === 'pond') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.pond }, { gloss: 'pond' }]); }
-  if (id === 'greenChain') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.greenChain }, { gloss: 'path' }]); }
+  if (id === 'greenChain') {
+    // ditado da placa do Green Chain (capítulo 2, fragmento 4; jogável sempre)
+    if (tryDictation(id)) return;
+    sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.greenChain }, { gloss: 'path' }]);
+  }
   if (id === 'outdoorGym') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.outdoorGym }, { gloss: 'climb' }]); }
+  // memória da biblioteca (capítulo 2, fragmento 2; jogável sempre)
+  if (id === 'memoryLibrary') return void openMemoryLibrary();
   if (id === 'clueTimetable') return void addClue('timetable');
   // ── quadra da escola: desafio rápido de choice (uma jogada) ───────────────
   if (id === 'sports') {
@@ -1951,6 +2205,11 @@ async function boot() {
     return;
   }
   setMuted(!state.sound);
+  // preferências da tela de opções: escala de texto no root do jogo E no body
+  // (os painéis modais são irmãos de #rpg, então o dataset precisa estar nos dois)
+  applyTextScale(normalizeSettings(state.settings));
+  setAmbienceEnabled(state.settings?.ambience !== false);
+  renderOptions();
   applyStaticI18n();
   refreshDynamicAria();
   ensureAudio();

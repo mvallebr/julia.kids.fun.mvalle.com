@@ -1,6 +1,7 @@
 // RPG Welling — save local por jogadora (spec §37, sem contas online).
 import { normalizeWords } from './vocab.js';
 import { ACHIEVEMENT_IDS } from './achievements.js';
+import { normalizeSettings } from './options.js';
 
 export const STORAGE_KEY = 'mundo-da-julia.rpgwelling.v1';
 export const GEN_KEY = 'mundo-da-julia.rpgwelling.gen';
@@ -50,6 +51,7 @@ export function emptyState() {
     history: {}, // 'YYYY-MM-DD' → { added, right, wrong } — dias de estudo p/ relatório
     duelWins: 0, // total de duelos vencidos (conta medalhas da Academia)
     achievements: [], // ids permanentes de conquistas já conquistadas
+    settings: { textScale: 'normal', ambience: true }, // preferências da tela de opções
   };
 }
 
@@ -82,6 +84,7 @@ export function normalizeState(value = {}) {
   }
   state.sound = source.sound !== false && source.sound !== 0;
   state.language = ['pt', 'en', 'es'].includes(source.language) ? source.language : '';
+  state.settings = normalizeSettings(source.settings);
   state.duelWins = Number.isFinite(source.duelWins) ? Math.max(0, Math.min(999, Math.floor(source.duelWins))) : 0;
   if (source.history && typeof source.history === 'object') {
     const int0 = (n) => (Number.isFinite(n) ? Math.max(0, Math.min(1e6, Math.floor(n))) : 0);
