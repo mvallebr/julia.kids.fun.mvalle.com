@@ -1260,6 +1260,19 @@ function hedgeRow(scene, x1, z1, x2, z2, { height = 0.9, color = 0x2e6b34, spaci
   }
 }
 
+// Portão de um vão de parede: dois postes, verga e placa com o nome da área.
+// Só visual (o vão é que deixa passar) — serve para a criança enxergar por
+// onde sair, em vez de bater numa parede sem pista.
+function schoolGate(scene, x, z1, z2, label, side = 1) {
+  for (const z of [z1, z2]) box(scene, 0.34, 2.5, 0.34, 0xe8dcc3, x, 1.25, z);
+  box(scene, 0.3, 0.26, Math.abs(z2 - z1) + 0.34, 0xd8c9a8, x, 2.6, (z1 + z2) / 2);
+  const sign = makeLabelSprite(label);
+  sign.position.set(x + side * 0.25, 2.95, (z1 + z2) / 2);
+  sign.scale.set(1.7, 0.42, 1);
+  scene.add(sign);
+  glowSprite(scene, scene.userData.zone, 0xffe9b8, 1.1, x + side * 0.3, 2.6, (z1 + z2) / 2, { opacity: 0.22, amp: 0.07, speed: 1.2 });
+}
+
 function railing(parent, x1, z1, x2, z2, { height = 0.9, color = 0x2f3a44 } = {}) {
   const length = Math.hypot(x2 - x1, z2 - z1);
   const x = (x1 + x2) / 2;
@@ -1369,13 +1382,26 @@ export function buildSchool(scene) {
   scene.add(rugBorder);
 
   // paredes (vãos de portas preservados)
+  //
+  // Os vãos são o que liga o prédio aos quintais. Sem eles a escola 5× maior
+  // ficava selada: a única porta de verdade (a da frente, em z=4) está fora
+  // dos limites da fase (maxZ=3.2), então parquinho, horta, quadra e campo
+  // ficavam inalcançáveis. Cada vão tem um portão com placa indicando a área,
+  // e o do corredor em z −12.8..−11.2 fica em linha reta com a porta da sala
+  // de aula (dentro dele) e com a quadra (do lado de fora).
   wall(scene, -7, 4, -1, 4, 2.2, brick); wall(scene, 1, 4, 7, 4, 2.2, brick);
-  wall(scene, -7, -6, -7, 4, 2.2, plaster); wall(scene, 7, -6, 7, 4, 2.2, plaster);
+  wall(scene, -7, -6, -7, 0.2, 2.2, plaster); wall(scene, -7, 2.4, -7, 4, 2.2, plaster);
+  wall(scene, 7, -6, 7, 0.2, 2.2, plaster); wall(scene, 7, 2.4, 7, 4, 2.2, plaster);
   wall(scene, -7, -6, -1.8, -6, 2.2, plaster); wall(scene, 1.8, -6, 7, -6, 2.2, plaster);
-  wall(scene, -1.8, -16, -1.8, -6, 2.2, plaster); wall(scene, 1.8, -16, 1.8, -6, 2.2, plaster);
+  wall(scene, -1.8, -16, -1.8, -12.8, 2.2, plaster); wall(scene, -1.8, -11.2, -1.8, -6, 2.2, plaster);
+  wall(scene, 1.8, -16, 1.8, -12.8, 2.2, plaster); wall(scene, 1.8, -11.2, 1.8, -6, 2.2, plaster);
   wall(scene, -8, -16, -1.8, -16, 2.2, plaster); wall(scene, 1.8, -16, 8, -16, 2.2, plaster);
   wall(scene, -8, -28, -8, -16, 2.2, plaster); wall(scene, 8, -28, 8, -16, 2.2, plaster);
   wall(scene, -8, -28, 8, -28, 2.2, plaster);
+  schoolGate(scene, -7, 0.2, 2.4, 'GARDEN', -1);
+  schoolGate(scene, 7, 0.2, 2.4, 'PLAYGROUND', 1);
+  schoolGate(scene, -1.8, -12.8, -11.2, 'CLASSROOM', -1);
+  schoolGate(scene, 1.8, -12.8, -11.2, 'SPORTS', 1);
 
   // entrada: porta em arco de madeira + emblema brilhando
   box(scene, 1.9, 2.1, 0.14, 0x4e3520, 0, 1.05, 4.05);
@@ -1457,8 +1483,10 @@ export function buildSchool(scene) {
   plant(scene, 6.2, -5.2, tuftTexture());
   box(scene, 1.6, 0.42, 0.55, 0x7a5a34, 4.6, 0.21, -3.2, { collider: true });
 
-  // corredor: armários com respiros, placa da árvore, carrinho de livros
-  for (const z of [-7.2, -9.2, -11.2, -13.2, -15]) {
+  // corredor: armários com respiros, placa da árvore, carrinho de livros.
+  // os armários NÃO podem cobrir o vão do portão oeste (z −12.8..−11.2): com a
+  // fileira inteira eles tapavam a calçada e a rota da sala de aula
+  for (const z of [-7.2, -9.2, -15]) {
     box(scene, 0.45, 1.9, 1.7, 0x2c3560, -1.55, 0.95, z, { collider: true });
     const vents = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.4, 1.1), mat(0x1d2445));
     vents.position.set(-1.31, 1.25, z);
@@ -1481,10 +1509,12 @@ export function buildSchool(scene) {
   glowSprite(scene, zone, 0xffd166, 1.5, 1.35, 1.5, -8.5, { opacity: 0.4, amp: 0.14 });
   addInteract('signTree', 0.9, -8.5, 1.4);
 
-  box(scene, 1.1, 0.7, 0.55, 0x7a4a2a, -0.9, 0.45, -12.5, { collider: true });
-  box(scene, 1.0, 0.3, 0.45, 0xc0392b, -0.9, 0.95, -12.5);
-  box(scene, 0.16, 0.24, 0.3, 0x3e6cb0, -1.1, 1.25, -12.5);
-  addInteract('pieceTrolley', -0.6, -11.9, 1.5);
+  // o carrinho mora na biblioteca: no corredor ele tapava a boca do portão
+  // oeste (z≈-12,5) e a saída para a biblioteca (z≈-15)
+  box(scene, 1.1, 0.7, 0.55, 0x7a4a2a, -5.4, 0.45, -19.3, { collider: true });
+  box(scene, 1.0, 0.3, 0.45, 0xc0392b, -5.4, 0.95, -19.3);
+  box(scene, 0.16, 0.24, 0.3, 0x3e6cb0, -5.6, 1.25, -19.3);
+  addInteract('pieceTrolley', -4.8, -18.8, 1.5);
 
   // biblioteca: estantes com espinhas de livros
   shelfWithBooks(scene, -3.2, -27.55, 4.4, 0.7, 's');

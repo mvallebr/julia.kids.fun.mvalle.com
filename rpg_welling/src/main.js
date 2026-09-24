@@ -1814,6 +1814,9 @@ window.__rpgWelling = {
     exits: zone?.exits,
     lastGoal: lastGoal && { x: +lastGoal.x.toFixed(2), z: +lastGoal.z.toFixed(2) },
     colliders: zone?.colliders?.length,
+    // QA de conectividade: com as caixas em mãos dá para remontar a grade do
+    // A* no navegador e inundar a partir do spawn, sem instrumentar o jogo.
+    colliderBoxes: () => zone?.colliders?.map((c) => [+c.minX.toFixed(2), +c.minZ.toFixed(2), +c.maxX.toFixed(2), +c.maxZ.toFixed(2)]),
   }),
   interact: (id) => interact(id),
   kids: () => [playerObj, companionObj].map((o) => o && ({
