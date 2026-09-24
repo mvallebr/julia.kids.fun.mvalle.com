@@ -131,7 +131,7 @@ function armExitsAt(x, z) {
     if (Math.hypot(exit.x - x, exit.z - z) <= exit.radius) exitInside.add(`${exit.target}:${exit.x}:${exit.z}`);
   }
 }
-window.__BUNDLE_V = 'q'; // marcador de versão pra debug de cache
+window.__BUNDLE_V = 'r'; // marcador de versão pra debug de cache
 
 function initThree() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -174,6 +174,13 @@ function buildScene(zoneName) {
     : zoneName === 'academy' ? buildAcademy(scene)
     : zoneName === 'classroom' ? buildClassroom(scene)
     : buildSchool(scene);
+  // oclusores da câmera: malhas reais da zona (paredes, telhados, móveis,
+  // árvores instanciadas). Colliders 2D não conhecem telhado — cortar o braço
+  // da câmera só por eles enfiava a câmera dentro do beiral.
+  occluders = [];
+  scene.traverse((node) => {
+    if (node.isMesh && node.visible) occluders.push(node);
+  });
   if (ZONE_NAMES[zoneName]) {
     setTimeout(() => toast(root, lang(ZONE_NAMES[zoneName], language), { duration: 2600 }), 600);
   }
@@ -1868,18 +1875,49 @@ function chooseCharacter() {
 }
 
 // ── loop principal ───────────────────────────────────────────────────────────
-// câmera orbital: arraste na tela gira (camYaw), inclina (camPitch —
-// arrastar pra cima abaixa a câmera e mostra os rostos) e pinça/scroll
-// dá zoom (camZoom). CAM_R é a distância base.
+// câmera orbital: arraste na tela gira (camYaw), inclina (camPitch — arrastar
+// pra cima abaixa a câmera e mostra os rostos) e pinça/scroll dá zoom
+// (camZoom). CAM_R é a distância base.
 let camYaw = 0;
 let camZoom = 1;
 let camPitch = 0.55; // rad; arraste vertical ajusta — baixo = vê os rostos
 const CAM_R = 11.2; // distância base da câmera (× camZoom)
 const CAM_PITCH_MIN = 0.22; // ~13°: quase atrás da jogadora
-const CAM_PITCH_MAX = 1.15; // ~66°: visão de cima
+const CAM_PITCH_MAX = 1.05; // ~60°: de cima ainda dá pra ver as personagens
 const CAM_ZOOM_MIN = 0.55;
-const CAM_ZOOM_MAX = 2.2;
+// zoom máximo moderado: mais longe que isto e as personagens viram pontinhos
+const CAM_ZOOM_MAX = 1.45;
 const lookTarget = new THREE.Vector3();
+
+// ── a câmera nunca fica atrás de parede nem dentro do telhado ────────────────
+// Raycast contra as malhas reais da zona (occluders, montado no buildScene):
+// colliders 2D não conhecem telhado/beiral, e cortar o braço só por eles
+// enfiava a câmera dentro do beiral. Com raycast, a câmera para NA PRIMEIRA
+// superfície de verdade entre a cabeça da jogadora e a posição desejada.
+const CAMERA_ARM_MARGIN = 0.4; // folga depois da superfície atingida (m)
+const CAMERA_ARM_MIN = 1.6; // nunca mais perto que isto da jogadora (m)
+const CAMERA_HIT_MIN = 1.4; // acertos mais perto que isto são móvel encostado
+const cameraRay = new THREE.Raycaster();
+let occluders = [];
+let lastCamHit = null; // debug: o que a câmera bateu por último
+let cameraClipped = false; // o frame atual está com o braço cortado?
+
+function clipCameraArm(head, desired) {
+  const dir = new THREE.Vector3().subVectors(desired, head);
+  const len3 = dir.length();
+  if (len3 < 1e-4 || occluders.length === 0) return null;
+  cameraRay.set(head, dir.normalize()); // dir vira VETOR UNITÁRIO aqui
+  cameraRay.far = len3;
+  const hits = cameraRay.intersectObjects(occluders, false);
+  // móveis/malhas a <1,4 m da cabeça são "ela está encostada": ignorar, senão
+  // a distância mínima empurraria a câmera PARA DENTRO do móvel
+  const hit = hits.find((h) => h.distance >= CAMERA_HIT_MIN);
+  if (!hit) { lastCamHit = null; cameraClipped = false; return null; }
+  lastCamHit = { d: +hit.distance.toFixed(2), name: hit.object.name || '(sem nome)', geo: hit.object.geometry?.type };
+  cameraClipped = true;
+  const dist = Math.max(hit.distance - CAMERA_ARM_MARGIN, CAMERA_ARM_MIN);
+  return new THREE.Vector3().copy(dir).multiplyScalar(dist).add(head);
+}
 
 function animate() {
   requestAnimationFrame(animate);
@@ -2039,8 +2077,28 @@ function animate() {
       dist * Math.sin(camPitch),
       Math.cos(camYaw) * horiz
     );
-    camera.position.lerp(new THREE.Vector3().copy(playerObj.position).add(off), 1 - Math.exp(-dt * 5));
-    lookTarget.set(playerObj.position.x, 0.6, playerObj.position.z);
+    const desiredCam = new THREE.Vector3().copy(playerObj.position).add(off);
+    const head = new THREE.Vector3(playerObj.position.x, 0.6, playerObj.position.z);
+    const clipped = clipCameraArm(head, desiredCam);
+    if (clipped) {
+      // parede/teto entre a jogadora e a câmera: encaixa NA HORA na frente
+      // (lerp atravessaria por vários frames)
+      camera.position.copy(clipped);
+    } else {
+      cameraClipped = false;
+      camera.position.lerp(desiredCam, 1 - Math.exp(-dt * 5));
+    }
+    if (cameraClipped) {
+      // vista apertada (sala pequena): mira num ponto ALÉM dela — a menina
+      // fica baixa no quadro e o que ela está fazendo aparece na frente
+      lookTarget.set(
+        head.x + (desiredCam.x - head.x) * -0.35,
+        0.9,
+        head.z + (desiredCam.z - head.z) * -0.35
+      );
+    } else {
+      lookTarget.set(playerObj.position.x, 0.6, playerObj.position.z);
+    }
     camera.lookAt(lookTarget);
 
     // sol acompanha a jogadora para sombras estáveis (câmera de sombra relativa)
@@ -2289,6 +2347,9 @@ window.__rpgWelling = {
     // QA de conectividade: com as caixas em mãos dá para remontar a grade do
     // A* no navegador e inundar a partir do spawn, sem instrumentar o jogo.
     colliderBoxes: () => zone?.colliders?.map((c) => [+c.minX.toFixed(2), +c.minZ.toFixed(2), +c.maxX.toFixed(2), +c.maxZ.toFixed(2)]),
+    cameraPos: () => camera.position.toArray().map((n) => +n.toFixed(2)),
+    camHit: () => lastCamHit,
+    occluders: () => occluders.length,
   }),
   interact: (id) => interact(id),
   kids: () => [playerObj, companionObj].map((o) => o && ({
