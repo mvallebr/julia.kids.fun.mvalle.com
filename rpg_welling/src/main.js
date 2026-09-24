@@ -131,7 +131,7 @@ function armExitsAt(x, z) {
     if (Math.hypot(exit.x - x, exit.z - z) <= exit.radius) exitInside.add(`${exit.target}:${exit.x}:${exit.z}`);
   }
 }
-window.__BUNDLE_V = 'p'; // marcador de versão pra debug de cache
+window.__BUNDLE_V = 'q'; // marcador de versão pra debug de cache
 
 function initThree() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
