@@ -1094,18 +1094,28 @@ function lightShaft(parent, x, y, z, { radius = 1.5, height = 11, tilt = 0.2, op
 // fundo. Tudo bem além dos limites jogáveis: dá profundidade sem colisão.
 function skyDome(scene, zone, { top, horizon, glow = '#ffe6b0', stars = false, hills = 'green' } = {}) {
   const tex = canvasTexture(32, 256, (ctx, w, h) => {
+    // A UV da esfera vai de 1 no zênite a 0.5 no horizonte (e 0 na base), e o
+    // topo do canvas é o zênite. Com as paradas em 0.78/0.92 o horizonte caía
+    // fora da faixa visível: o céu inteiro ficava azul chapado e as cores
+    // claras só apareciam DEPOIS da borda do terreno, como uma faixa pálida
+    // cortando o chão — a "quebra" no horizonte.
     const g = ctx.createLinearGradient(0, 0, 0, h);
+    // abaixo da linha do horizonte a cúpula assume a névoa da zona: o terreno
+    // é um plano finito, e sem isso aparecia um anel pálido na borda dele
+    const below = zone?.fog?.[0] ?? horizon;
     g.addColorStop(0, top);
-    g.addColorStop(0.55, top);
-    g.addColorStop(0.78, horizon);
-    g.addColorStop(0.92, glow);
-    g.addColorStop(1, horizon);
+    g.addColorStop(0.3, top);
+    g.addColorStop(0.44, horizon);
+    g.addColorStop(0.49, glow);
+    g.addColorStop(0.53, horizon);
+    g.addColorStop(0.62, below);
+    g.addColorStop(1, below);
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, w, h);
     if (stars) {
       for (let i = 0; i < 90; i += 1) {
         const x = Math.random() * w;
-        const y = Math.random() * h * 0.55;
+        const y = Math.random() * h * 0.42;
         ctx.fillStyle = `rgba(255,255,235,${0.35 + Math.random() * 0.6})`;
         ctx.fillRect(x, y, 1.4, 1.4);
       }
@@ -1213,12 +1223,18 @@ function photoBand(scene, zone, {
     // resultado fica "realista" sem brigar com o low-poly da fase
     ctx.fillStyle = 'rgba(112, 142, 112, 0.16)';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
-    // névoa: dissolve o topo no céu e a base no chão
-    const skyFade = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.34);
-    skyFade.addColorStop(0, `rgba(${sky}, 1)`);
-    skyFade.addColorStop(1, `rgba(${sky}, 0)`);
+    // névoa: dissolve o topo no céu e a base no chão.
+    // O topo tem que sumir em TRANSPARENTE (como no placeholder), não ser
+    // pintado de céu: opaco ele virava uma laje pálida de uns 19m de altura
+    // no horizonte, e como a sky dome é azul chapado, a borda superior da
+    // laje aparecia como uma emenda reta no meio do céu.
+    const skyFade = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.44);
+    skyFade.addColorStop(0, 'rgba(0, 0, 0, 1)');
+    skyFade.addColorStop(1, 'rgba(0, 0, 0, 0)');
+    ctx.globalCompositeOperation = 'destination-out';
     ctx.fillStyle = skyFade;
-    ctx.fillRect(0, 0, canvas.width, canvas.height * 0.34);
+    ctx.fillRect(0, 0, canvas.width, canvas.height * 0.44);
+    ctx.globalCompositeOperation = 'source-over';
     const groundFade = ctx.createLinearGradient(0, canvas.height, 0, canvas.height * 0.58);
     groundFade.addColorStop(0, `rgba(${haze}, 1)`);
     groundFade.addColorStop(1, `rgba(${haze}, 0)`);
