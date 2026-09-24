@@ -1089,18 +1089,162 @@ function lightShaft(parent, x, y, z, { radius = 1.5, height = 11, tilt = 0.2, op
   return shaft;
 }
 
+// ── cenários de fundo: céu, nuvens, colinas, silhuetas de cidade ────────────
+// Cúpula de céu pintada (gradiente vertical) + nuvens macias + silhuetas ao
+// fundo. Tudo bem além dos limites jogáveis: dá profundidade sem colisão.
+function skyDome(scene, zone, { top, horizon, glow = '#ffe6b0', stars = false, hills = 'green' } = {}) {
+  const tex = canvasTexture(32, 256, (ctx, w, h) => {
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, top);
+    g.addColorStop(0.55, top);
+    g.addColorStop(0.78, horizon);
+    g.addColorStop(0.92, glow);
+    g.addColorStop(1, horizon);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    if (stars) {
+      for (let i = 0; i < 90; i += 1) {
+        const x = Math.random() * w;
+        const y = Math.random() * h * 0.55;
+        ctx.fillStyle = `rgba(255,255,235,${0.35 + Math.random() * 0.6})`;
+        ctx.fillRect(x, y, 1.4, 1.4);
+      }
+    }
+  });
+  const dome = new THREE.Mesh(
+    new THREE.SphereGeometry(170, 24, 16),
+    new THREE.MeshBasicMaterial({ map: tex, side: THREE.BackSide, fog: false, depthWrite: false })
+  );
+  scene.add(dome);
+  zone.skyDome = dome;
+
+  // nuvens:.esferas achatadas brancas, drifting devagar no update da zona
+  const clouds = [];
+  const cloudMat = new THREE.MeshLambertMaterial({ color: 0xfffaf0, transparent: true, opacity: 0.92, fog: false, depthWrite: false });
+  for (let i = 0; i < 7; i += 1) {
+    const cloud = new THREE.Group();
+    const lobes = 3 + Math.floor(Math.random() * 3);
+    for (let j = 0; j < lobes; j += 1) {
+      const lobe = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 8), cloudMat);
+      lobe.position.set((j - lobes / 2) * 1.6, Math.random() * 0.5, Math.random() * 0.8);
+      lobe.scale.set(1.7, 0.7, 1.1);
+      cloud.add(lobe);
+    }
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 70 + Math.random() * 45;
+    const s = 3.5 + Math.random() * 3.5;
+    cloud.scale.setScalar(s);
+    cloud.position.set(Math.cos(angle) * radius, 26 + Math.random() * 16, Math.sin(angle) * radius);
+    scene.add(cloud);
+    clouds.push(cloud);
+  }
+
+  // silhuetas ao fundo: colinas suaves ou skyline de casinhas
+  const city = hills === 'city';
+  const silhouette = new THREE.MeshBasicMaterial({ color: city ? 0x46586f : 0x3f6048, fog: false, depthWrite: false, transparent: true, opacity: 0.95 });
+  const skyline = new THREE.Group();
+  for (let i = 0; i < 26; i += 1) {
+    const angle = (i / 26) * Math.PI * 2 + Math.random() * 0.1;
+    const radius = 95 + Math.random() * 30;
+    const h = city ? 8 + Math.random() * 16 : 10 + Math.random() * 18;
+    let piece;
+    if (city) {
+      piece = new THREE.Mesh(new THREE.BoxGeometry(8 + Math.random() * 10, h, 8), silhouette);
+      if (Math.random() > 0.6) {
+        const roof = new THREE.Mesh(new THREE.ConeGeometry(6, 5, 4), silhouette);
+        roof.position.y = h / 2 + 2.5;
+        roof.rotation.y = Math.PI / 4;
+        piece.add(roof);
+      }
+    } else {
+      piece = new THREE.Mesh(new THREE.SphereGeometry(12 + Math.random() * 10, 10, 7), silhouette);
+      piece.scale.y = 0.5 + Math.random() * 0.4;
+    }
+    piece.position.set(Math.cos(angle) * radius, h / 2 - 2, Math.sin(angle) * radius);
+    piece.lookAt(0, piece.position.y, 0);
+    skyline.add(piece);
+  }
+  scene.add(skyline);
+  zone.clouds = clouds;
+  return zone;
+}
+
+// sol/lua visível no céu (glow aditivo distante, casa com o DirectionalLight)
+function skyGlow(scene, zone, color, x, y, z, size = 14) {
+  const glow = glowSprite(scene, zone, color, size, x, y, z, { opacity: 0.55, amp: 0.05, speed: 0.6 });
+  glow.material.fog = false;
+  return glow;
+}
+
+// ── barreiras visuais de borda: a "cerca" que fecha o horizonte do jogável ───
+// A colisão já trava em zone.bounds; isto é a moldura visual (sebe/cerca/
+// treeline), pra nunca parecer que o chão acabou no nada.
+function hedgeRow(scene, x1, z1, x2, z2, { height = 0.9, color = 0x2e6b34, spacing = 1.1 } = {}) {
+  const length = Math.hypot(x2 - x1, z2 - z1);
+  const steps = Math.max(1, Math.round(length / spacing));
+  for (let i = 0; i <= steps; i += 1) {
+    const t = i / steps;
+    const x = x1 + (x2 - x1) * t;
+    const z = z1 + (z2 - z1) * t;
+    const blob = new THREE.Mesh(new THREE.SphereGeometry(height * 0.62, 8, 7), mat(color));
+    blob.position.set(x, height * 0.55, z);
+    blob.scale.y = 1.15;
+    blob.castShadow = true;
+    scene.add(blob);
+  }
+}
+
+function railing(parent, x1, z1, x2, z2, { height = 0.9, color = 0x2f3a44 } = {}) {
+  const length = Math.hypot(x2 - x1, z2 - z1);
+  const x = (x1 + x2) / 2;
+  const z = (z1 + z2) / 2;
+  const horizontal = Math.abs(x2 - x1) > Math.abs(z2 - z1);
+  const bar = new THREE.Mesh(new THREE.BoxGeometry(horizontal ? length : 0.08, 0.08, horizontal ? 0.08 : length), mat(color));
+  bar.position.set(x, height, z);
+  parent.add(bar);
+  const lower = bar.clone();
+  lower.position.y = height * 0.5;
+  parent.add(lower);
+  const posts = Math.max(2, Math.round(length / 1.6));
+  for (let i = 0; i <= posts; i += 1) {
+    const t = i / posts;
+    const post = new THREE.Mesh(new THREE.BoxGeometry(0.09, height, 0.09), mat(color));
+    post.position.set(x1 + (x2 - x1) * t, height / 2, z1 + (z2 - z1) * t);
+    post.castShadow = true;
+    parent.add(post);
+  }
+}
+
+// poste de sinalização de trilha (Green Chain Walk / Capital Ring na vida real)
+function signpost(parent, x, z, rotY = 0) {
+  const post = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 1.7, 8), mat(0x6b4a2e));
+  post.position.set(x, 0.85, z);
+  post.castShadow = true;
+  parent.add(post);
+  for (const [i, angle] of [[0, 0.35], [1, Math.PI - 0.4]].entries()) {
+    const arm = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.14, 0.05), mat(0x4a7a3a));
+    arm.position.set(x + Math.cos(angle) * 0.38, 1.5 - i * 0.28, z);
+    arm.rotation.y = angle + rotY;
+    parent.add(arm);
+  }
+  return post;
+}
+
 // ── Zona 1: escola ───────────────────────────────────────────────────────────
 export function buildSchool(scene) {
   const zone = {
     name: 'school',
     spawn: [0, 0.6],
-    bounds: { minX: -6.5, maxX: 6.5, minZ: -27.4, maxZ: 2.9 },
+    // escola 5x maior: o corredor central continua, agora cercado de
+    // pátio, parquinho, horta, quadra e campo — e o chão cobre tudo (nada de
+    // "cair pra fora do mundo" nos quintais laterais, que antes eram vazios).
+    bounds: { minX: -12, maxX: 12, minZ: -37, maxZ: 3.2 },
     colliders: [],
     interactables: [],
     hemi: [0xfff2d9, 0x6b5a44, 1.15],
     sun: { color: 0xffe0a8, intensity: 1.95, pos: [8, 14, 6] },
-    background: 0x241f38,
-    fog: [0x241f38, 34, 90],
+    background: 0x8fc9e8,
+    fog: [0x8fc9e8, 46, 150],
     npcSpots: { finch: [-4.3, 0.8], page: [-4.8, -25.1] },
     // mundo semi-aberto: sair pelo portão da frente leva à High Street
     exits: [
@@ -1110,9 +1254,28 @@ export function buildSchool(scene) {
   };
   scene.userData.zone = zone;
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
+  skyDome(scene, zone, { top: '#4a8fd4', horizon: '#bfe3f2', glow: '#ffe9c0', hills: 'city' });
+  skyGlow(scene, zone, 0xfff0c0, -40, 34, 60, 18);
 
   const plaster = pbrFrom(plasterTexture(), [3, 2]);
   const brick = pbrFrom(brickTexture(), [2, 0.7], 1.2);
+
+  // gramado base: cobre TODOS os limites (inclusive os quintais laterais e o
+  // campo) — antes havia buracos sem chão ao redor do corredor.
+  const lawnTexRaw = grassTexture();
+  lawnTexRaw.texture.wrapS = lawnTexRaw.texture.wrapT = THREE.RepeatWrapping;
+  lawnTexRaw.texture.repeat.set(8, 12);
+  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(26, 42), pbrFrom(lawnTexRaw, [8, 12], 1.3, [0.75, 1.0]));
+  lawn.rotation.x = -Math.PI / 2;
+  lawn.position.set(0, -0.01, -16.5);
+  lawn.receiveShadow = true;
+  scene.add(lawn);
+  // piso de cimento do pátio da frente
+  const yard = new THREE.Mesh(new THREE.PlaneGeometry(15, 9), pbrFrom(stoneTexture(), [5, 3], 1.2, [0.7, 1.0]));
+  yard.rotation.x = -Math.PI / 2;
+  yard.position.set(0, 0, -0.5);
+  yard.receiveShadow = true;
+  scene.add(yard);
 
   const hallFloor = new THREE.Mesh(new THREE.PlaneGeometry(14.4, 10.4), pbrFrom(planksTexture(), [4, 3], 0.45, [0.55, 0.95]));
   hallFloor.rotation.x = -Math.PI / 2;
@@ -1336,10 +1499,250 @@ export function buildSchool(scene) {
   addInteract('page', -4.8, -25.1, 1.9);
   addInteract('finch', -4.3, 0.8, 1.9);
 
+  // ── expansão: as novas áreas da escola (tudo sobre o gramado base) ──────
+  const schoolTree = (x, z, scale = 1.2, collider = true) => {
+    const src = glbSource('trees.glb');
+    if (!src) return;
+    const t = src.scene.clone(true);
+    t.traverse((c) => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+    t.position.set(x, 0, z);
+    t.rotation.y = Math.random() * Math.PI * 2;
+    t.scale.setScalar(scale * 1.5);
+    scene.add(t);
+    if (collider) addCollider(scene, x, z, 0.7 * scale, 0.7 * scale);
+  };
+
+  // anexo da sala de aula (a porta que leva à zona classroom)
+  wall(scene, -7.6, -13.4, -7.6, -10.6, 2.2, brick);
+  wall(scene, -7.6, -13.4, -4.3, -13.4, 2.2, plaster);
+  wall(scene, -7.6, -10.6, -4.3, -10.6, 2.2, plaster);
+  wall(scene, -4.3, -13.4, -4.3, -12.8, 2.2, plaster);
+  wall(scene, -4.3, -11.2, -4.3, -10.6, 2.2, plaster);
+  box(scene, 0.14, 0.6, 1.6, plaster, -4.3, 1.9, -12); // verga da porta
+  const annexSign = makeLabelSprite('CLASSROOM');
+  annexSign.position.set(-4.35, 1.75, -12);
+  annexSign.rotation.y = Math.PI / 2;
+  annexSign.scale.set(1.5, 0.38, 1);
+  scene.add(annexSign);
+
+  // gramado da frente (oeste): árvores, bancos, canteiros
+  schoolTree(-9.4, 0.8, 1.4);
+  schoolTree(-10.6, -1.8, 1.0);
+  for (const [bx, bz] of [[-8.2, 2.2], [-10.9, 1.6]]) {
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 1.7), mat(0x6b4a2a));
+    bench.position.set(bx, 0.21, bz);
+    bench.castShadow = true;
+    scene.add(bench);
+    addCollider(scene, bx, bz, 0.3, 0.9);
+  }
+  for (const [px, pz] of [[-7.9, 0.4], [-7.9, -1.4], [-11.4, -0.4]]) plant(scene, px, pz, tuftTexture());
+
+  // parquinho (leste da frente): escorregador, balanço duplo e caixote de areia
+  const rubber = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 6.6), mat(0xc0603f));
+  rubber.rotation.x = -Math.PI / 2;
+  rubber.position.set(9.6, 0.01, -0.6);
+  rubber.receiveShadow = true;
+  scene.add(rubber);
+  railing(scene, 7.5, -3.9, 11.7, -3.9, { height: 0.8 });
+  railing(scene, 11.7, -3.9, 11.7, 2.7, { height: 0.8 });
+  railing(scene, 7.5, 2.7, 11.7, 2.7, { height: 0.8 });
+  // escorregador
+  const slideTop = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.5, 0.9), mat(0x3f7d6a));
+  slideTop.position.set(8.5, 0.9, 0.8);
+  slideTop.castShadow = true;
+  scene.add(slideTop);
+  addCollider(scene, 8.5, 0.8, 0.5, 0.5);
+  const slideRamp = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.1, 2.4), mat(0xf2c14e));
+  slideRamp.position.set(8.5, 0.55, -0.9);
+  slideRamp.rotation.x = 0.5;
+  slideRamp.castShadow = true;
+  scene.add(slideRamp);
+  // balanço duplo
+  for (const fx of [10.4, 11.2]) {
+    const leg = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.8, 0.1), mat(0x2f3a44));
+    leg.position.set(fx, 0.9, -1.6);
+    leg.rotation.z = fx < 11 ? -0.22 : 0.22;
+    leg.castShadow = true;
+    scene.add(leg);
+  }
+  const swingBar = new THREE.Mesh(new THREE.BoxGeometry(1.4, 0.08, 0.08), mat(0x2f3a44));
+  swingBar.position.set(10.8, 1.75, -1.6);
+  scene.add(swingBar);
+  for (const sx of [10.55, 11.05]) {
+    const rope = new THREE.Mesh(new THREE.BoxGeometry(0.03, 1.1, 0.03), mat(0xe8dcc3));
+    rope.position.set(sx, 1.2, -1.6);
+    scene.add(rope);
+    const seat = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.06, 0.24), mat(0xc0392b));
+    seat.position.set(sx, 0.62, -1.6);
+    scene.add(seat);
+  }
+  addCollider(scene, 10.8, -1.6, 0.8, 0.3);
+  // caixote de areia
+  box(scene, 2.0, 0.25, 1.6, 0x6b4a2e, 9.3, 0.12, -3.0, { collider: true });
+  const sand = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.1, 1.4), mat(0xe8d9a0));
+  sand.position.set(9.3, 0.27, -3.0);
+  scene.add(sand);
+  // guarda-chuva perdido da Sra. Page (aventura)
+  const umbrella = new THREE.Group();
+  const umbrellaShaft = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.8), mat(0x3a2a1a));
+  umbrellaShaft.position.y = 0.4;
+  umbrella.add(umbrellaShaft);
+  const umbrellaCanopy = new THREE.Mesh(new THREE.ConeGeometry(0.28, 0.4, 8), mat(0x8e3f6b));
+  umbrellaCanopy.position.y = 0.85;
+  umbrella.add(umbrellaCanopy);
+  umbrella.position.set(11.3, 0, 2.0);
+  umbrella.rotation.z = 0.5;
+  scene.add(umbrella);
+  glowSprite(scene, zone, 0xff9de2, 1.0, 11.3, 0.7, 2.0, { opacity: 0.4, amp: 0.18, speed: 2.4 });
+  addInteract('umbrellaSpot', 11.0, 2.0, 1.5);
+  addInteract('playground', 9.4, -1.2, 2.0);
+
+  // ── horta (oeste, meio): estufa de vidro + canteiros elevados ─────────────
+  const soil = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 8.4), mat(0x6b4a2e));
+  soil.rotation.x = -Math.PI / 2;
+  soil.position.set(-9.6, 0.012, -9.4);
+  soil.receiveShadow = true;
+  scene.add(soil);
+  // estufa
+  const greenhouseBase = new THREE.Mesh(new THREE.BoxGeometry(2.6, 0.9, 3.0), mat(0x9e8a6a));
+  greenhouseBase.position.set(-9.6, 0.45, -12.2);
+  greenhouseBase.castShadow = true;
+  scene.add(greenhouseBase);
+  addCollider(scene, -9.6, -12.2, 1.3, 1.5);
+  const greenhouseGlass = new THREE.Mesh(
+    new THREE.BoxGeometry(2.5, 1.3, 2.9),
+    new THREE.MeshPhongMaterial({ color: 0xcfe8d8, transparent: true, opacity: 0.32, shininess: 90 })
+  );
+  greenhouseGlass.position.set(-9.6, 1.55, -12.2);
+  scene.add(greenhouseGlass);
+  for (const [gx, gz] of [[-10.8, -13.6], [-8.4, -13.6], [-10.8, -10.8], [-8.4, -10.8]]) {
+    const frame = new THREE.Mesh(new THREE.BoxGeometry(0.08, 2.1, 0.08), mat(0x4a7a3a));
+    frame.position.set(gx, 1.05, gz);
+    scene.add(frame);
+  }
+  glowSprite(scene, zone, 0xbfffd0, 1.6, -9.6, 1.5, -12.2, { opacity: 0.22, amp: 0.06, speed: 1.2 });
+  // canteiros com legumes
+  for (const [bx, bz] of [[-9.6, -7.4], [-9.6, -5.4]]) {
+    box(scene, 2.4, 0.35, 1.4, 0x8a5a34, bx, 0.18, bz, { collider: true });
+    for (let r = 0; r < 2; r += 1) {
+      for (let c = 0; c < 3; c += 1) {
+        const veg = new THREE.Mesh(new THREE.SphereGeometry(0.13, 8, 7), mat(r === 0 ? 0x4a9148 : 0xc0603f));
+        veg.position.set(bx - 0.7 + c * 0.7, 0.42, bz - 0.3 + r * 0.6);
+        veg.scale.y = 0.8;
+        scene.add(veg);
+      }
+    }
+  }
+  const wateringCan = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.17, 0.3, 10), mat(0x3f6cb0));
+  wateringCan.position.set(-8.6, 0.15, -8.6);
+  scene.add(wateringCan);
+  // espantalho
+  const scarecrowPost = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 1.5, 8), mat(0x6b4a2e));
+  scarecrowPost.position.set(-11.0, 0.75, -10.0);
+  scene.add(scarecrowPost);
+  const scarecrowHead = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8), mat(0xe8d9a0));
+  scarecrowHead.position.set(-11.0, 1.6, -10.0);
+  scarecrowHead.castShadow = true;
+  scene.add(scarecrowHead);
+  const scarecrowHat = new THREE.Mesh(new THREE.ConeGeometry(0.3, 0.3, 8), mat(0xb56a4a));
+  scarecrowHat.position.set(-11.0, 1.9, -10.0);
+  scene.add(scarecrowHat);
+  addInteract('garden', -9.4, -8.6, 2.0);
+
+  // ── quadra esportiva (leste, fundos): MUGA com gols + tabela de jogos ────
+  const court = new THREE.Mesh(new THREE.PlaneGeometry(4.0, 14), mat(0x3f6c8a));
+  court.rotation.x = -Math.PI / 2;
+  court.position.set(9.6, 0.012, -14);
+  court.receiveShadow = true;
+  scene.add(court);
+  for (const lz of [-14, -20, -8]) {
+    const line = new THREE.Mesh(new THREE.PlaneGeometry(3.8, 0.08), mat(0xf2ede0));
+    line.rotation.x = -Math.PI / 2;
+    line.position.set(9.6, 0.025, lz);
+    scene.add(line);
+  }
+  const centerLine = new THREE.Mesh(new THREE.PlaneGeometry(0.08, 13.6), mat(0xf2ede0));
+  centerLine.rotation.x = -Math.PI / 2;
+  centerLine.position.set(9.6, 0.025, -14);
+  scene.add(centerLine);
+  for (const gz of [-19.6, -8.4]) {
+    const goal = new THREE.Group();
+    for (const gx of [-0.6, 0.6]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.08, 1.1, 0.08), mat(0xf2ede0));
+      post.position.set(gx, 0.55, 0);
+      goal.add(post);
+    }
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.28, 0.08, 0.08), mat(0xf2ede0));
+    bar.position.set(0, 1.1, 0);
+    goal.add(bar);
+    goal.position.set(9.6, 0, gz);
+    scene.add(goal);
+  }
+  // tabela de jogos presa na cerca (página escondida)
+  const timetable = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.9, 1.3), mat(0x4a3a2a));
+  timetable.position.set(11.5, 1.1, -18.4);
+  timetable.castShadow = true;
+  scene.add(timetable);
+  glowSprite(scene, zone, 0xfff3b0, 0.8, 11.3, 1.3, -18.4, { opacity: 0.4, amp: 0.2, speed: 2.4 });
+  addInteract('clueTimetable', 11.2, -18.4, 1.4);
+  addInteract('sports', 9.6, -14, 2.2);
+  railing(scene, 7.5, -21.2, 11.7, -21.2, { height: 1.1 });
+  railing(scene, 7.5, -21.2, 7.5, -6.8, { height: 1.1 });
+  railing(scene, 11.7, -21.2, 11.7, -6.8, { height: 1.1 });
+  railing(scene, 7.5, -6.8, 11.7, -6.8, { height: 1.1 });
+
+  // ── campo de futebol (atrás da biblioteca, o "fundo" da escola) ──────────
+  const pitch = new THREE.Mesh(new THREE.PlaneGeometry(22, 8), mat(0x3f7d3a));
+  pitch.rotation.x = -Math.PI / 2;
+  pitch.position.set(0, 0.008, -32.5);
+  pitch.receiveShadow = true;
+  scene.add(pitch);
+  const circle = new THREE.Mesh(new THREE.RingGeometry(1.4, 1.55, 32), mat(0xf2ede0));
+  circle.rotation.x = -Math.PI / 2;
+  circle.position.set(0, 0.02, -32.5);
+  scene.add(circle);
+  for (const gz of [-36.3, -28.7]) {
+    const goal = new THREE.Group();
+    for (const gx of [-0.9, 0.9]) {
+      const post = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.3, 0.1), mat(0xf2ede0));
+      post.position.set(gx, 0.65, 0);
+      goal.add(post);
+    }
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.1, 0.1), mat(0xf2ede0));
+    bar.position.set(0, 1.3, 0);
+    goal.add(bar);
+    goal.position.set(0, 0, gz);
+    scene.add(goal);
+  }
+  const track = new THREE.Mesh(new THREE.PlaneGeometry(24, 1.6), pbrFrom(dirtTexture(), [8, 1], 1.0, [0.75, 1.0]));
+  track.rotation.x = -Math.PI / 2;
+  track.position.set(0, 0.006, -28.2);
+  scene.add(track);
+  for (const bx of [-8, 8]) {
+    const bench = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 1.7), mat(0x6b4a2a));
+    bench.position.set(bx, 0.21, -28.6);
+    bench.castShadow = true;
+    scene.add(bench);
+    addCollider(scene, bx, -28.6, 0.3, 0.9);
+  }
+  addInteract('field', 0, -32.5, 2.4);
+  // treeline atrás do campo: fecha o horizonte com árvores de verdade
+  for (let i = 0; i < 9; i += 1) schoolTree(-10.4 + i * 2.6, -36.6 - (i % 2) * 0.5, 1.5 + (i % 3) * 0.3, false);
+  for (let i = 0; i < 4; i += 1) schoolTree(-11.6, -2 - i * 8, 1.3, false);
+  for (let i = 0; i < 4; i += 1) schoolTree(11.6, -2 - i * 8, 1.3, false);
+
+  // barreiras de borda: sebes fecham o gramado (nada de "fora do mundo")
+  hedgeRow(scene, -11.8, 3.0, -11.8, -36.8, { height: 1.0 });
+  hedgeRow(scene, 11.8, 3.0, 11.8, -36.8, { height: 1.0 });
+  hedgeRow(scene, -11.8, -36.9, 11.8, -36.9, { height: 1.1 });
+  hedgeRow(scene, -11.8, 3.0, -2.2, 3.0, { height: 0.8 });
+  hedgeRow(scene, 2.2, 3.0, 11.8, 3.0, { height: 0.8 });
+
   zone.update = (dt, t) => {
     updatePulses(zone, t);
     if (zone.glint) zone.glint.material.opacity = 0.55 + 0.45 * Math.sin(t * 3.2);
     ivyEmblem.scale.setScalar(1 + 0.04 * Math.sin(t * 2.4));
+    for (const cloud of zone.clouds) cloud.position.x += dt * 0.35; // nuvens derivam
   };
   return zone;
 }
@@ -1348,14 +1751,14 @@ export function buildSchool(scene) {
 export function buildHighStreet(scene) {
   const zone = {
     name: 'highstreet',
-    spawn: [0, 16],
+    spawn: [0, 12.4],
     bounds: { minX: -7, maxX: 7, minZ: -16, maxZ: 16 },
     colliders: [],
     interactables: [],
     hemi: [0xfff2d9, 0x5a5a6e, 1.2],
     sun: { color: 0xffe2b0, intensity: 1.8, pos: [6, 15, 8] },
-    background: 0x2a2440,
-    fog: [0x2a2440, 26, 70],
+    background: 0x7ab8d8,
+    fog: [0x7ab8d8, 40, 130],
     npcSpots: { baker: [2.2, -6] },
     // saídas: sul → woods, norte → school (mundo semi-aberto, anda-e-entra)
     exits: [
@@ -1366,6 +1769,33 @@ export function buildHighStreet(scene) {
   };
   scene.userData.zone = zone;
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
+  skyDome(scene, zone, { top: '#3f86c9', horizon: '#cfe3ee', glow: '#ffe9c0', hills: 'city' });
+  skyGlow(scene, zone, 0xfff0c0, 55, 38, 40, 16);
+
+  // calçada cobre TODA a rua (antes havia buracos sem chão nas laterais —
+  // dava pra "cair pra fora do mundo" andando ao lado das lojas)
+  const pavementTexRaw = stoneTexture();
+  pavementTexRaw.texture.wrapS = pavementTexRaw.texture.wrapT = THREE.RepeatWrapping;
+  pavementTexRaw.texture.repeat.set(5, 12);
+  const pavement = new THREE.Mesh(new THREE.PlaneGeometry(15, 34), pbrFrom(pavementTexRaw, [5, 12], 1.5, [0.7, 1.0]));
+  pavement.rotation.x = -Math.PI / 2;
+  pavement.position.set(0, -0.01, 0);
+  pavement.receiveShadow = true;
+  scene.add(pavement);
+  // canteiros floridos fecham as bordas da rua
+  for (const side of [-1, 1]) {
+    for (let i = 0; i < 6; i += 1) {
+      const planter = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.45, 1.4), mat(0x8a5a34));
+      planter.position.set(side * 6.7, 0.22, -13 + i * 5.2);
+      planter.castShadow = true;
+      scene.add(planter);
+      for (let f = 0; f < 3; f += 1) {
+        const flower = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 7), mat([0xc0392b, 0xf2c14e, 0xb8d8ff][(i + f) % 3]));
+        flower.position.set(side * 6.7, 0.55, -13.4 + i * 5.2 + f * 0.45);
+        scene.add(flower);
+      }
+    }
+  }
 
   // calçada de pedra
   const roadTexRaw = stoneTexture();
@@ -1455,21 +1885,24 @@ export function buildHighStreet(scene) {
   addInteract('clueBench', -2.9, 4.3, 1.2);
   glowSprite(scene, zone, 0xfff3b0, 0.8, -2.9, 1.0, 5, { opacity: 0.4, amp: 0.2, speed: 2.4 });
 
-  zone.update = () => {};
+  zone.update = (dt, t) => {
+    updatePulses(zone, t);
+    for (const cloud of zone.clouds) cloud.position.x += dt * 0.35;
+  };
   return zone;
 }
 
 export function buildAcademy(scene) {
   const zone = {
     name: 'academy',
-    spawn: [0, 12],
+    spawn: [0, 9.5],
     bounds: { minX: -6, maxX: 6, minZ: -14, maxZ: 12 },
     colliders: [],
     interactables: [],
     hemi: [0xd9e8ff, 0x2a2a50, 1.1],
     sun: { color: 0xc9d8ff, intensity: 1.5, pos: [-6, 14, 6] },
-    background: 0x1a1a3e,
-    fog: [0x1a1a3e, 20, 55],
+    background: 0x10132e,
+    fog: [0x10132e, 30, 110],
     npcSpots: { raven: [0, -8] },
     exits: [
       { x: 0, z: 11.4, radius: 1.6, target: 'highstreet', spawn: [3.5, 0.2] },
@@ -1477,6 +1910,11 @@ export function buildAcademy(scene) {
   };
   scene.userData.zone = zone;
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
+  skyDome(scene, zone, { top: '#0b0e26', horizon: '#3a3a6e', glow: '#8a7ab8', stars: true, hills: 'city' });
+  skyGlow(scene, zone, 0xf2f0ff, -45, 40, 55, 13); // lua
+  hedgeRow(scene, -5.9, 11.8, 5.9, 11.8, { height: 0.8, color: 0x274a2e, spacing: 1.4 });
+  hedgeRow(scene, -5.9, -13.8, -5.9, 11.8, { height: 0.8, color: 0x274a2e, spacing: 1.4 });
+  hedgeRow(scene, 5.9, -13.8, 5.9, 11.8, { height: 0.8, color: 0x274a2e, spacing: 1.4 });
   const addCollider = (x, z, hw, hd) => zone.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
 
   // pátio de pedra azulada
@@ -1541,6 +1979,8 @@ export function buildAcademy(scene) {
   glowSprite(scene, zone, 0xfff3b0, 0.8, 4.2, 1.0, -8.6, { opacity: 0.4, amp: 0.2, speed: 2.4 });
 
   zone.update = (dt, t) => {
+    updatePulses(zone, t);
+    for (const cloud of zone.clouds) cloud.position.x += dt * 0.2;
     if (zone.duelRing) zone.duelRing.material.opacity = 0.55 + 0.3 * Math.sin(t * 2.4);
   };
   return zone;
@@ -1655,50 +2095,53 @@ export function buildClassroom(scene) {
 export function buildWoods(scene) {
   const zone = {
     name: 'woods',
-    spawn: [0, 25],
-    bounds: { minX: -5.2, maxX: 5.2, minZ: -17.4, maxZ: 26.4 },
+    spawn: [0, 32],
+    // Oxleas 3,6x maior em área: prado do café, Castle Wood (Severndroog),
+    // lago do lado sul, academia ao ar livre e a trilha do Green Chain.
+    bounds: { minX: -15, maxX: 15, minZ: -21, maxZ: 34 },
     colliders: [],
     interactables: [],
-    // sul da mata desemboca na High Street
+    // norte da mata desemboca na High Street
     exits: [
-      // r pequeno e atrás do gatilho do final (z=-16): atravessar o portão
+      // r pequeno e atrás do gatilho do final (z=-19): atravessar o portão
       // primeiro mostra o fim do capítulo; só depois a saída vira High Street
-      { x: 0, z: -17.0, radius: 1.0, target: 'highstreet', spawn: [0, 14.6] },
+      { x: 0, z: -20.4, radius: 1.0, target: 'highstreet', spawn: [0, 14.6] },
     ],
     hemi: [0xcfe8c8, 0x24401f, 1.0],
     sun: { color: 0xffd98a, intensity: 1.75, pos: [-7, 16, -4] },
-    background: 0x1c3524,
-    fog: [0x1c3524, 22, 75],
+    background: 0x87b7a0,
+    fog: [0x87b7a0, 34, 130],
     npcSpots: {},
   };
   scene.userData.zone = zone;
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
+  skyDome(scene, zone, { top: '#5b9fd0', horizon: '#cfe6d8', glow: '#ffe9c0', hills: 'green' });
 
   const grassTexRaw = grassTexture();
   grassTexRaw.texture.wrapS = grassTexRaw.texture.wrapT = THREE.RepeatWrapping;
-  grassTexRaw.texture.repeat.set(10, 13);
-  const ground = new THREE.Mesh(new THREE.PlaneGeometry(44, 60), pbrFrom(grassTexRaw, [10, 13], 1.4, [0.75, 1.0]));
+  grassTexRaw.texture.repeat.set(14, 16);
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(90, 100), pbrFrom(grassTexRaw, [14, 16], 1.4, [0.75, 1.0]));
   ground.rotation.x = -Math.PI / 2;
-  ground.position.set(0, 0, 4);
+  ground.position.set(0, 0, 6);
   ground.receiveShadow = true;
   scene.add(ground);
   const dirtTexRaw = dirtTexture();
   dirtTexRaw.texture.wrapS = dirtTexRaw.texture.wrapT = THREE.RepeatWrapping;
-  dirtTexRaw.texture.repeat.set(1, 7);
-  const dirtMaterial = pbrFrom(dirtTexRaw, [1, 7], 1.0, [0.75, 1.0]);
+  dirtTexRaw.texture.repeat.set(1, 9);
+  const dirtMaterial = pbrFrom(dirtTexRaw, [1, 9], 1.0, [0.75, 1.0]);
   dirtMaterial.transparent = true;
-  const path = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 46), dirtMaterial);
+  const path = new THREE.Mesh(new THREE.PlaneGeometry(5.6, 56), dirtMaterial);
   path.rotation.x = -Math.PI / 2;
-  path.position.set(0, 0.005, 4);
+  path.position.set(0, 0.005, 6);
   path.receiveShadow = true;
   scene.add(path);
 
   const tuftTex = tuftTexture();
   const ivyTex = ivyTexture();
-  for (let i = 0; i < 46; i += 1) {
+  for (let i = 0; i < 90; i += 1) {
     const side = Math.random() > 0.5 ? 1 : -1;
-    const x = side * (2.6 + Math.random() * 2.4);
-    const z = 26 - Math.random() * 43;
+    const x = side * (2.6 + Math.random() * 5.5);
+    const z = 34 - Math.random() * 54;
     const tuft = spritePlane(tuftTex, 0.42 + Math.random() * 0.3);
     tuft.position.set(x, 0.18, z);
     tuft.rotation.y = Math.random() * Math.PI;
@@ -1757,9 +2200,12 @@ export function buildWoods(scene) {
     return group;
   };
   for (const [x, z, s] of [
-    [-4.4, 22, 1.2], [4.6, 18.5, 1.1], [-4.7, 14, 1.3], [4.5, 9.5, 1.2], [-4.3, 5.5, 1.1],
-    [4.8, 3.2, 1.25], [-4.6, -2.5, 1.2], [5.0, -6.5, 1.1], [-4.5, -10.5, 1.2], [4.5, -13.5, 1.15],
-    [-10, 20, 1.8], [9.5, 12, 2.0], [-9.5, 2, 1.9], [10, -4, 2.2], [-10.5, -12, 2.0], [8.5, -16, 1.8],
+    [-4.4, 30, 1.2], [4.6, 27, 1.1], [-4.7, 22, 1.3], [4.5, 17, 1.2], [-4.3, 12, 1.1],
+    [4.8, 8, 1.25], [-4.6, 2, 1.2], [5.0, -3.5, 1.1], [-4.5, -9, 1.2], [4.5, -14.5, 1.15],
+    [-4.4, -18, 1.1], [4.7, -18.5, 1.15],
+    [-10, 30, 1.8], [9.5, 26, 2.0], [-9.5, 18, 1.9], [10, 8, 2.2], [-10.5, 4, 2.0], [8.5, -9, 1.8],
+    [-12.5, 30, 2.1], [12.5, 24, 2.0], [-13, 14, 2.2], [13, 6, 2.0], [-13, -2, 2.1], [12.5, -10, 2.2],
+    [-8, 24, 1.6], [7.5, 20, 1.5], [-6, -13, 1.5], [6.5, -17, 1.5],
   ]) tree(x, z, s, Math.abs(x) < 6);
 
   // riacho + pedras numeradas (padrão 2, 4, 6, ? — embaralhado)
@@ -1810,9 +2256,10 @@ export function buildWoods(scene) {
   const bushSrc = glbSource('bush.glb');
   if (bushSrc) {
     for (const [bx, bz, s] of [
-      [2.6, 20.5, 1.0], [-2.7, 17.0, 0.8], [2.8, 12.5, 1.1], [-2.6, 8.0, 0.9],
-      [2.7, 5.5, 1.0], [-2.8, 1.5, 0.8], [2.6, -4.5, 1.0], [-2.7, -9.0, 0.9],
-      [2.5, -12.0, 1.1], [3.0, 16.5, 0.7], [-3.0, -5.5, 1.0],
+      [2.6, 29.5, 1.0], [-2.7, 25.0, 0.8], [2.8, 20.5, 1.1], [-2.6, 16.0, 0.9],
+      [2.7, 11.5, 1.0], [-2.8, 6.5, 0.8], [2.6, 0.5, 1.0], [-2.7, -4.0, 0.9],
+      [2.5, -9.0, 1.1], [3.0, -13.5, 0.7], [-3.0, -16.0, 1.0], [-2.6, 22.5, 0.9],
+      [2.7, 15.0, 0.8], [3.0, 32.0, 0.9], [-3.0, -18.5, 0.8],
     ]) {
       const bush = bushSrc.scene.clone(true);
       bush.traverse((c) => {
@@ -1872,36 +2319,36 @@ export function buildWoods(scene) {
   const gateMaterial = pbrFrom(stoneTexture(), [1, 2], 1.6, [0.7, 1.0]);
   for (const px of [-1.7, 1.7]) {
     const pillar = new THREE.Mesh(new THREE.BoxGeometry(0.7, 3.2, 0.7), gateMaterial);
-    pillar.position.set(px, 1.6, -16);
+    pillar.position.set(px, 1.6, -19);
     pillar.castShadow = true;
     scene.add(pillar);
-    addCollider(scene, px, -16, 0.7, 0.7);
+    addCollider(scene, px, -19, 0.7, 0.7);
     for (let i = 0; i < 5; i += 1) {
       const ivy = spritePlane(ivyTex, 0.38);
-      ivy.position.set(px + (Math.random() - 0.5) * 0.55, 0.5 + Math.random() * 2.2, -15.62);
+      ivy.position.set(px + (Math.random() - 0.5) * 0.55, 0.5 + Math.random() * 2.2, -18.62);
       scene.add(ivy);
     }
   }
   const arch = new THREE.Mesh(new THREE.BoxGeometry(4.1, 0.6, 0.8), gateMaterial);
-  arch.position.set(0, 3.4, -16);
+  arch.position.set(0, 3.4, -19);
   arch.castShadow = true;
   scene.add(arch);
-  const leftDoor = box(scene, 1.55, 2.3, 0.16, 0x4e3b1e, -0.79, 1.15, -16);
-  const rightDoor = box(scene, 1.55, 2.3, 0.16, 0x4e3b1e, 0.79, 1.15, -16);
+  const leftDoor = box(scene, 1.55, 2.3, 0.16, 0x4e3b1e, -0.79, 1.15, -19);
+  const rightDoor = box(scene, 1.55, 2.3, 0.16, 0x4e3b1e, 0.79, 1.15, -19);
   for (const gx of [-0.55, 0.55]) {
     const emblem = makeTreeEmblem(0.3);
-    emblem.position.set(gx, 1.5, -15.9);
+    emblem.position.set(gx, 1.5, -18.9);
     scene.add(emblem);
   }
   const gateGlow = new THREE.PointLight(0xf5c542, 7, 7);
-  gateGlow.position.set(0, 1.8, -15);
+  gateGlow.position.set(0, 1.8, -18);
   scene.add(gateGlow);
-  glowSprite(scene, zone, 0xffd166, 3.2, 0, 1.7, -15.7, { opacity: 0.35, amp: 0.12 });
+  glowSprite(scene, zone, 0xffd166, 3.2, 0, 1.7, -18.7, { opacity: 0.35, amp: 0.12 });
   zone.gateDoors = [leftDoor, rightDoor];
-  const gateCollider = { minX: -1.7, maxX: 1.7, minZ: -16.5, maxZ: -15.5 };
+  const gateCollider = { minX: -1.7, maxX: 1.7, minZ: -19.5, maxZ: -18.5 };
   zone.colliders.push(gateCollider);
   zone.gateCollider = gateCollider;
-  addInteract('gate', 0, -14.5, 1.8);
+  addInteract('gate', 0, -17.5, 1.8);
 
   // feixes de luz + poeira dourada + vaga-lumes
   for (const [x, z, tilt] of [[-2.5, 12, 0.22], [2.2, 5, -0.18], [-1.8, -6, 0.15]]) {
@@ -1913,7 +2360,7 @@ export function buildWoods(scene) {
   for (let i = 0; i < dustCount; i += 1) {
     dustPositions[i * 3] = (Math.random() - 0.5) * 9;
     dustPositions[i * 3 + 1] = 0.4 + Math.random() * 4.5;
-    dustPositions[i * 3 + 2] = 24 - Math.random() * 40;
+    dustPositions[i * 3 + 2] = 34 - Math.random() * 54;
   }
   const dustGeometry = new THREE.BufferGeometry();
   dustGeometry.setAttribute('position', new THREE.BufferAttribute(dustPositions, 3));
@@ -1929,7 +2376,7 @@ export function buildWoods(scene) {
   for (let i = 0; i < fireflyCount; i += 1) {
     positions[i * 3] = (Math.random() - 0.5) * 11;
     positions[i * 3 + 1] = 0.6 + Math.random() * 2.6;
-    positions[i * 3 + 2] = 24 - Math.random() * 40;
+    positions[i * 3 + 2] = 34 - Math.random() * 54;
   }
   const fireflyGeometry = new THREE.BufferGeometry();
   fireflyGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
@@ -1940,9 +2387,198 @@ export function buildWoods(scene) {
   const fireflies = new THREE.Points(fireflyGeometry, fireflyMaterial);
   scene.add(fireflies);
 
+  // ── marcos reais de Oxleas ───────────────────────────────────────────────
+  // (tudo que existe de verdade no Oxleas Wood e arredores: o café no prado
+  //  no topo da colina, o castelo de Severndroog em Castle Wood, o lago do
+  //  lado sul — NÃO há rio nenhum por aqui — e as trilhas do Green Chain)
+
+  // trilha de terra extra: prado do café (leste) e lago (oeste)
+  const spur = (x, z, w, d, ry = 0) => {
+    const m = pbrFrom(dirtTexture(), [2, 2], 1.0, [0.75, 1.0]);
+    m.transparent = true;
+    const spurPath = new THREE.Mesh(new THREE.PlaneGeometry(w, d), m);
+    spurPath.rotation.x = -Math.PI / 2;
+    spurPath.rotation.z = ry;
+    spurPath.position.set(x, 0.004, z);
+    spurPath.receiveShadow = true;
+    scene.add(spurPath);
+  };
+  spur(4.5, 15, 3, 12, 0.35);
+  spur(-4.5, 27, 3, 8, -0.3);
+  spur(-5.5, 3, 3, 10, -0.5);
+
+  // ── Oxleas Wood Café (real: fica no Oxleas Meadows, no topo da colina) ───
+  const cafeHut = new THREE.Mesh(new THREE.BoxGeometry(4.2, 2.6, 3.2), mat(0x8a5a34));
+  cafeHut.position.set(10.5, 1.3, 18.5);
+  cafeHut.castShadow = true;
+  scene.add(cafeHut);
+  addCollider(scene, 10.5, 18.5, 2.1, 1.6);
+  const cafeRoof = new THREE.Mesh(new THREE.ConeGeometry(3.4, 1.6, 4), mat(0x4a6a3a));
+  cafeRoof.position.set(10.5, 3.4, 18.5);
+  cafeRoof.rotation.y = Math.PI / 4;
+  cafeRoof.castShadow = true;
+  scene.add(cafeRoof);
+  const cafeAwning = new THREE.Mesh(new THREE.BoxGeometry(4.4, 0.1, 1.6), mat(0xc0392b));
+  cafeAwning.position.set(10.5, 2.4, 16.4);
+  cafeAwning.rotation.x = 0.2;
+  scene.add(cafeAwning);
+  const cafeSign = makeLabelSprite('OXLEAS WOOD CAFÉ');
+  cafeSign.position.set(10.5, 2.9, 16.2);
+  cafeSign.scale.set(2.6, 0.62, 1);
+  scene.add(cafeSign);
+  const cafeLamp = new THREE.PointLight(0xffc36a, 4.5, 7);
+  cafeLamp.position.set(10.5, 2.2, 16.8);
+  scene.add(cafeLamp);
+  glowSprite(scene, zone, 0xffc36a, 2.2, 10.5, 2.2, 16.6, { opacity: 0.3, amp: 0.08, speed: 1.2 });
+  // mesas de terraço com guarda-sóis (o café de verdade tem vários)
+  for (const [tx, tz] of [[8.2, 15.4], [11.4, 14.6], [9.2, 13.2]]) {
+    const table = new THREE.Mesh(new THREE.CylinderGeometry(0.42, 0.42, 0.08, 12), mat(0xf2ede0));
+    table.position.set(tx, 0.5, tz);
+    table.castShadow = true;
+    scene.add(table);
+    const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.5, 8), mat(0x6b4a2a));
+    leg.position.set(tx, 0.25, tz);
+    scene.add(leg);
+    const parasol = new THREE.Mesh(new THREE.ConeGeometry(0.9, 0.4, 8), mat(0xf2c14e));
+    parasol.position.set(tx, 1.5, tz);
+    parasol.castShadow = true;
+    scene.add(parasol);
+    addCollider(scene, tx, tz, 0.5, 0.5);
+  }
+  addInteract('woodCafe', 8.6, 16.4, 2.2);
+
+  // ── Severndroog Castle (real: folia do século XV em Castle Wood, com tearoom
+  //    e plataforma de vista). Aqui: uma ruína de pedra com mirante. ───────
+  const castle = new THREE.Group();
+  const castleBase = new THREE.Mesh(new THREE.CylinderGeometry(2.4, 2.8, 4.2, 12), pbrFrom(stoneTexture(), [3, 2], 1.5, [0.7, 1.0]));
+  castleBase.position.y = 2.1;
+  castleBase.castShadow = true;
+  castle.add(castleBase);
+  const castleTop = new THREE.Mesh(new THREE.CylinderGeometry(2.2, 2.4, 1.4, 12), pbrFrom(stoneTexture(), [3, 1], 1.5, [0.7, 1.0]));
+  castleTop.position.y = 4.9;
+  castle.add(castleTop);
+  // ameias
+  for (let i = 0; i < 10; i += 1) {
+    const a = (i / 10) * Math.PI * 2;
+    const merlon = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.5), mat(0x9a938a));
+    merlon.position.set(Math.cos(a) * 2.1, 5.9, Math.sin(a) * 2.1);
+    merlon.castShadow = true;
+    castle.add(merlon);
+  }
+  // vão do tearoom
+  const tearoom = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.8, 0.3), mat(0x3a2f26));
+  tearoom.position.set(0, 1.2, 2.35);
+  castle.add(tearoom);
+  // escadaria até o mirante
+  for (let i = 0; i < 4; i += 1) {
+    const step = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.35, 0.5), mat(0x9a938a));
+    step.position.set(0, 0.2 + i * 0.35, 3.4 - i * 0.5);
+    castle.add(step);
+  }
+  castle.position.set(-10.5, 0, 2);
+  scene.add(castle);
+  addCollider(scene, -10.5, 2, 2.6, 2.6);
+  const castleSign = makeLabelSprite('SEVERNDROOG CASTLE');
+  castleSign.position.set(-10.5, 6.6, 2);
+  castleSign.scale.set(2.8, 0.6, 1);
+  scene.add(castleSign);
+  glowSprite(scene, zone, 0xbfe3ff, 2.0, -10.5, 3.0, 2, { opacity: 0.18, amp: 0.06, speed: 1.0 });
+  addInteract('severndroog', -10.2, 4.6, 2.4);
+
+  // ── o lago (real: o Oxleas tem um pond no lado sul; NÃO tem rio) ─────────
+  const pondWater = new THREE.Mesh(new THREE.CircleGeometry(3.4, 28), glowMat(0x4f8fc8, 0.85));
+  pondWater.rotation.x = -Math.PI / 2;
+  pondWater.scale.set(1.25, 1, 0.8);
+  pondWater.position.set(-6.5, 0.03, 27.5);
+  scene.add(pondWater);
+  for (let i = 0; i < 18; i += 1) {
+    const a = (i / 18) * Math.PI * 2;
+    const reed = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.03, 0.5 + Math.random() * 0.4, 6), mat(0x4a7a3a));
+    reed.position.set(-6.5 + Math.cos(a) * 4.3, 0.3, 27.5 + Math.sin(a) * 2.8);
+    scene.add(reed);
+  }
+  // patos no lago
+  for (const [dx, dz] of [[-7.2, 27.0], [-5.9, 28.2]]) {
+    const duck = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), mat(0xf2ede0));
+    duck.scale.set(1.3, 0.8, 1);
+    duck.position.set(dx, 0.1, dz);
+    duck.castShadow = true;
+    scene.add(duck);
+    const duckHead = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 7), mat(0xf2ede0));
+    duckHead.position.set(dx + 0.16, 0.2, dz);
+    scene.add(duckHead);
+    const duckBill = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.1, 6), mat(0xf2a93b));
+    duckBill.rotation.z = -Math.PI / 2;
+    duckBill.position.set(dx + 0.26, 0.2, dz);
+    scene.add(duckBill);
+  }
+  const pondBench = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 1.7), mat(0x6b4a2a));
+  pondBench.position.set(-10.2, 0.21, 27.5);
+  pondBench.castShadow = true;
+  scene.add(pondBench);
+  addCollider(scene, -10.2, 27.5, 0.3, 0.9);
+  zone.pondCollider = { minX: -10.9, maxX: -2.1, minZ: 24.7, maxZ: 30.3 };
+  zone.colliders.push(zone.pondCollider);
+  addInteract('pond', -8.6, 26.2, 2.2);
+
+  // ── Green Chain Walk / Capital Ring: postes de trilha ao longo do caminho ─
+  signpost(scene, 3.6, 12);
+  const chainSign = makeLabelSprite('GREEN CHAIN WALK');
+  chainSign.position.set(3.6, 1.85, 11.7);
+  chainSign.scale.set(1.7, 0.4, 1);
+  scene.add(chainSign);
+  addInteract('greenChain', 3.2, 11, 2.0);
+  for (const [sx, sz, ry] of [[-3.6, 20, 0.6], [3.6, -6, 2.4], [-3.6, -12, 0.2], [3.6, 28, 1.1]]) {
+    signpost(scene, sx, sz, ry);
+  }
+
+  // ── academia ao ar livre (existe no Oxleas: barras, paralelas, wall bar) ──
+  const gymFloor = new THREE.Mesh(new THREE.PlaneGeometry(6, 8), mat(0x8a5a34));
+  gymFloor.rotation.x = -Math.PI / 2;
+  gymFloor.position.set(10, 0.014, -3);
+  gymFloor.receiveShadow = true;
+  scene.add(gymFloor);
+  for (let i = 0; i < 4; i += 1) {
+    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.04, 1.2, 8), mat(0x2f3a44));
+    bar.rotation.z = Math.PI / 2;
+    bar.position.set(10, 0.6 + i * 0.35, -5.5);
+    bar.castShadow = true;
+    scene.add(bar);
+    for (const side of [-0.55, 0.55]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.6 + i * 0.35, 0.08), mat(0x2f3a44));
+      leg.position.set(10 + side, (0.6 + i * 0.35) / 2, -5.5);
+      scene.add(leg);
+    }
+  }
+  for (const px of [8.6, 11.4]) {
+    for (let i = 0; i < 3; i += 1) {
+      const parallel = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.08, 2.2), mat(0x2f3a44));
+      parallel.position.set(px, 0.5 + i * 0.3, -1.5);
+      parallel.castShadow = true;
+      scene.add(parallel);
+    }
+  }
+  addInteract('outdoorGym', 10, -3, 2.2);
+
+  // treeline densa fechando o horizonte (modelos de árvore de verdade, sem
+  // colisor: são cenário, o limite de jogo é zone.bounds)
+  for (let i = 0; i < 12; i += 1) {
+    tree(-14 + (i % 6) * 5.6, -20.5 - (i % 2) * 0.8, 1.6 + (i % 3) * 0.3, false);
+  }
+  for (let i = 0; i < 12; i += 1) {
+    tree(-14 + (i % 6) * 5.6, 33.5 + (i % 2) * 0.8, 1.6 + (i % 3) * 0.3, false);
+  }
+  for (let i = 0; i < 8; i += 1) tree(-14.6, -18 + i * 6.5, 1.5 + (i % 3) * 0.3, false);
+  for (let i = 0; i < 8; i += 1) tree(14.6, -18 + i * 6.5, 1.5 + (i % 2) * 0.3, false);
+  hedgeRow(scene, -14.8, 33.8, 14.8, 33.8, { height: 1.2 });
+  hedgeRow(scene, -14.8, -20.8, 14.8, -20.8, { height: 1.2 });
+  hedgeRow(scene, -14.8, -20.5, -14.8, 33.5, { height: 1.2 });
+  hedgeRow(scene, 14.8, -20.5, 14.8, 33.5, { height: 1.2 });
+
   zone.update = (dt, t) => {
     updatePulses(zone, t);
     if (zone.glint) zone.glint.material.opacity = 0.55 + 0.45 * Math.sin(t * 3);
+    for (const cloud of zone.clouds) cloud.position.x += dt * 0.35;
     fireflies.rotation.y = t * 0.04;
     fireflyMaterial.opacity = 0.6 + 0.3 * Math.sin(t * 2.1);
     dust.rotation.y = -t * 0.015;

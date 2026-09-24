@@ -80,6 +80,7 @@ export function secondaryObjectives(state, { wordCount = 0, today = '' } = {}) {
     list.push({ id: 'order', key: 'objOrder', progress: ORDER_ITEMS.filter((f) => flags[f]).length, total: ORDER_ITEMS.length });
   }
   if (wordCount >= 3 && !flags.duelWon) list.push({ id: 'duel', key: 'objDuel' });
+  if (flags.umbrellaAsked && !flags.umbrellaDone) list.push({ id: 'umbrella', key: 'objUmbrella' });
   if (today && flags.chestDay !== today) list.push({ id: 'chest', key: 'objChest' });
   return list;
 }

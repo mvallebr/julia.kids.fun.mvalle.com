@@ -12,7 +12,7 @@ import { ensureAudio, setMuted, setZoneAmbience, footstep, sounds } from './audi
 import { loadState, saveState, bumpGeneration, recordHistory, historyWeek, studyStreak, dayKey, CHARACTERS, MAP_PIECES } from './state.js';
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount, medalTier, MEDAL_EMOJI, secondaryObjectives } from './quest.js';
 import { buildSchool, buildWoods, buildHighStreet, buildAcademy, buildClassroom, makeKid, makeOwl, makeAdult, blobShadow, preloadModels, onModelProgress } from './world.js';
-import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES } from './content.js';
+import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES, UMBRELLA_ASK, UMBRELLA_FOUND, UMBRELLA_DONE } from './content.js';
 import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz, practiceOrder } from './vocab.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
 
@@ -60,6 +60,19 @@ const PROMPTS = {
   clueChalk: { pt: '🔍 Olhar a janela', en: '🔍 Look at the window', es: '🔍 Mirar la ventana' },
   clueScroll: { pt: '🔍 Ler o pergaminho', en: '🔍 Read the scroll', es: '🔍 Leer el pergamino' },
   baker: { pt: '🗣️ Falar com o padeiro', en: '🗣️ Talk to the baker', es: '🗣️ Hablar con el panadero' },
+  playground: { pt: '🛝 Olhar o parquinho', en: '🛝 Look at the playground', es: '🛝 Mirar el parque infantil' },
+  umbrellaSpot: { pt: '☂️ Pegar o guarda-chuva roxo', en: '☂️ Pick up the purple umbrella', es: '☂️ Recoger el paraguas morado' },
+  garden: { pt: '🥕 Visitar a horta', en: '🥕 Visit the garden', es: '🥕 Visitar la huerto' },
+  sports: { pt: '⚽ Jogar no campo de Welling FC', en: '⚽ Play on the Welling FC pitch', es: '⚽ Jugar en la cancha de Welling FC' },
+  clueTimetable: { pt: '🔍 Ler o tabela de jogos', en: '🔍 Read the games timetable', es: '🔍 Leer la tabla de juegos' },
+  field: { pt: '⚽ Olhar o campo grande', en: '⚽ Look at the big field', es: '⚽ Mirar el campo grande' },
+  woodCafe: { pt: '☕ Café no alto da colina', en: '☕ Café on top of the hill', es: '☕ Café en la colina' },
+  severndroog: { pt: '🏰 Visitar o castelo de Severe', en: '🏰 Visit Severndroog Castle', es: '🏰 Visitar el castillo de Severe' },
+  pond: { pt: '🦆 Ver o lago e os patinhos', en: '🦆 See the pond and the ducks', es: '🦆 Ver el estanque y los patos' },
+  greenChain: { pt: '🛤️ Achar a trilha do Green Chain Walk', en: '🛤️ Find the Green Chain Walk', es: '🛤️ Encontrar el sendero Green Chain' },
+  outdoorGym: { pt: '💪 Aquecer na academia ao ar livre', en: '💪 Warm up at the outdoor gym', es: '💪 Calentar en el gimnasio exterior' },
+  raven: { pt: '⚔️ Desafiar a Prof. Raven', en: '⚔️ Challenge Prof. Raven', es: '⚔️ Desafiar a la Prof. Raven' },
+  duel: { pt: '⚔️ Entrar no duelo de feitiços', en: '⚔️ Enter the spell duel', es: '⚔️ Entrar al duelo de hechizos' },
 };
 
 const OBJECTIVE_KEYS = {
@@ -91,6 +104,20 @@ let exitAllowedAt = 0; // instante (performance.now) em que as saídas voltam a 
 // real de verdade: com dt clampado a 0.05, tablet/fps baixo esticava cooldown de 2.5s
 // para vários segundos reais (reproduzido a 5fps no headless: 17s)
 let exitHintAt = 0; // anti-spam do aviso de saída bloqueada (independe do teleport)
+// saídas disparam só na ENTRADA no raio (`key` = target:x:z). Sem isso, chegar
+// numa zona cujo spawn cai dentro do raio da saída de volta teleportava a
+// criança sozinha depois do cooldown (school→highstreet→school, woods→...).
+let exitInside = new Set();
+
+// Marca como "já dentro" as saídas que contêm o ponto de chegada. Sem isso a
+// primeira checagem dispararia a saída que trouxe a jogadora (o bounce
+// escola→rua→escola), porque buildScene roda antes do spawnOverride.
+function armExitsAt(x, z) {
+  exitInside = new Set();
+  for (const exit of zone?.exits || []) {
+    if (Math.hypot(exit.x - x, exit.z - z) <= exit.radius) exitInside.add(`${exit.target}:${exit.x}:${exit.z}`);
+  }
+}
 window.__BUNDLE_V = 'n'; // marcador de versão pra debug de cache
 
 function initThree() {
@@ -163,13 +190,18 @@ function buildScene(zoneName) {
   const sun = new THREE.DirectionalLight(zone.sun.color, zone.sun.intensity);
   sun.position.set(...zone.sun.pos);
   sun.castShadow = true;
+  // 1024 é o sweet spot: 2048 dobra o custo de sombra e derruba o FPS em
+  // celular/headless sem ganho visível neste nível de detalhe.
   sun.shadow.mapSize.set(1024, 1024);
-  sun.shadow.camera.left = -13;
-  sun.shadow.camera.right = 13;
-  sun.shadow.camera.top = 13;
-  sun.shadow.camera.bottom = -13;
+  // câmera de sombra acompanha o tamanho da zona: fases maiores continuam
+  // having shadows, em vez de sombras cortadas no meio do pátio/campo
+  const shadowSpan = Math.max(13, Math.min(30, (zone.bounds.maxX - zone.bounds.minX) / 2 + 4));
+  sun.shadow.camera.left = -shadowSpan;
+  sun.shadow.camera.right = shadowSpan;
+  sun.shadow.camera.top = shadowSpan;
+  sun.shadow.camera.bottom = -shadowSpan;
   sun.shadow.camera.near = 1;
-  sun.shadow.camera.far = 60;
+  sun.shadow.camera.far = 120;
   sun.shadow.bias = -0.0008;
   sun.shadow.normalBias = 0.02;
   scene.add(sun);
@@ -182,6 +214,7 @@ function buildScene(zoneName) {
   blobShadow(playerObj);
   playerObj.position.set(savedPosition?.[0] ?? zone.spawn[0], 0, savedPosition?.[1] ?? zone.spawn[1]);
   scene.add(playerObj);
+  armExitsAt(playerObj.position.x, playerObj.position.z);
 
   const owlVariant = state.character === 'oakley' ? 1 : 0;
   owlObj = makeOwl(owlVariant);
@@ -945,7 +978,10 @@ async function gotoZone(zoneName, spawnOverride = null) {
   await veil.cover();
   sounds.door();
   buildScene(zoneName);
-  if (spawnOverride && playerObj) playerObj.position.set(spawnOverride[0], 0, spawnOverride[1]);
+  if (spawnOverride && playerObj) {
+    playerObj.position.set(spawnOverride[0], 0, spawnOverride[1]);
+    armExitsAt(spawnOverride[0], spawnOverride[1]);
+  }
   state.zone = zoneName;
   state.flags[`visited_${zoneName}`] = true;
   state.position = spawnOverride ? [spawnOverride[0], spawnOverride[1]] : null;
@@ -1000,9 +1036,9 @@ function showEnding() {
     overlayCount = Math.max(0, overlayCount - 1);
     // recua pra fora do raio da saída: "continuar" dá o controle de volta,
     // não teleporta sozinho pra High Street no mesmo clique
-    if (zone?.name === 'woods' && playerObj && playerObj.position.z < -15.6) {
-      playerObj.position.z = -15.6;
-      if (companionObj) companionObj.position.z = -15.2;
+    if (zone?.name === 'woods' && playerObj && playerObj.position.z < -18.6) {
+      playerObj.position.z = -18.6;
+      if (companionObj) companionObj.position.z = -18.2;
     }
     updateHUD();
   });
@@ -1030,6 +1066,26 @@ async function interact(id) {
       await collectPiece(piece);
       saveState(localStorage, player, state);
       updateHUD();
+    }
+    // aventura lateral da Sra. Page: guarda-chuva (só depois do mapa montado,
+    // senão a conversa principal fica logofollowed pela oferta e polui o ritmo)
+    if (id === 'page' && state.flags.mapAssembled) {
+      if (state.flags.umbrellaFound && !state.flags.umbrellaDone) {
+        await runConversation(UMBRELLA_DONE);
+        state.flags.umbrellaDone = true;
+        registerWord(state.words, 'umbrella', GLOSSES.umbrella);
+        registerWord(state.words, 'grateful', GLOSSES.grateful);
+        saveState(localStorage, player, state);
+        sounds.magic();
+        confetti(root, 80);
+        updateHUD();
+      } else if (!state.flags.umbrellaAsked && !state.flags.umbrellaDone) {
+        await runConversation(UMBRELLA_ASK);
+        state.flags.umbrellaAsked = true;
+        saveState(localStorage, player, state);
+        updateHUD();
+        toast(root, uiText(language, 'objUmbrella'), { duration: 4200 });
+      }
     }
     return;
   }
@@ -1142,6 +1198,8 @@ async function interact(id) {
     ]).then(() => runDuel());
   }
   if (id === 'signTree') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.signTree }, { gloss: 'golden' }]); }
+  // o anel da arena também é gatilho do duelo (mesmo caminho da Prof. Raven)
+  if (id === 'duel') return void interact('raven');
   if (id === 'marker') return void runConversation([{ who: 'owl', text: FLAVOR.marker }, { gloss: 'ancient' }]);
   if (id === 'pieceShelf') return void collectPiece('shelf');
   if (id === 'pieceTrolley') return void collectPiece('trolley');
@@ -1196,6 +1254,57 @@ async function interact(id) {
       return void runConversation([{ who: 'owl', text: { pt: `Achamos: ${pt} — ${count} de 3!`, en: `We found: ${en} — ${count} of 3!`, es: `¡Encontramos: ${es} — 3 de 3!` } }]);
     }
   }
+  // ── aventura do guarda-chuva: playground → volta pra Sra. Page ──────────────
+  if (id === 'umbrellaSpot') {
+    if (!state.flags.umbrellaAsked) {
+      return void runConversation([{ who: 'owl', text: { pt: 'Isso não é nosso… um guarda-chuva roxo da Sra. Page. Mas ela está na escola — leve de volta!', en: 'This is not ours… it is Ms Page’s purple umbrella. But she is at school — take it back to her!', es: 'Esto no es nuestro… es el paraguas morado de la Sra. Page. ¡Devuélveselo!' } }, { gloss: 'umbrella' }]);
+    }
+    if (state.flags.umbrellaDone) {
+      return void runConversation([{ who: 'owl', text: { pt: 'A Sra. Page já guardou o guarda-chuva. Chuva pode vir! ☂️', en: 'Ms Page already put the umbrella away. Rain can come! ☂️', es: '¡La Sra. Page ya guardó el paraguas! ¡Puede llover! ☂️' } }]);
+    }
+    sounds.pickup();
+    confetti(root, 50);
+    return void runConversation(UMBRELLA_FOUND).then(() => {
+      state.flags.umbrellaFound = true;
+      saveState(localStorage, player, state);
+      toast(root, uiText(language, 'objUmbrella'), { duration: 4200 });
+    });
+  }
+  // ── school e woods ampliados: Flavor + glosses das novas áreas ──────────────
+  if (id === 'playground') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.playground }, { gloss: 'swing' }]); }
+  if (id === 'garden') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.garden }, { gloss: 'greenhouse' }]); }
+  if (id === 'field') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.field }, { gloss: 'pitch' }]); }
+  if (id === 'woodCafe') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.cafe }, { gloss: 'meadow' }, { gloss: 'hill' }]); }
+  if (id === 'severndroog') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.severndroog }, { gloss: 'castle' }]); }
+  if (id === 'pond') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.pond }, { gloss: 'pond' }]); }
+  if (id === 'greenChain') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.greenChain }, { gloss: 'path' }]); }
+  if (id === 'outdoorGym') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.outdoorGym }, { gloss: 'climb' }]); }
+  if (id === 'clueTimetable') return void addClue('timetable');
+  // ── quadra da escola: desafio rápido de choice (uma jogada) ───────────────
+  if (id === 'sports') {
+    if (state.challenges.sportsChoice) {
+      return void runConversation([{ who: 'owl', text: FLAVOR.sports }]);
+    }
+    const ok = await askChoice({
+      prompt: { pt: 'Welling FC joga contra quem no sábado?', en: 'Who does Welling FC play on Saturday?', es: '¿Contra quién juega Welling FC el sábado?' },
+      options: [
+        { label: { pt: 'Welling United', en: 'Welling United', es: 'Welling United' } },
+        { label: { pt: 'Manor Park Rangers', en: 'Manor Park Rangers', es: 'Manor Park Rangers' }, correct: true },
+        { label: { pt: 'The Moon', en: 'The Moon', es: 'La Luna' } },
+      ],
+      success: { pt: 'Isso! Welling FC 2 × 1 Manor Park Rangers. E o chá de domingo fica por nossa conta!', en: 'That’s right! Welling FC 2–1 Manor Park Rangers. And Sunday tea is on us!', es: '¡Correcto! Welling FC 2–1 Manor Park Rangers. ¡Y el té del domingo corre por nuestra cuenta!' },
+      fail: { pt: 'Quase! O adversário é o Manor Park Rangers. De novo:', en: 'Almost! The opponents are Manor Park Rangers. Again:', es: '¡Casi! Los rivales son Manor Park Rangers. Otra vez:' },
+    });
+    if (ok) {
+      state.challenges.sportsChoice = true;
+      saveState(localStorage, player, state);
+      sounds.magic();
+      registerWord(state.words, 'pitch', GLOSSES.pitch);
+      confetti(root, 50);
+      updateHUD();
+    }
+    return;
+  }
   if (id === 'ivyDoor') {
     if (!canAssembleMap(state)) {
       sounds.hoot();
@@ -1232,7 +1341,7 @@ async function interact(id) {
       state.position = [playerObj.position.x, playerObj.position.z];
       veil.remove();
       updateHUD();
-      toast(root, `✨ ${lang({ pt: 'Pedra certa! Atravessaram o riacho.', en: 'Right stone! You crossed the stream.', es: '¡Piedra correcta! Cruzaron el arroyo.' }, language)}`);
+      toast(root, `✨ ${lang({ pt: 'Pedra certa! Atravessaram o leito do riacho.', en: 'Right stone! You crossed the stream bed.', es: '¡Piedra correcta! Cruzaron el lecho del arroyo.' }, language)}`);
     } else {
       sounds.wrong();
       const start = performance.now();
@@ -1432,9 +1541,9 @@ function animate() {
       }
     }
     // final do capítulo: atravessar o portão aberto — ANTES das saídas de
-    // zona, senão o teleport pra High Street (raio até z=-16.0) roubava o
+    // zona, senão o teleport pra High Street (raio até z=-20.4) roubava o
     // avanço e o fim nunca aparecia (bug confirmado em jogada real).
-    if (zone?.name === 'woods' && state.flags.gateOpen && !state.flags.endingSeen && playerObj.position.z < -16.0) {
+    if (zone?.name === 'woods' && state.flags.gateOpen && !state.flags.endingSeen && playerObj.position.z < -19.0) {
       showEnding(); // overlayCount vira >0 → saídas abaixo ficam de fora neste frame
     }
     // mundo semi-aberto: saídas de zona são pisáveis; logo após uma transição
@@ -1442,7 +1551,8 @@ function animate() {
     if (overlayCount === 0 && performance.now() >= exitAllowedAt) {
       for (const exit of zone.exits || []) {
         const dist = Math.hypot(exit.x - playerObj.position.x, exit.z - playerObj.position.z);
-        if (dist > exit.radius) continue;
+        const key = `${exit.target}:${exit.x}:${exit.z}`;
+        if (dist > exit.radius) { exitInside.delete(key); continue; }
         // saída condicional (ex.: mata só pelo portão, quando aberto): avisa só
         // quando encosta, e sem segurar o cooldown das saídas livres
         if (exit.flag && !state.flags[exit.flag]) {
@@ -1456,6 +1566,8 @@ function animate() {
           }
           continue;
         }
+        if (exitInside.has(key)) continue; // já estava dentro ao chegar na zona
+        exitInside.add(key);
         exitAllowedAt = performance.now() + 2500;
         void gotoZone(exit.target, exit.spawn);
         break;

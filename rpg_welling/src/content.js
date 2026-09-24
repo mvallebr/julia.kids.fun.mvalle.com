@@ -212,6 +212,57 @@ export const FLAVOR = {
     en: 'Old stone with the tree carved in. On the back, small letters: "Who reads the map sees the way."',
     es: 'Piedra antigua con el árbol tallado. Del otro lado, letras pequeñas: "Quien lee el mapa ve el camino."',
   },
+  // ── novas áreas (escola ampliada + Oxleas) ───────────────────────────────
+  playground: {
+    pt: 'O parquinho tem balanço, escorregador e um caixote de areia. As marcas na areia parecem letras: "O.L.A.D.A"… e um guarda-chuva roxo encostado na cerca!',
+    en: 'The playground has swings, a slide and a sandpit. The marks in the sand spell "O.L.A.D.A"… and a purple umbrella leans on the fence!',
+    es: 'El parque tiene columpios, un tobogán y un arenero. Las marcas en la arena dicen "O.L.A.D.A"… ¡y un paraguas morado apoyado en la valla!',
+  },
+  garden: {
+    pt: 'A horta da escola: couveiros, uma estufa de vidro e um espantalho que parece greeting todo mundo. Cheira a terra molhada!',
+    en: 'The school garden: vegetable beds, a glass greenhouse and a scarecrow that seems to say hello. It smells of wet earth!',
+    es: 'El huerto de la escuela: bancales, un invernadero de cristal y un espantajo que parece saludar. ¡Huele a tierra mojada!',
+  },
+  sports: {
+    pt: 'A quadra tem linhas brancas, dois gols e um placar: "WELLING FC — Home Games".',
+    en: 'The court has white lines, two goals and a scoreboard: "WELLING FC — Home Games".',
+    es: 'La cancha tiene líneas blancas, dos porterías y un marcador: "WELLING FC — Home Games".',
+  },
+  field: {
+    pt: 'O campo dos fundos é enorme — dá pra jogar de tudo. As linhas do gol estão gastas de tantinhas partidas.',
+    en: 'The back pitch is huge — you could play anything here. The goal lines are worn from all the games.',
+    es: 'El campo de atrás es enorme — aquí se puede jugar de todo. Las líneas de la portería están gastas de tantos partidos.',
+  },
+  cafe: {
+    pt: 'OXLEAS WOOD CAFÉ — o café de verdade fica no prado, no topo da colina! Há mesas com guarda-sóis e um quadro: "Today: cake + forest views".',
+    en: 'OXLEAS WOOD CAFÉ — the real café sits in the meadow on top of the hill! There are tables with parasols and a board: "Today: cake + forest views".',
+    es: 'OXLEAS WOOD CAFÉ — ¡el café de verdad está en el prado, en lo alto de la colina! Hay mesas con sombrillas y un cartel: "Today: cake + forest views".',
+  },
+  severndroog: {
+    pt: 'Uma ruína de pedra no meio de Castle Wood: o castelo de Severndroog, com o tearoom lá em cima e uma vista que vale a subida.',
+    en: 'A stone ruin in the middle of Castle Wood: Severndroog Castle, with its tearoom up top and a view worth the climb.',
+    es: 'Una ruina de piedra en medio de Castle Wood: el castillo de Severndroog, con el tearoom arriba y una vista que vale la subida.',
+  },
+  pond: {
+    pt: 'Um lago de patos e juncos. Cuidado: em Oxleas NUNCA teve rio — o rio Cray passa longe daqui. O que corre depois da chuva é o leito do riacho, e seca.',
+    en: 'A pond with ducks and reeds. Careful: Oxleas NEVER had a river — the Cray flows far from here. What runs after rain is the seasonal stream bed, and it dries up.',
+    es: 'Un estanque con patos y juncos. Ojo: ¡Oxleas NUNCA tuvo un río! El Cray pasa muy lejos. Lo que corre tras la lluvia es el lecho del arroyo estacional, y se seca.',
+  },
+  greenChain: {
+    pt: 'Placa verde: "GREEN CHAIN WALK →" e uma seta para o "CAPITAL RING". Caminhos de verdade, como os de Welling!',
+    en: 'Green sign: "GREEN CHAIN WALK →" and an arrow for the "CAPITAL RING". Real paths, like Welling’s!',
+    es: 'Cartel verde: "GREEN CHAIN WALK →" y una flecha al "CAPITAL RING". ¡Senderos de verdad, como los de Welling!',
+  },
+  outdoorGym: {
+    pt: 'Uma academia ao ar livre no meio das árvores: barras, paralelas e o famous wall bar. Só falta a placa "WATCH YOUR STEP!".',
+    en: 'An outdoor gym among the trees: bars, parallel bars and the famous wall bar. Only the "WATCH YOUR STEP!" sign is missing.',
+    es: 'Un gimnasio al aire libre entre los árboles: barras, paralelas y el famoso wall bar. Solo falta el cartel "¡MIRA EL PASO!".',
+  },
+  orderDone: {
+    pt: 'O chá das cinco está pronto, queridas. A coruja comeu o último biscoito, mas guardou as migalhas pra vocês.',
+    en: 'Five-o’clock tea is ready, dears. The owl ate the last biscuit, but saved you the crumbs.',
+    es: 'El té de las cinco está listo, queridos. El búho se comió la última galleta, pero guardó las migas para ustedes.',
+  },
 };
 
 // Páginas de história escondidas (spec §44: recompensas de descoberta).
@@ -241,7 +292,38 @@ export const CLUES = {
     en: 'A page stuck on the oak: "The gate only opens for those who understand the world — never for those in a hurry."',
     es: 'Página pegada al roble: "La puerta solo se abre para quien entiende el mundo, nunca para quien tiene prisa."',
   },
+  timetable: {
+    pt: 'Tabela de jogos pregada na cerca da quadra: "Tuesday — PE: year 4 v year 5. Wednesday — Library club. Friday — Choir." Oüllá, o coro é na sexta!',
+    en: 'A games timetable nailed to the court fence: "Tuesday — PE: year 4 v year 5. Wednesday — Library club. Friday — Choir." Look — choir is on Friday!',
+    es: 'Un horario de deportes clavado en la valla: "Martes — Ed. física: 4º vs 5º. Miércoles — Club de lectura. Viernes — Coro." ¡Mira, el coro es el viernes!',
+  },
 };
+
+// ── aventura secundária: o guarda-chuva da Sra. Page ─────────────────────────
+export const UMBRELLA_ASK = [
+  { who: 'page', text: {
+    pt: 'Que bom ver vocês, queridas! Ai, que vergonha: perdi meu guarda-chuva roxo no playground da escola. Ontem caiu uma chuva fina e eu… enfim, vi um brilho rosa na areia perto do balanço.',
+    en: 'Lovely to see you, dears! How embarrassing: I lost my purple umbrella at the school playground. It drizzled yesterday and I… anyway, I saw a pink glint in the sand near the swings.',
+    es: '¡Qué gusto verlos, queridos! Qué vergüenza: perdí mi paraguas morado en el parque de la escuela. Ayer lloviznaba y yo… en fin, vi un brillo rosa en la arena cerca del columpio.',
+  } },
+  { gloss: 'umbrella' },
+];
+export const UMBRELLA_FOUND = [
+  { who: 'owl', text: {
+    pt: 'Achei! Um guarda-chuva roxo, dobrado, todo emaranhado na terra. Deve ter caído do muro do pátio ontem. Vamos levar pra Sra. Page!',
+    en: 'Found it! A purple umbrella, folded and all tangled in the dirt. It must have blown off the yard wall yesterday. Let’s take it back to Ms Page!',
+    es: '¡Encontrado! Un paraguas morado, plegado y enredado en la tierra. Seguro que se voló del muro del patio ayer. ¡Volvemos con la Sra. Page!',
+  } },
+  { gloss: 'umbrella' },
+];
+export const UMBRELLA_DONE = [
+  { who: 'page', text: {
+    pt: 'Meu guarda-chuva! Vocês são um verdadeiro tesouro! Agora meu chá das cinco está garantido, chove ou faça sol. As palavras "umbrella" e "grateful" entraram no diário de vocês!',
+    en: 'My umbrella! You are a real treasure! Now my five-o’clock tea is weather-proof. The words "umbrella" and "grateful" went into your journal!',
+    es: '¡Mi paraguas! ¡Son un verdadero tesoro! Ahora mi té de las cinco está a salvo. ¡Las palabras "umbrella" y "grateful" entraron en tu diario!',
+  } },
+  { gloss: 'umbrella' },
+];
 
 // Peças do mapa: id → como a criança as ganha (para o diário).
 export const PIECE_NAMES = {
@@ -356,5 +438,60 @@ export const GLOSSES = {
     pt: 'gate = portão, portão grande',
     en: 'gate = a big door in a fence',
     es: 'gate = portón',
+  },
+  umbrella: {
+    pt: 'umbrella = guarda-chuva',
+    en: 'umbrella = a thing that keeps the rain off you',
+    es: 'umbrella = paraguas',
+  },
+  grateful: {
+    pt: 'grateful = grateful, thankful',
+    en: 'grateful = thankful for what someone did',
+    es: 'grateful = agradecido',
+  },
+  meadow: {
+    pt: 'meadow = prado, campo aberto',
+    en: 'meadow = an open field of grass',
+    es: 'meadow = pradera',
+  },
+  hill: {
+    pt: 'hill = colina, morro',
+    en: 'hill = high ground, not a mountain',
+    es: 'hill = colina',
+  },
+  castle: {
+    pt: 'castle = castelo',
+    en: 'castle = an old home with towers',
+    es: 'castle = castillo',
+  },
+  pond: {
+    pt: 'pond = lago pequeno, poça',
+    en: 'pond = a small still lake',
+    es: 'pond = estanque',
+  },
+  greenhouse: {
+    pt: 'greenhouse = estufa de vidro',
+    en: 'greenhouse = a glass house for plants',
+    es: 'greenhouse = invernadero',
+  },
+  swing: {
+    pt: 'swing = balanço',
+    en: 'swing = a seat that goes back and forth',
+    es: 'swing = columpio',
+  },
+  pitch: {
+    pt: 'pitch = campo de futebol, gramado',
+    en: 'pitch = a field where a team plays',
+    es: 'pitch = cancha de fútbol',
+  },
+  path: {
+    pt: 'path = caminho, trilha',
+    en: 'path = a way to walk',
+    es: 'path = sendero',
+  },
+  climb: {
+    pt: 'climb = subir, escalar',
+    en: 'climb = to go up',
+    es: 'climb = subir',
   },
 };
