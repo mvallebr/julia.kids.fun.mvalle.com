@@ -128,3 +128,11 @@ URL: <https://sketchfab.com/3d-models/the-noble-craftsman-0e8ff87ffaa24731b2474b
 > game character"; árvores em "Low Poly Forest Tree Pack"; livros em
 > "Antique Book Set"; baú em "Stylized Treasure Chest"; arbustos em
 > "Stylized Bush"; kid alternativo em "The Noble Craftsman".
+
+---
+
+## Fundo real de Oxleas Wood — `oxleas-backdrop.jpg`
+
+Fotografia do próprio **Oxleas Wood** (Welling, Royal Borough of Greenwich),
+tirada pelo autor do jogo e usada como panorama do horizonte da fase da mata.
+Sem licença de terceiros: a imagem é do autor do projeto.

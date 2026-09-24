@@ -15,6 +15,7 @@ import { buildSchool, buildWoods, buildHighStreet, buildAcademy, buildClassroom,
 import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES, UMBRELLA_ASK, UMBRELLA_FOUND, UMBRELLA_DONE } from './content.js';
 import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz, practiceOrder } from './vocab.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
+import { buildNavGrid, findPathToNearest, canStand, nearestStandPoint } from './pathfind.js';
 
 // ── parâmetros da lançadora ───────────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
@@ -259,7 +260,7 @@ function buildScene(zoneName) {
   clickMarker.rotation.x = -Math.PI / 2;
   clickMarker.visible = false;
   scene.add(clickMarker);
-  moveTarget = null; // troca de zona: destino antigo não faz sentido
+  stopWalking(); // troca de zona: destino antigo não faz sentido
 
   camera.position.set(playerObj.position.x, 7.5, playerObj.position.z + 8.5);
   camera.lookAt(playerObj.position.x, 0.6, playerObj.position.z);
@@ -278,12 +279,17 @@ function buildScene(zoneName) {
       rightDoor.rotation.y = 1.9; rightDoor.position.x = 1.69;
     }
   }
+
+  // grade de navegação por último: riacho atravessado e portão aberto já
+  // tiraram os colliders, então o A* enxerga o caminho novo
+  navGrid = buildNavGrid(zone, { radius: PLAYER_RADIUS });
 }
 
 // ── entrada: teclado (WASD/setas) — no toque, quem manda é o tap-to-move ────
 const keys = new Set();
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' || event.key === ' ') advanceDialog?.();
+  if (event.key === 'Escape') stopWalking(); // cancela a rota na hora
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)) event.preventDefault();
   keys.add(event.key.toLowerCase());
   if (event.key.toLowerCase() === 'e') tryInteract();
@@ -304,12 +310,40 @@ function inputVector() {
 
 // ── click-to-move: toque/clique curto no chão anda até o ponto ───────────────
 // Arrastar continua girando a câmera; só o toque "parado" (até ~9px) move.
-let moveTarget = null; // {x, z} destino do toque; null = parada
+// O destino vira uma rota (A* sobre os obstáculos da zona): a julia contorna
+// a cerca, passa por trás do prédio e chega — em vez de empurrar e desistir.
+let moveTarget = null; // {x, z} destino final do toque; null = parada
+let navPath = []; // waypoints [{x,z}] até o destino
+let navIndex = 0;
+let navGrid = null; // grade de navegação da zona atual
 let targetStuck = 0; // segundos sem progresso a caminho do destino (parede)
+let repathTries = 0; // quantas vezes já recalculamos a rota preso
+let lastGoal = null; // último destino tentado (diagnóstico)
 const raycaster = new THREE.Raycaster();
 const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
 const ndc = new THREE.Vector2();
 const groundHit = new THREE.Vector3();
+
+function stopWalking() {
+  moveTarget = null;
+  navPath = [];
+  navIndex = 0;
+  targetStuck = 0;
+}
+
+// recalcula a rota do ponto atual até o destino; null = não há caminho.
+// Se o destino estiver fechado, tenta o ponto alcançável mais próximo dele.
+function routeTo(target) {
+  if (!navGrid || !playerObj) return null;
+  const here = { x: playerObj.position.x, z: playerObj.position.z };
+  const path = findPathToNearest(navGrid, here, target);
+  if (!path || !path.length) return null;
+  // rota que termina onde ela já está = não há por onde ir (cercada de cerca)
+  const last = path[path.length - 1];
+  if (Math.hypot(last.x - here.x, last.z - here.z) < 0.3) return null;
+  return path;
+}
+
 function tapToMove(clientX, clientY) {
   if (!playerObj || !camera || overlayCount > 0) return;
   ndc.set((clientX / window.innerWidth) * 2 - 1, -(clientY / window.innerHeight) * 2 + 1);
@@ -318,13 +352,35 @@ function tapToMove(clientX, clientY) {
   const dx = groundHit.x - playerObj.position.x;
   const dz = groundHit.z - playerObj.position.z;
   const dist = Math.hypot(dx, dz);
-  if (dist < 0.25) { moveTarget = null; return; } // toque nela mesma
-  if (dist > 26) { // alcance limitado: o caminho é em linha reta
+  if (dist < 0.25) { stopWalking(); return; } // toque nela mesma
+  if (dist > 26) { // alcance limitado: mesmo com rota, não atravessa a fase
     groundHit.x = playerObj.position.x + (dx / dist) * 26;
     groundHit.z = playerObj.position.z + (dz / dist) * 26;
   }
-  moveTarget = { x: groundHit.x, z: groundHit.z };
+  // chão distantemente fora da fase: encosta no limite em vez de dizer que
+  // não achou caminho (o aviso fica só para destinos mesmo bloqueados)
+  const goal = {
+    x: THREE.MathUtils.clamp(groundHit.x, zone.bounds.minX + PLAYER_RADIUS, zone.bounds.maxX - PLAYER_RADIUS),
+    z: THREE.MathUtils.clamp(groundHit.z, zone.bounds.minZ + PLAYER_RADIUS, zone.bounds.maxZ - PLAYER_RADIUS),
+  };
+  const path = routeTo(goal);
+  lastGoal = goal;
+  if (!path) {
+    // sem rota (destino fechado): fica onde está, com um aviso curto
+    stopWalking();
+    sounds.wrong();
+    toast(root, uiText(language, 'noPath'), { duration: 2200 });
+    return;
+  }
+  // destino dentro de um objeto grande: chega no ponto livre mais próximo em
+  // vez de andar até a parede e ficar tentando chegar no meio do prédio
+  const arrival = path[path.length - 1];
+  moveTarget = canStand(navGrid, goal.x, goal.z) ? goal : { x: arrival.x, z: arrival.z };
+  navPath = path;
+  navIndex = path.length > 1 ? 1 : 0;
   targetStuck = 0;
+  repathTries = 0;
+  sounds.tap();
 }
 
 // ── câmera orbital: arraste na tela gira, scroll/pinça dá zoom ───────────────
@@ -996,6 +1052,7 @@ async function openGate() {
   saveState(localStorage, player, state);
   const index = zone.colliders.indexOf(zone.gateCollider);
   if (index >= 0) zone.colliders.splice(index, 1);
+  navGrid = buildNavGrid(zone, { radius: PLAYER_RADIUS }); // rota nova agora passa pelo portão
   sounds.door();
   sounds.magic();
   const [leftDoor, rightDoor] = zone.gateDoors;
@@ -1333,6 +1390,7 @@ async function interact(id) {
       saveState(localStorage, player, state);
       const colliderIndex = zone.colliders.indexOf(zone.streamCollider);
       if (colliderIndex >= 0) zone.colliders.splice(colliderIndex, 1);
+      navGrid = buildNavGrid(zone, { radius: PLAYER_RADIUS }); // riacho sem collider: dá para voltar pelo leito
       // pulinho até a outra margem
       const veil = fade(root);
       await veil.cover();
@@ -1411,7 +1469,7 @@ function animate() {
   const t = clock.elapsedTime;
 
   // movimento: teclado (relativo à câmera) OU destino do toque (click-to-move)
-  if (overlayCount > 0) moveTarget = null; // diálogo/menu aberto: desiste do destino
+  if (overlayCount > 0 && moveTarget) stopWalking(); // diálogo/menu aberto: desiste do destino
   const [inputX, inputY] = overlayCount > 0 ? [0, 0] : inputVector();
   const keyboard = Math.hypot(inputX, inputY) > 0.05;
   let dx = 0;
@@ -1419,7 +1477,7 @@ function animate() {
   let running = false;
   let moving = keyboard;
   if (keyboard) {
-    moveTarget = null; // teclado assume o controle
+    stopWalking(); // teclado assume o controle
     // relativo à câmera: "cima" anda pra longe dela em qualquer rotação
     // (rotação do vetor de input por -camYaw; o sinal aqui é o que faz
     // "cima" apontar pro horizonte — invertido, virava em direção à câmera a 90°)
@@ -1429,34 +1487,81 @@ function animate() {
     const speed = 3.8 * (running ? 1.55 : 1);
     dx = (inputX * cy + inputY * sy) * speed * dt;
     dz = (-inputX * sy + inputY * cy) * speed * dt;
-  } else if (moveTarget && playerObj) {
-    const tox = moveTarget.x - playerObj.position.x;
-    const toz = moveTarget.z - playerObj.position.z;
-    const dist = Math.hypot(tox, toz);
-    if (dist < 0.16) {
-      moveTarget = null; // chegou
-    } else {
-      running = dist > 3; // longe = corre, chegando perto = caminha
+  } else if (moveTarget && playerObj && navPath.length) {
+    // alvo do frame = waypoint atual; quando chega perto, passa ao próximo
+    let waypoint = navPath[navIndex] || moveTarget;
+    let toGoal = Math.hypot(moveTarget.x - playerObj.position.x, moveTarget.z - playerObj.position.z);
+    if (Math.hypot(waypoint.x - playerObj.position.x, waypoint.z - playerObj.position.z) < 0.35) {
+      if (navIndex < navPath.length - 1) { navIndex += 1; waypoint = navPath[navIndex]; }
+      else { stopWalking(); waypoint = null; }
+    }
+    if (waypoint) {
+      running = toGoal > 3; // longe = corre, chegando perto = caminha
       const speed = 3.8 * (running ? 1.55 : 1);
+      const tx = waypoint.x - playerObj.position.x;
+      const tz = waypoint.z - playerObj.position.z;
+      const dist = Math.max(0.0001, Math.hypot(tx, tz));
       const step = Math.min(dist, speed * dt);
-      dx = (tox / dist) * step;
-      dz = (toz / dist) * step;
+      dx = (tx / dist) * step;
+      dz = (tz / dist) * step;
       moving = true;
     }
   }
 
   if (playerObj) {
-    const [nx, nz] = moveWithCollision(playerObj.position.x, playerObj.position.z, dx, dz);
-    const walked = Math.hypot(nx - playerObj.position.x, nz - playerObj.position.z);
+    let [nx, nz] = moveWithCollision(playerObj.position.x, playerObj.position.z, dx, dz);
+    let walked = Math.hypot(nx - playerObj.position.x, nz - playerObj.position.z);
+
+    // desvio local: batendo de frente, tenta contornar em ±35° e ±70° antes de
+    // qualquer outra coisa (rede de segurança do A*, para quinas apertadas)
+    if (moveTarget && walked < 0.001 && (dx || dz)) {
+      const angle = Math.atan2(dx, dz);
+      for (const turn of [0.6, -0.6, 1.2, -1.2, 2.1, -2.1]) {
+        const ax = Math.sin(angle + turn);
+        const az = Math.cos(angle + turn);
+        const [tx2, tz2] = moveWithCollision(playerObj.position.x, playerObj.position.z, ax * 0.06, az * 0.06);
+        if (Math.hypot(tx2 - playerObj.position.x, tz2 - playerObj.position.z) > 0.001) {
+          nx = tx2;
+          nz = tz2;
+          walked = Math.hypot(nx - playerObj.position.x, nz - playerObj.position.z);
+          break;
+        }
+      }
+    }
+    // preso dentro de um objeto (empurrada, bounce de saída): sai pro ponto livre mais próximo
+    if (navGrid && !canStand(navGrid, playerObj.position.x, playerObj.position.z)) {
+      const free = nearestStandPoint(navGrid, playerObj.position.x, playerObj.position.z);
+      if (free) {
+        nx = free.x;
+        nz = free.z;
+        walked = Math.hypot(nx - playerObj.position.x, nz - playerObj.position.z);
+      }
+    }
     playerObj.position.set(nx, 0, nz);
+
     if (moveTarget) {
-      // sem progresso por 0,6s = parede no caminho → desiste do destino
       if (walked < 0.001) {
         targetStuck += dt;
-        if (targetStuck > 0.6) { moveTarget = null; targetStuck = 0; }
+        // 0,6s sem progresso: tenta uma rota nova a partir daqui. Se nem assim
+        // der (cercado de verdade), desiste com aviso em vez de congelar.
+        if (targetStuck > 0.6) {
+          repathTries += 1;
+          const path = repathTries <= 2 ? routeTo(moveTarget) : null;
+          if (path) {
+            navPath = path;
+            navIndex = path.length > 1 ? 1 : 0;
+            targetStuck = 0;
+          } else {
+            stopWalking();
+            sounds.wrong();
+            toast(root, uiText(language, 'noPath'), { duration: 2200 });
+          }
+        }
       } else {
         targetStuck = 0;
       }
+      // chegou no destino final: some com o anel
+      if (moveTarget && Math.hypot(moveTarget.x - playerObj.position.x, moveTarget.z - playerObj.position.z) < 0.25) stopWalking();
     }
     // passos sincronizados com o walk cycle (~0.4s por passo)
     stepTimer -= dt;
@@ -1702,9 +1807,13 @@ window.__rpgWelling = {
     zone: zone?.name,
     overlay: overlayCount,
     moveTarget,
+    path: navPath.map((p) => [+p.x.toFixed(2), +p.z.toFixed(2)]),
+    pathIndex: navIndex,
     cooldown: Math.max(0, (exitAllowedAt - performance.now()) / 1000),
     gateOpen: Boolean(state.flags.gateOpen),
     exits: zone?.exits,
+    lastGoal: lastGoal && { x: +lastGoal.x.toFixed(2), z: +lastGoal.z.toFixed(2) },
+    colliders: zone?.colliders?.length,
   }),
   interact: (id) => interact(id),
   kids: () => [playerObj, companionObj].map((o) => o && ({

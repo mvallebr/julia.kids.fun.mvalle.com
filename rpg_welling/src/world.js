@@ -1141,6 +1141,10 @@ function skyDome(scene, zone, { top, horizon, glow = '#ffe6b0', stars = false, h
 
   // silhuetas ao fundo: colinas suaves ou skyline de casinhas
   const city = hills === 'city';
+  if (hills === 'none') {
+    zone.clouds = clouds;
+    return zone;
+  }
   const silhouette = new THREE.MeshBasicMaterial({ color: city ? 0x46586f : 0x3f6048, fog: false, depthWrite: false, transparent: true, opacity: 0.95 });
   const skyline = new THREE.Group();
   for (let i = 0; i < 26; i += 1) {
@@ -1166,6 +1170,68 @@ function skyDome(scene, zone, { top, horizon, glow = '#ffe6b0', stars = false, h
   }
   scene.add(skyline);
   zone.clouds = clouds;
+  return zone;
+}
+
+// ── fundo realista: faixa panorâmica com foto de verdade ─────────────────────
+// A silhueta low-poly é bonita de perto, mas no horizonte fica cartunesca demais.
+// Aqui a mata real do Oxleas vira uma faixa cilíndrica em volta da fase: as
+// pontas desbotam no céu e na névoa da zona, então a foto "nasce" do cenário
+// em vez de parecer um cartaz colado atrás das árvores.
+function photoBand(scene, zone, {
+  url, radius = 125, height = 55, centerY = 10, crop = [0.08, 0.88],
+  sky = '207, 230, 216', haze = '135, 183, 160',
+} = {}) {
+  const placeholder = canvasTexture(16, 128, (ctx, w, h) => {
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, `rgba(${sky}, 0)`);
+    g.addColorStop(0.3, 'rgba(93, 126, 86, 0.92)');
+    g.addColorStop(0.62, 'rgba(70, 100, 64, 1)');
+    g.addColorStop(1, `rgba(${haze}, 1)`);
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+  });
+  const material = new THREE.MeshBasicMaterial({
+    map: placeholder, side: THREE.BackSide, transparent: true, fog: false, depthWrite: false,
+  });
+  const band = new THREE.Mesh(new THREE.CylinderGeometry(radius, radius, height, 48, 1, true), material);
+  band.position.y = centerY;
+  band.renderOrder = -1;
+  scene.add(band);
+  zone.photoBand = band;
+
+  new THREE.TextureLoader().load(url, (texture) => {
+    const image = texture.image;
+    const top = Math.round(image.height * crop[0]);
+    const bottom = Math.round(image.height * crop[1]);
+    const canvas = document.createElement('canvas');
+    canvas.width = image.width;
+    canvas.height = bottom - top;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, top, image.width, bottom - top, 0, 0, image.width, bottom - top);
+    // um véu verde-acinzentado baixo tira o excesso de saturação da foto: o
+    // resultado fica "realista" sem brigar com o low-poly da fase
+    ctx.fillStyle = 'rgba(112, 142, 112, 0.16)';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    // névoa: dissolve o topo no céu e a base no chão
+    const skyFade = ctx.createLinearGradient(0, 0, 0, canvas.height * 0.34);
+    skyFade.addColorStop(0, `rgba(${sky}, 1)`);
+    skyFade.addColorStop(1, `rgba(${sky}, 0)`);
+    ctx.fillStyle = skyFade;
+    ctx.fillRect(0, 0, canvas.width, canvas.height * 0.34);
+    const groundFade = ctx.createLinearGradient(0, canvas.height, 0, canvas.height * 0.58);
+    groundFade.addColorStop(0, `rgba(${haze}, 1)`);
+    groundFade.addColorStop(1, `rgba(${haze}, 0)`);
+    ctx.fillStyle = groundFade;
+    ctx.fillRect(0, canvas.height * 0.58, canvas.width, canvas.height * 0.42);
+    const ready = new THREE.CanvasTexture(canvas);
+    ready.colorSpace = THREE.SRGBColorSpace;
+    material.map = ready;
+    material.needsUpdate = true;
+    texture.dispose();
+  }, undefined, () => {
+    // sem rede/offline: fica o gradiente, que já parece uma linha de mata
+  });
   return zone;
 }
 
@@ -2115,7 +2181,8 @@ export function buildWoods(scene) {
   };
   scene.userData.zone = zone;
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
-  skyDome(scene, zone, { top: '#5b9fd0', horizon: '#cfe6d8', glow: '#ffe9c0', hills: 'green' });
+  skyDome(scene, zone, { top: '#5b9fd0', horizon: '#cfe6d8', glow: '#ffe9c0', hills: 'none' });
+  photoBand(scene, zone, { url: 'assets/oxleas-backdrop.jpg' }); // mata real no horizonte
 
   const grassTexRaw = grassTexture();
   grassTexRaw.texture.wrapS = grassTexRaw.texture.wrapT = THREE.RepeatWrapping;
