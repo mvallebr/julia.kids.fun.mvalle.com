@@ -1179,6 +1179,45 @@ export function makeTreeEmblem(size = 1) {
   return g;
 }
 
+// textura equiretangular do globo da biblioteca: oceanos, continentes em
+// blobs estilizados e MALTA marcada (a amiga maltesa da Julia merece).
+// Malta: lon 14.4°E, lat 35.9°N → u=0.539, v=0.30 no mapa equiretangular.
+function makeEarthTexture() {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 256;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#2a5a9a'; // oceano
+  ctx.fillRect(0, 0, 512, 256);
+  ctx.fillStyle = '#4a8a4a'; // continentes
+  const blob = (u, v, w, h) => {
+    ctx.beginPath();
+    ctx.ellipse(u * 512, v * 256, w, h, 0, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  // América do Norte / Groenlândia / América do Sul / Europa / África / Ásia / Austrália
+  blob(0.18, 0.26, 62, 34);
+  blob(0.34, 0.09, 22, 13);
+  blob(0.30, 0.58, 26, 40);
+  blob(0.50, 0.22, 24, 14);
+  blob(0.52, 0.50, 30, 38);
+  blob(0.70, 0.28, 58, 30);
+  blob(0.83, 0.62, 22, 14);
+  ctx.fillStyle = '#c9a75a'; // desertos (Saara e interior da Austrália)
+  blob(0.53, 0.42, 20, 10);
+  blob(0.84, 0.60, 12, 7);
+  ctx.fillStyle = '#f2ede0'; // calotas polares
+  ctx.fillRect(0, 0, 512, 10);
+  ctx.fillRect(0, 248, 512, 8);
+  // MALTA: ponto vermelho + anel dourado (só dela tem destaque no globo)
+  ctx.fillStyle = '#d02a2a';
+  ctx.beginPath(); ctx.arc(0.539 * 512, 0.30 * 256, 2.6, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#f2c14e'; ctx.lineWidth = 1.6;
+  ctx.beginPath(); ctx.arc(0.539 * 512, 0.30 * 256, 5.2, 0, Math.PI * 2); ctx.stroke();
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return texture;
+}
+
 // placa de fachada larga (High Street de verdade: Post Office, Costa, pub…)
 // — o badge quadradinho do makeLabelSprite não serve para o nameplate das
 // lojas. Cores SEMPRE string (regra cssColor: canvas rejeita número).
@@ -1995,13 +2034,52 @@ export function buildSchool(scene) {
 
   // mesa da Sra. Page + globo
   box(scene, 1.9, 0.75, 0.9, 0x5d3f26, -5.5, 0.375, -26.4, { collider: true });
-  const globe = new THREE.Mesh(new THREE.SphereGeometry(0.22, 14, 12), mat(0x3e6cb0));
-  globe.position.set(-6.0, 0.98, -26.3);
+  // globo da biblioteca que GIRA — com Malta pinada (pedido da amiga maltesa
+  // da Julia): textura de planeta, bandeirola maltesa e etiqueta na ilha.
+  // Fica no canto oeste, FORA da linha de visão da Sra. Page (que o tapava).
+  const globeGroup = new THREE.Group();
+  globeGroup.position.set(-6.9, 1.1, -22.8);
+  const globe = new THREE.Mesh(new THREE.SphereGeometry(0.24, 24, 18), new THREE.MeshLambertMaterial({ map: makeEarthTexture() }));
   globe.castShadow = true;
-  scene.add(globe);
-  const globeStand = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.1, 0.18, 8), mat(0x8a5a2a));
-  globeStand.position.set(-6.0, 0.84, -26.3);
-  scene.add(globeStand);
+  globeGroup.add(globe);
+  {
+    // Malta: lon 14.4E, lat 35.9N sobre a esfera (raio 0.24) + bandeirola
+    const phi = 0.539 * Math.PI * 2;
+    const theta = ((90 - 35.9) / 180) * Math.PI;
+    const dir = new THREE.Vector3(
+      -Math.cos(phi) * Math.sin(theta),
+      Math.cos(theta),
+      Math.sin(phi) * Math.sin(theta)
+    ).normalize();
+    const pin = new THREE.Group();
+    pin.position.copy(dir).multiplyScalar(0.24);
+    pin.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), dir);
+    const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.14, 6), mat(0x3a2a20));
+    stick.position.y = 0.07;
+    pin.add(stick);
+    const flagWhite = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.045, 0.004), mat(0xf2ede0));
+    flagWhite.position.set(0.015, 0.135, 0);
+    pin.add(flagWhite);
+    const flagRed = new THREE.Mesh(new THREE.BoxGeometry(0.028, 0.045, 0.004), mat(0xcf3b3b));
+    flagRed.position.set(0.044, 0.135, 0);
+    pin.add(flagRed);
+    globeGroup.add(pin);
+    const label = makeLabelSprite('MALTA');
+    label.scale.set(0.44, 0.44, 1);
+    label.position.copy(dir).multiplyScalar(0.24).add(new THREE.Vector3(0, 0.14, 0)); // baixinha: não corta no quadro do close
+    globeGroup.add(label);
+  }
+  globeGroup.rotation.y = 0.87; // Malta começa virada para quem chega da biblioteca
+  scene.add(globeGroup);
+  zone.globe = globeGroup; // gira devagar no update da zona
+  const globeColumn = new THREE.Mesh(new THREE.CylinderGeometry(0.035, 0.05, 0.62, 8), mat(0x8a5a2a));
+  globeColumn.position.set(-6.9, 0.47, -22.8);
+  globeColumn.castShadow = true;
+  scene.add(globeColumn);
+  const globeBase = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 0.08, 12), mat(0x5d3f26));
+  globeBase.position.set(-6.9, 0.06, -22.8);
+  globeBase.castShadow = true;
+  scene.add(globeBase);
 
   // cartas da Memória da Biblioteca: par de cartas douradas deitadas na mesa
   // de leitura, com brilho suave — âncora do minigame (src/games/memory.js)
@@ -2017,6 +2095,8 @@ export function buildSchool(scene) {
 
   addInteract('page', -4.8, -25.1, 1.9);
   addInteract('finch', -4.3, 0.8, 1.9);
+  // o globo da biblioteca virou ponto de visita (Malta nele!)
+  addInteract('globe', -6.3, -23.6, 1.3);
 
   // ── expansão: as novas áreas da escola (tudo sobre o gramado base) ──────
   // Árvores do GLB viram instâncias (cada clone eram 6 draw calls — o pack
@@ -2279,6 +2359,7 @@ export function buildSchool(scene) {
     if (zone.glint) zone.glint.material.opacity = 0.55 + 0.45 * Math.sin(t * 3.2);
     ivyEmblem.scale.setScalar(1 + 0.04 * Math.sin(t * 2.4));
     for (const cloud of zone.clouds) cloud.position.x += dt * 0.35; // nuvens derivam
+    if (zone.globe) zone.globe.rotation.y += dt * 0.18; // globo da biblioteca gira (Malta inclusive)
   };
   stashZoneResources(scene); // roadmap 3.3: lembra os recursos p/ liberar na próxima troca
   return zone;

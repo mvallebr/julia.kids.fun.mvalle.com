@@ -64,6 +64,7 @@ const PROMPTS = {
   postOffice: { pt: '✉️ Ver o correio', en: '✉️ Check the post box', es: '✉️ Mirar el buzón' },
   teaRoom: { pt: '🍵 Ouvir o tea room', en: '🍵 Listen at the tea room', es: '🍵 Escuchar la sala de té' },
   memoryLibrary: { pt: '🃏 Jogar a Memória da Biblioteca', en: '🃏 Play Library Memory', es: '🃏 Jugar a la Memoria de la Biblioteca' },
+  globe: { pt: '🌍 Ver o globo', en: '🌍 Look at the globe', es: '🌍 Mirar el globo' },
   clueBench: { pt: '🔍 Olhar o cartaz no banco', en: '🔍 Look at the poster on the bench', es: '🔍 Mirar el cartel del banco' },
   clueChalk: { pt: '🔍 Olhar a janela', en: '🔍 Look at the window', es: '🔍 Mirar la ventana' },
   clueScroll: { pt: '🔍 Ler o pergaminho', en: '🔍 Read the scroll', es: '🔍 Leer el pergamino' },
@@ -131,7 +132,7 @@ function armExitsAt(x, z) {
     if (Math.hypot(exit.x - x, exit.z - z) <= exit.radius) exitInside.add(`${exit.target}:${exit.x}:${exit.z}`);
   }
 }
-window.__BUNDLE_V = 's'; // marcador de versão pra debug de cache
+window.__BUNDLE_V = 't'; // marcador de versão pra debug de cache
 
 function initThree() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -1760,6 +1761,23 @@ async function interact(id) {
   if (id === 'outdoorGym') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.outdoorGym }, { gloss: 'climb' }]); }
   // memória da biblioteca (capítulo 2, fragmento 2; jogável sempre)
   if (id === 'memoryLibrary') return void openMemoryLibrary();
+  // o globo da biblioteca: Malta tem lugar garantido no mapa
+  if (id === 'globe') {
+    sounds.hoot();
+    globeFocus = true;
+    return void runConversation([
+      { who: 'owl', text: {
+        pt: 'Está vendo a ilhinha com o anel dourado? Essa é MALTA — no meio do Mediterrâneo, entre a Europa e a África! Ela está no nosso globo para sempre. 🇲🇹',
+        en: 'See the little island with the golden ring? That is MALTA — right in the middle of the Mediterranean, between Europe and Africa! It is on our globe forever. 🇲🇹',
+        es: '¿Ves la isleta con el anillo dorado? ¡Esa es MALTA — en medio del Mediterráneo, entre Europa y África! Está en nuestro globo para siempre. 🇲🇹',
+      } },
+      { who: 'owl', text: {
+        pt: 'Quem procura, acha: o mundo é grande, mas cabe inteirinho num globo. Um dia a gente visita Malta, quem sabe?',
+        en: 'Seek and you shall find: the world is huge, but it all fits on a globe. Maybe one day we will visit Malta!',
+        es: 'El que busca, encuentra: el mundo es enorme, pero cabe entero en un globo. ¡Quizá un día visitemos Malta!',
+      } },
+    ]).then(() => { globeFocus = false; });
+  }
   if (id === 'clueTimetable') return void addClue('timetable');
   // ── quadra da escola: desafio rápido de choice (uma jogada) ───────────────
   if (id === 'sports') {
@@ -1897,6 +1915,7 @@ const lookTarget = new THREE.Vector3();
 const CAMERA_ARM_MARGIN = 0.4; // folga depois da superfície atingida (m)
 const CAMERA_ARM_MIN = 1.6; // nunca mais perto que isto da jogadora (m)
 const CAMERA_HIT_MIN = 1.4; // acertos mais perto que isto são móvel encostado
+let globeFocus = false; // diálogo do globo aberto → câmera faz close no planeta
 const cameraRay = new THREE.Raycaster();
 let occluders = [];
 let lastCamHit = null; // debug: o que a câmera bateu por último
@@ -2080,7 +2099,11 @@ function animate() {
     const desiredCam = new THREE.Vector3().copy(playerObj.position).add(off);
     const head = new THREE.Vector3(playerObj.position.x, 0.6, playerObj.position.z);
     const clipped = clipCameraArm(head, desiredCam);
-    if (clipped) {
+    if (globeFocus && zone.globe) {
+      // close no planeta enquanto a coruja fala de Malta
+      const g = zone.globe.position;
+      camera.position.lerp(new THREE.Vector3(g.x + 0.7, g.y + 0.26, g.z + 0.8), 1 - Math.exp(-dt * 3.5));
+    } else if (clipped) {
       // parede/teto entre a jogadora e a câmera: encaixa NA HORA na frente
       // (lerp atravessaria por vários frames)
       camera.position.copy(clipped);
@@ -2088,7 +2111,10 @@ function animate() {
       cameraClipped = false;
       camera.position.lerp(desiredCam, 1 - Math.exp(-dt * 5));
     }
-    if (cameraClipped) {
+    if (globeFocus && zone.globe) {
+      const g = zone.globe.position;
+      lookTarget.set(g.x, g.y + 0.04, g.z);
+    } else if (cameraClipped) {
       // vista apertada (sala pequena): mira num ponto ALÉM dela — a menina
       // fica baixa no quadro e o que ela está fazendo aparece na frente
       lookTarget.set(
