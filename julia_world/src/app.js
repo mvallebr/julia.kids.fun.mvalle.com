@@ -67,6 +67,26 @@ const REGION_NAMES = {
   'América do Norte': { en: 'North America', es: 'Norteamérica' },
   'América do Sul': { en: 'South America', es: 'Sudamérica' }, Oceania: { en: 'Oceania', es: 'Oceanía' },
   'América Central': { en: 'Central America', es: 'Centroamérica' }, Caribe: { en: 'Caribbean', es: 'Caribe' },
+  // sub-regiões (a ficha do país mostra a sub-região quando ela é mais útil)
+  'Norte da Europa': { en: 'Northern Europe', es: 'Norte de Europa' },
+  'Europa do Sul': { en: 'Southern Europe', es: 'Sur de Europa' },
+  'Europa Ocidental': { en: 'Western Europe', es: 'Europa Occidental' },
+  'Europa Oriental': { en: 'Eastern Europe', es: 'Europa del Este' },
+  'Europa Central': { en: 'Central Europe', es: 'Europa Central' },
+  'África do Norte': { en: 'North Africa', es: 'Norte de África' },
+  'África Ocidental': { en: 'West Africa', es: 'África Occidental' },
+  'África Oriental': { en: 'East Africa', es: 'África Oriental' },
+  'África Austral': { en: 'Southern Africa', es: 'África Austral' },
+  'África Central': { en: 'Central Africa', es: 'África Central' },
+  'Ásia Oriental': { en: 'East Asia', es: 'Asia Oriental' },
+  'Sudeste Asiático': { en: 'Southeast Asia', es: 'Sudeste Asiático' },
+  'Ásia Central': { en: 'Central Asia', es: 'Asia Central' },
+  'Ásia Ocidental': { en: 'West Asia', es: 'Asia Occidental' },
+  'Sul da Ásia': { en: 'South Asia', es: 'Sur de Asia' },
+  'Austrália e Nova Zelândia': { en: 'Australia & New Zealand', es: 'Australia y Nueva Zelanda' },
+  Melanésia: { en: 'Melanesia', es: 'Melanesia' },
+  Micronésia: { en: 'Micronesia', es: 'Micronesia' },
+  Polinésia: { en: 'Polynesia', es: 'Polinesia' },
 };
 const regionFor = (value) => REGION_NAMES[value]?.[language] || value;
 const localizedChip = (f) => regionFor(chipText(f));
@@ -130,6 +150,16 @@ const GUIDE_AVATARS = {
 const guideAsset = (emoji, pose) => `assets/guide/${GUIDE_AVATARS[emoji] || 'girl'}-${pose}.webp`;
 
 const contColor = (f) => CONT_COLOR[f.properties.c] || FALLBACK_COLOR;
+// variação sutil e determinística de tom por país (hash do id): vizinhos da
+// mesma cor chapada liam-se como "mapa bugado"; 4 tons mantêm a identidade
+// do continente e o contraste com o fundo
+const SHADES = [0, 18, -14, 8];
+const countryTone = (f) => {
+  const id = f.properties.i || '';
+  let h = 0;
+  for (let i = 0; i < id.length; i += 1) h = (h * 31 + id.charCodeAt(i)) % 997;
+  return SHADES[h % SHADES.length];
+};
 // para a América Central e o Caribe, mostrar a região em vez do continente (mais claro p/ criança)
 const chipText = (f) => {
   const { c, s } = f.properties;
@@ -360,7 +390,7 @@ const mk = () => Globe()(globeEl)
   .atmosphereColor('#9fd8ff')
   .atmosphereAltitude(0.24)
   .polygonsData(EARTH.features)
-  .polygonCapColor((f) => (f.properties.i === hoverId ? HOVER_COLOR : contColor(f)))
+  .polygonCapColor((f) => (f.properties.i === hoverId ? HOVER_COLOR : shade(contColor(f), countryTone(f))))
   .polygonSideColor((f) => (f.properties.i === hoverId ? shade(HOVER_COLOR, -60) : shade(contColor(f), -55)))
   .polygonStrokeColor(() => 'rgba(255,255,255,0.75)')
   .polygonAltitude((f) => (f.properties.i === hoverId ? 0.05 : 0.014))
