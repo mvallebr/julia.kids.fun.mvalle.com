@@ -83,7 +83,7 @@ const OBJECTIVE_KEYS = {
 
 // nomes das zonas exibidos ao entrar (toast flutuante)
 const ZONE_NAMES = {
-  school: { pt: '🏫 Academia Leigh Stationers', en: '🏫 Leigh Stationers Academy', es: '🏫 Academia Leigh Stationers' },
+  school: { pt: '🏫 Academia Leigh Stationers', en: "🏫 Leigh Stationers' Primary Academy", es: '🏫 Academia Leigh Stationers' },
   woods: { pt: '🌳 Oxleas Woods', en: '🌳 Oxleas Woods', es: '🌳 Bosque de Oxleas' },
   highstreet: { pt: '🏪 High Street', en: '🏪 High Street', es: '🏪 High Street' },
   academy: { pt: '🏰 Academia Owlburt', en: '🏰 Owlburt Academy', es: '🏰 Academia Owlburt' },

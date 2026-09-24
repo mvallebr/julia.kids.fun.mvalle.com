@@ -63,6 +63,17 @@ function glowMat(color, opacity = 1) {
   return new THREE.MeshBasicMaterial({ color, transparent: opacity < 1, opacity });
 }
 
+// cor CSS a partir de qualquer cor do three.js: as zonas guardam a névoa como
+// número hexadecimal (0x8fc9e8) e `addColorStop` só aceita string CSS. Sem esta
+// conversão, passar a cor direto quebrava a promise que monta o céu — e a zona
+// inteira ficava sem carregar (jogo preso na tela de personagem).
+function cssColor(color, fallback = '#ffffff') {
+  if (typeof color === 'string') return color;
+  if (typeof color === 'number') return `#${color.toString(16).padStart(6, '0')}`;
+  if (color && typeof color.getHexString === 'function') return `#${color.getHexString()}`;
+  return fallback;
+}
+
 function canvasTexture(w, h, draw) {
   const canvas = document.createElement('canvas');
   canvas.width = w; canvas.height = h;
@@ -1102,7 +1113,7 @@ function skyDome(scene, zone, { top, horizon, glow = '#ffe6b0', stars = false, h
     const g = ctx.createLinearGradient(0, 0, 0, h);
     // abaixo da linha do horizonte a cúpula assume a névoa da zona: o terreno
     // é um plano finito, e sem isso aparecia um anel pálido na borda dele
-    const below = zone?.fog?.[0] ?? horizon;
+    const below = cssColor(zone?.fog?.[0], horizon);
     g.addColorStop(0, top);
     g.addColorStop(0.3, top);
     g.addColorStop(0.44, horizon);
@@ -1325,6 +1336,140 @@ function signpost(parent, x, z, rotY = 0) {
   return post;
 }
 
+// ── casca do bloco de ensino ─────────────────────────────────────────────────
+// A escola real (Leigh Stationers' Primary Academy, Eastcote Road) é UM bloco
+// longo e baixo: ~74 × 25 m no OpenStreetMap, sem alas e sem torre, com o
+// Oxleas Wood encostado no terreno. Aqui o prédio já é jogável por dentro
+// (salão, corredor, biblioteca), então a casca é só fachada: começa acima da
+// linha do teto, não ganha colisor e não projeta sombra — os quatro vãos dos
+// portões continuam abertos e o interior não escurece.
+const FACADE_FRAME = 0xf2f0e6;
+const FACADE_GLASS = 0x86aec2;
+const FACADE_ROOF = 0x474c54;
+const UPPER_Y0 = 2.36;
+const UPPER_Y1 = 4.3;
+
+// parede do andar de cima, centrada na mesma linha da parede de baixo
+function upperWall(scene, x1, z1, x2, z2, material, y0 = UPPER_Y0, y1 = UPPER_Y1) {
+  const w = (Math.abs(x2 - x1) || 0.3) + 0.28;
+  const d = (Math.abs(z2 - z1) || 0.3) + 0.28;
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, y1 - y0, d), material);
+  m.position.set((x1 + x2) / 2, (y0 + y1) / 2, (z1 + z2) / 2);
+  m.castShadow = false;
+  m.receiveShadow = true;
+  scene.add(m);
+}
+
+// platibanda de tijolo no contorno do telhado
+function roofEdge(scene, x1, z1, x2, z2, y, material, t = 0.3, h = 0.42) {
+  const spans = [
+    [(x1 + x2) / 2, z1, x2 - x1 + t, t],
+    [(x1 + x2) / 2, z2, x2 - x1 + t, t],
+    [x1, (z1 + z2) / 2, t, z2 - z1 - t],
+    [x2, (z1 + z2) / 2, t, z2 - z1 - t],
+  ];
+  for (const [x, z, w, d] of spans) {
+    const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
+    m.position.set(x, y + h / 2, z);
+    m.castShadow = false;
+    m.receiveShadow = true;
+    scene.add(m);
+  }
+}
+
+// laje + telhado + platibanda de um trecho do bloco
+function shellSection(scene, segments, [x1, z1, x2, z2], material, { storey = true } = {}) {
+  for (const [ax1, az1, ax2, az2] of segments) upperWall(scene, ax1, az1, ax2, az2, material);
+  const w = x2 - x1 + 0.58;
+  const d = z2 - z1 + 0.58;
+  const cx = (x1 + x2) / 2;
+  const cz = (z1 + z2) / 2;
+  // laje do teto do andar de baixo: fecha a casca por baixo
+  const slab = new THREE.Mesh(new THREE.BoxGeometry(w, 0.16, d), mat(FACADE_ROOF));
+  slab.position.set(cx, 2.28, cz);
+  slab.castShadow = false;
+  scene.add(slab);
+  if (!storey) return;
+  const roof = new THREE.Mesh(new THREE.BoxGeometry(w, 0.18, d), mat(FACADE_ROOF));
+  roof.position.set(cx, UPPER_Y1 + 0.09, cz);
+  roof.castShadow = false;
+  roof.receiveShadow = true;
+  scene.add(roof);
+  roofEdge(scene, x1 - 0.29, z1 - 0.29, x2 + 0.29, z2 + 0.29, UPPER_Y1 + 0.18, material);
+}
+
+// Grade de janelas: moldura branca, vidro e montante central, tudo em
+// InstancedMesh — são ~90 janelas e cabem em três draw calls.
+function buildFacadeWindows(scene, windows) {
+  const frames = [];
+  const panes = [];
+  const tmp = new THREE.Object3D();
+  const push = (list, x, y, z, w, h, d) => {
+    tmp.position.set(x, y, z);
+    tmp.scale.set(w, h, d);
+    tmp.updateMatrix();
+    list.push(tmp.matrix.clone());
+  };
+  for (const win of windows) {
+    const { face, fixed, along, y, width = 1.05, height = 1.2 } = win;
+    const thinX = face === 'e' || face === 'w';
+    const sign = face === 'e' || face === 's' ? 1 : -1;
+    push(frames, thinX ? fixed + 0.045 * sign : along, y, thinX ? along : fixed + 0.045 * sign,
+      thinX ? 0.1 : width + 0.22, height + 0.22, thinX ? width + 0.22 : 0.1);
+    push(panes, thinX ? fixed + 0.1 * sign : along, y, thinX ? along : fixed + 0.1 * sign,
+      thinX ? 0.1 : width, height, thinX ? width : 0.1);
+    push(frames, thinX ? fixed + 0.13 * sign : along, y, thinX ? along : fixed + 0.13 * sign,
+      thinX ? 0.12 : 0.07, height, thinX ? 0.07 : 0.12);
+  }
+  const make = (list, color) => {
+    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat(color), list.length);
+    list.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
+    mesh.instanceMatrix.needsUpdate = true;
+    mesh.castShadow = false;
+    mesh.receiveShadow = false;
+    scene.add(mesh);
+  };
+  make(frames, FACADE_FRAME);
+  make(panes, FACADE_GLASS);
+}
+
+// Placa com o nome oficial. O letreiro físico não está confirmado em fonte,
+// mas o nome é oficial e o prédio precisa se identificar.
+function schoolPlaque(text, { width = 3.6, height = 0.66, bg = '#1f3a5f', fg = '#fdf7e6' } = {}) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 1024; canvas.height = 160;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = bg;
+  ctx.beginPath(); ctx.roundRect(8, 8, 1008, 144, 18); ctx.fill();
+  ctx.strokeStyle = '#f5c542'; ctx.lineWidth = 6;
+  ctx.beginPath(); ctx.roundRect(8, 8, 1008, 144, 18); ctx.stroke();
+  ctx.fillStyle = fg;
+  ctx.font = 'bold 60px sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 512, 86, 960);
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(width, height), new THREE.MeshBasicMaterial({ map: texture }));
+  return mesh;
+}
+
+// Árvore barata (tronco + copa) para adensar a mata de fundo: o GLB é
+// bonito mas caro, e aqui a copa só precisa fechar o horizonte.
+function woodCanopy(scene, x, z, scale = 1.8) {
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.12 * scale, 0.2 * scale, 2 * scale, 6), mat(0x4a3626));
+  trunk.position.set(x, scale, z);
+  scene.add(trunk);
+  for (const [dy, r, dx, dz, tone] of [
+    [2.5, 1.15, 0, 0, 0x2f5d33],
+    [3.2, 0.82, 0.5 * scale, 0.3 * scale, 0x3a6b3c],
+  ]) {
+    const crown = new THREE.Mesh(new THREE.SphereGeometry(r * scale, 8, 7), mat(tone));
+    crown.position.set(x + dx, dy * scale, z + dz);
+    crown.scale.y = 0.85;
+    scene.add(crown);
+  }
+}
+
 // ── Zona 1: escola ───────────────────────────────────────────────────────────
 export function buildSchool(scene) {
   const zone = {
@@ -1419,6 +1564,67 @@ export function buildSchool(scene) {
   schoolGate(scene, -1.8, -12.8, -11.2, 'CLASSROOM', -1);
   schoolGate(scene, 1.8, -12.8, -11.2, 'SPORTS', 1);
 
+  // ── casca do bloco: dois pavimentos, telhado chapado, janelas em grade ────
+  // No prédio real não há alas nem torre: um bloco só, comprido. Aqui as três
+  // partes jogáveis (salão, corredor, biblioteca) ganham a mesma casca, com
+  // os vãos dos portões repetidos no andar de cima — de dentro do pátio o
+  // jogo passa a ler "uma escola", e não três caixinhas coladas.
+  shellSection(scene, [
+    [-7, -6, 7, -6], [7, -6, 7, 0], [7, 2.4, 7, 4],
+    [-7, -6, -7, 0], [-7, 2.4, -7, 4], [-7, 4, 7, 4],
+  ], [-7, -6, 7, 4], plaster);
+  shellSection(scene, [
+    [1.8, -16, 1.8, -13.1], [1.8, -10.9, 1.8, -6],
+    [-1.8, -16, -1.8, -13.1], [-1.8, -10.9, -1.8, -6],
+    [-1.8, -16, 1.8, -16], [-1.8, -6, 1.8, -6],
+  ], [-1.8, -16, 1.8, -6], plaster);
+  shellSection(scene, [
+    [-8, -28, 8, -28], [8, -28, 8, -16], [-8, -28, -8, -16], [-8, -16, 8, -16],
+  ], [-8, -28, 8, -16], plaster);
+  // anexo da sala de aula: bloco baixo de serviço, só telhado
+  shellSection(scene, [
+    [-7.6, -13.4, -7.6, -10.6], [-7.6, -13.4, -4.3, -13.4],
+    [-4.3, -13.4, -4.3, -12.8], [-4.3, -11.2, -4.3, -10.6], [-7.6, -10.6, -4.3, -10.6],
+  ], [-7.6, -13.4, -4.3, -10.6], plaster, { storey: false });
+
+  // janelas: duas fileiras (pavimento térreo y=1.3, cima y=3.33), ritmo
+  // regular, pulando portões, hera, gol e a porta do anexo
+  const windows = [];
+  const rows = (face, fixed, ground, upper) => {
+    for (const p of ground) windows.push({ face, fixed, along: p, y: 1.3 });
+    for (const p of upper) windows.push({ face, fixed, along: p, y: 3.33 });
+  };
+  rows('e', 7.29, [-5.2, -3, -0.8, 3.3], [-5.2, -3, -0.8, 3.3]);            // salão, lado do parquinho
+  rows('w', -7.29, [-4.8, 3.3], [-5.2, -3, -0.8, 3.3]);                   // salão, lado da horta (a hera ocupa o meio)
+  rows('e', 2.09, [-15.4, -13.6, -10.6, -8.8, -7], [-15.4, -13.6, -10.4, -8.2, -6.6]);
+  rows('w', -2.09, [-15.4, -13.6, -10.6, -8.8, -7], [-15.4, -13.6, -10.4, -8.2, -6.6]);
+  rows('e', 8.29, [-27, -24.8, -22.6, -20.4, -18.2, -16.8], [-27, -24.8, -22.6, -20.4, -18.2, -16.8]);
+  rows('w', -8.29, [-27, -24.8, -22.6, -20.4, -18.2, -16.8], [-27, -24.8, -22.6, -20.4, -18.2, -16.8]);
+  rows('n', -28.29, [-6.6, -4.4, -2.2, 2.2, 4.4, 6.6], [-6.6, -4.4, -2.2, 0, 2.2, 4.4, 6.6]);
+  rows('s', -15.71, [2.8, 5, 7.2], [2.8, 5, 7.2]);                       // testeira da biblioteca, olhada do pátio
+  rows('s', -15.71, [-2.8, -5, -7.2], [-2.8, -5, -7.2]);
+  rows('w', -7.75, [-12], [-12]);                                          // anexo
+  rows('s', -10.45, [-5.95], [-5.95]);
+  buildFacadeWindows(scene, windows);
+
+  // letreiro do escola no segundo pavimento: é a fachada que a criança vê do
+  // parquinho e da horta (a da frente só existe de dentro do salão)
+  const plaqueEast = schoolPlaque("LEIGH STATIONERS' PRIMARY ACADEMY", { width: 4.2 });
+  plaqueEast.position.set(7.33, 3.9, -2.7);
+  plaqueEast.rotation.y = Math.PI / 2;
+  scene.add(plaqueEast);
+  const plaqueWest = schoolPlaque("LEIGH STATIONERS' PRIMARY", { width: 3.4 });
+  plaqueWest.position.set(-7.33, 3.9, -3);
+  plaqueWest.rotation.y = -Math.PI / 2;
+  scene.add(plaqueWest);
+
+  // detalhes de telhado: casa do elevador e duas caixas de ventilação
+  box(scene, 2.2, 1.3, 2.2, plaster, 4.6, 5.05, -22, { cast: false });
+  box(scene, 2.4, 0.16, 2.4, mat(FACADE_ROOF), 4.6, 5.78, -22, { cast: false });
+  for (const vx of [-4.4, 2.2]) {
+    box(scene, 0.7, 0.5, 0.7, mat(FACADE_ROOF), vx, 4.73, -1, { cast: false });
+  }
+
   // entrada: porta em arco de madeira + emblema brilhando
   box(scene, 1.9, 2.1, 0.14, 0x4e3520, 0, 1.05, 4.05);
   const archTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.95, 0.95, 0.14, 20, 1, false, 0, Math.PI), mat(0x4e3520));
@@ -1429,6 +1635,17 @@ export function buildSchool(scene) {
   doorEmblem.position.set(0, 2.1, 4.16);
   scene.add(doorEmblem);
   glowSprite(scene, zone, 0xffd166, 1.3, 0, 2.1, 4.3, { opacity: 0.35, amp: 0.12 });
+
+  // letreiro de dentro do salão: quem chega da High Street olha para a parede
+  // da frente e vê o nome oficial da escola e a placa da rua (Eastcote Road)
+  const plaqueHall = schoolPlaque("LEIGH STATIONERS' PRIMARY ACADEMY", { width: 3.4 });
+  plaqueHall.position.set(-3.3, 1.5, 3.92);
+  plaqueHall.rotation.y = Math.PI;
+  scene.add(plaqueHall);
+  const streetPlate = schoolPlaque('EASTCOTE ROAD', { width: 1.7, height: 0.42, bg: '#2b2b2b' });
+  streetPlate.position.set(3.1, 1.55, 3.92);
+  streetPlate.rotation.y = Math.PI;
+  scene.add(streetPlate);
 
   // janelas do salão com moldura, brilho e feixe de luz
   for (const z of [-3.4, -0.6, 2.2]) {
@@ -1838,10 +2055,21 @@ export function buildSchool(scene) {
     addCollider(scene, bx, -28.6, 0.3, 0.9);
   }
   addInteract('field', 0, -32.5, 2.4);
-  // treeline atrás do campo: fecha o horizonte com árvores de verdade
-  for (let i = 0; i < 9; i += 1) schoolTree(-10.4 + i * 2.6, -36.6 - (i % 2) * 0.5, 1.5 + (i % 3) * 0.3, false);
-  for (let i = 0; i < 4; i += 1) schoolTree(-11.6, -2 - i * 8, 1.3, false);
-  for (let i = 0; i < 4; i += 1) schoolTree(11.6, -2 - i * 8, 1.3, false);
+  // ── Oxleas Wood fechando o terreno ───────────────────────────────────────
+  // Na escola real a mata encosta no terreno — no OpenStreetMap a escola e
+  // Oxleas Wood compartilham a divisa — e são essas árvores do fundo que a
+  // Julia reconhece nas fotos. Aqui: fileira de árvores do GLB na beira do
+  // campo, copa mais barata atrás da sebe e laterais fechando o gramado.
+  // Todas sem colisor: quem fecha o gramado é a sebe.
+  for (let i = 0; i < 11; i += 1) schoolTree(-11 + i * 2.2, -36.3 - (i % 2) * 0.4, 1.5 + (i % 3) * 0.3, false);
+  for (let i = 0; i < 9; i += 1) woodCanopy(scene, -11 + i * 2.7, -37.2, 1.9 + (i % 3) * 0.4);
+  for (let i = 0; i < 5; i += 1) {
+    schoolTree(-11.6, -2 - i * 8, 1.3, false);
+    schoolTree(11.6, -2 - i * 8, 1.3, false);
+  }
+  for (const [cx, cz] of [[-12.1, -3], [12.1, -3], [-12.1, -19], [12.1, -19], [-12.1, -35], [12.1, -35]]) {
+    woodCanopy(scene, cx, cz, 1.7);
+  }
 
   // barreiras de borda: sebes fecham o gramado (nada de "fora do mundo")
   hedgeRow(scene, -11.8, 3.0, -11.8, -36.8, { height: 1.0 });
