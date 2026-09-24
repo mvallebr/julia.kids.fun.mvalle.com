@@ -83,6 +83,7 @@ function makeContext(canvas) {
     imageSmoothingEnabled: true,
     miterLimit: 10,
     fillRect() {},
+    strokeRect() {},
     clearRect() {},
     beginPath() {},
     arc() {},

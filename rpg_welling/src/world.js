@@ -1179,6 +1179,24 @@ export function makeTreeEmblem(size = 1) {
   return g;
 }
 
+// placa de fachada larga (High Street de verdade: Post Office, Costa, pub…)
+// — o badge quadradinho do makeLabelSprite não serve para o nameplate das
+// lojas. Cores SEMPRE string (regra cssColor: canvas rejeita número).
+function fasciaSign(text, { w = 2.6, h = 0.46, bg = '#1c2a52', fg = '#fff6dd' } = {}) {
+  const canvas = document.createElement('canvas');
+  canvas.width = 512; canvas.height = 96;
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = bg; ctx.fillRect(0, 0, 512, 96);
+  ctx.strokeStyle = 'rgba(255,255,255,.5)'; ctx.lineWidth = 6; ctx.strokeRect(6, 6, 500, 84);
+  ctx.fillStyle = fg;
+  ctx.font = 'bold 52px "Trebuchet MS", sans-serif';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.fillText(text, 256, 52, 484); // 4º arg encolhe a fonte se não couber
+  const texture = new THREE.CanvasTexture(canvas);
+  texture.colorSpace = THREE.SRGBColorSpace;
+  return new THREE.Mesh(new THREE.PlaneGeometry(w, h), new THREE.MeshBasicMaterial({ map: texture }));
+}
+
 function makeLabelSprite(text) {
   const canvas = document.createElement('canvas');
   canvas.width = 128; canvas.height = 128;
@@ -2304,59 +2322,235 @@ export function buildHighStreet(scene) {
   pavement.position.set(0, -0.01, 0);
   pavement.receiveShadow = true;
   scene.add(pavement);
-  // canteiros floridos fecham as bordas da rua
-  for (const side of [-1, 1]) {
-    for (let i = 0; i < 6; i += 1) {
-      const planter = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.45, 1.4), mat(0x8a5a34));
-      planter.position.set(side * 6.7, 0.22, -13 + i * 5.2);
-      planter.castShadow = true;
-      scene.add(planter);
-      for (let f = 0; f < 3; f += 1) {
-        const flower = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 7), mat([0xc0392b, 0xf2c14e, 0xb8d8ff][(i + f) % 3]));
-        flower.position.set(side * 6.7, 0.55, -13.4 + i * 5.2 + f * 0.45);
-        scene.add(flower);
-      }
+  // canteiros floridos — reposicionados para a calçada livre entre a pista e
+  // as fachadas contínuas (as antigas ficavam DENTRO dos prédios novos)
+  const planterSpots = [[-3.7, -13.4], [-3.7, 9.2], [-3.7, 12.9], [3.7, -13.2], [3.7, 12.6], [-3.7, -15.1]];
+  for (const [px, pz] of planterSpots) {
+    const planter = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.45, 1.4), mat(0x8a5a34));
+    planter.position.set(px, 0.22, pz);
+    planter.castShadow = true;
+    scene.add(planter);
+    for (let f = 0; f < 3; f += 1) {
+      const flower = new THREE.Mesh(new THREE.SphereGeometry(0.12, 8, 7), mat([0xc0392b, 0xf2c14e, 0xb8d8ff][f % 3]));
+      flower.position.set(px, 0.55, pz - 0.45 + f * 0.45);
+      scene.add(flower);
     }
   }
 
-  // calçada de pedra
+  // pista de asfalto (mais escura que a calçada de pedra — contraste de via)
   const roadTexRaw = stoneTexture();
   roadTexRaw.texture.wrapS = roadTexRaw.texture.wrapT = THREE.RepeatWrapping;
   roadTexRaw.texture.repeat.set(4, 12);
   const road = new THREE.Mesh(new THREE.PlaneGeometry(9, 36), pbrFrom(roadTexRaw, [4, 12], 1.5, [0.7, 1.0]));
   road.rotation.x = -Math.PI / 2;
   road.position.set(0, 0, 0);
+  road.material.color.set(0x9a9aa8); // tinta asfalto sobre a textura de pedra
   road.receiveShadow = true;
   scene.add(road);
 
   const addCollider = (x, z, hw, hd) => zone.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
 
-  // lojas: caixas com fachadas coloridas + toldos + placas
-  const shops = [
-    { x: -4.2, z: -8, w: 4.5, color: 0xb56a4a, sign: 'BAKERY', signColor: '#ffd166' },
-    { x: 4.2, z: -8, w: 4.5, color: 0x5a7a9e, sign: 'BOOKSHOP', signColor: '#b8d8ff' },
-    { x: -4.2, z: 2, w: 4.5, color: 0x6a8a5a, sign: 'POST', signColor: '#c9e8c9' },
-    { x: 4.2, z: 2, w: 4.5, color: 0x9e5a7a, sign: 'TEA ROOM', signColor: '#f2c9d8' },
-  ];
-  for (const shop of shops) {
-    const body = new THREE.Mesh(new THREE.BoxGeometry(shop.w, 4.2, 3.4), mat(shop.color));
-    body.position.set(shop.x, 2.1, shop.z);
-    body.castShadow = true;
-    scene.add(body);
-    addCollider(shop.x, shop.z, shop.w / 2, 1.7);
-    // toldo listrado
-    const awning = new THREE.Mesh(new THREE.BoxGeometry(shop.w * 0.9, 0.08, 1.1), mat(0xf2ede0));
-    awning.position.set(shop.x, 2.6, shop.z + (shop.z < 0 ? 2.2 : -2.2));
-    awning.rotation.x = shop.z < 0 ? 0.16 : -0.16;
-    scene.add(awning);
-    // placa com nome
-    const sign = makeLabelSprite(shop.sign);
-    sign.position.set(shop.x, 3.1, shop.z + (shop.z < 0 ? 2.35 : -2.35));
-    sign.scale.set(2.4, 0.6, 1);
-    scene.add(sign);
+  // ── a High Street de verdade (Welling, Kent) ────────────────────────────────
+  // Ruas comerciais inglesas são TERRAÇOS contínuos de fachadas coladas — não
+  // caixas soltas. Lugares reais da Bellegrove Rd/High St homenageados:
+  // Post Office (nº 40), Costa Coffee (nº 124), a biblioteca cívica, o pub
+  // Rose and Crown (na foto de 1906) e a estação de 1895.
+  // side: +1 fachada olha para leste (lado leste da rua), −1 para o oeste.
+  function shopFront({ x, z, w, h = 5.3, d = 2.8, body = 0xc9b18a, sign, signBg, signFg = '#fff6dd', side = 1, awning = null, doorZ = z }) {
+    const cx = x + side * (d / 2);
+    const bodyMesh = new THREE.Mesh(new THREE.BoxGeometry(d, h, w), mat(body));
+    bodyMesh.position.set(cx, h / 2, z);
+    bodyMesh.castShadow = true;
+    scene.add(bodyMesh);
+    addCollider(cx, z, d / 2, w / 2);
+    // parapeito/cornija no topo
+    const cornice = new THREE.Mesh(new THREE.BoxGeometry(d + 0.12, 0.28, w + 0.12), mat(0xefe6d4));
+    cornice.position.set(cx, h + 0.1, z);
+    scene.add(cornice);
+    // faixa da placa + vitrine + porta, todos na face da fachada.
+    // face "para fora" (rumo à rua): subtrair side — somar enfiava a placa
+    // 3 cm PARA DENTRO do prédio e ela ficava invisível atrás da parede
+    const face = x - side * 0.04;
+    const fascia = fasciaSign(sign, { w: Math.min(w * 0.92, 3.4), bg: signBg, fg: signFg });
+    fascia.position.set(face, 3.32, z);
+    // plane "olha" para +z: o lado leste (side 1) precisa da face para -x e
+    // vice-versa — de outro modo a placa fica de frente para a própria parede
+    fascia.rotation.y = side === 1 ? -Math.PI / 2 : Math.PI / 2;
+    scene.add(fascia);
+    const winW = Math.min(w * 0.62, 3.1);
+    const window_ = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.5, winW), mat(0x27374e));
+    window_.position.set(face, 1.85, z + (doorZ - z) * 0.5 + (side === 1 ? -0.4 : 0.4));
+    scene.add(window_);
+    const door = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.95, 0.72), mat(0x3a2a20));
+    door.position.set(face, 0.98, doorZ);
+    scene.add(door);
+    if (awning) {
+      const aw = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.07, w * 0.66), mat(awning));
+      aw.position.set(x + side * 0.5, 2.72, z);
+      aw.rotation.z = -side * 0.17;
+      aw.castShadow = true;
+      scene.add(aw);
+    }
+    // janelas do andar de cima (vida na fachada sem custo: caixinhas escuras)
+    const upWins = Math.max(1, Math.floor(w / 2.1));
+    for (let i = 0; i < upWins; i += 1) {
+      const uw = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.8, 0.62), mat(0x27374e));
+      uw.position.set(face, h - 1.15, z - w / 2 + (i + 0.5) * (w / upWins));
+      scene.add(uw);
+    }
   }
 
-  // postes de luz quentes
+  // ── lado oeste (indo para o Welling Corner) ──
+  shopFront({ x: -4.0, z: -11.75, w: 4.5, h: 5.8, body: 0xc9b18a, sign: 'WELLING LIBRARY', signBg: '#1f4e79', side: -1 });
+  shopFront({ x: -4.0, z: -6.75, w: 5.5, h: 5.0, body: 0xb56a4a, sign: "CRUMB'S BAKERY", signBg: '#7a3d1f', signFg: '#ffe2b0', side: -1, awning: 0xf2c14e, doorZ: -5.4 });
+  shopFront({ x: -4.0, z: -1.25, w: 5.5, h: 5.4, body: 0x8a4a3a, sign: 'WELLING POST OFFICE', signBg: '#7a1f2b', side: -1, doorZ: -0.4 });
+  shopFront({ x: -4.0, z: 4.25, w: 5.5, h: 6.2, body: 0xe8d9b0, sign: 'THE ROSE AND CROWN', signBg: '#1f5a33', signFg: '#f2c14e', side: -1, doorZ: 3.6 });
+
+  // ── lado leste — com o BECO da academia (5.9, -3) entre os dois terraços ──
+  shopFront({ x: 4.0, z: -8.8, w: 10.4, h: 5.4, body: 0x5a7a9e, sign: 'BOOKSHOP', signBg: '#2a4a6e', side: 1, doorZ: -5.6 });
+  shopFront({ x: 4.0, z: -0.05, w: 4.9, h: 4.8, body: 0x9e5a7a, sign: 'TEA ROOM', signBg: '#5a2a44', side: 1, awning: 0xc9d8e8, doorZ: -0.4 });
+  shopFront({ x: 4.0, z: 5.25, w: 5.5, h: 5.0, body: 0x7a2a30, sign: 'COSTA COFFEE', signBg: '#3a0d12', side: 1, awning: 0x8a2a30, doorZ: 5.2 });
+  // estação de 1895 (Bexleyheath line): corpo mais alto, copa e relógio
+  shopFront({ x: 4.0, z: 11, w: 6, h: 6.4, body: 0x2a4a70, sign: 'WELLING STATION', signBg: '#12325a', side: 1, doorZ: 11 });
+  {
+    const canopy = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.08, 4.6), mat(0x1c2a52));
+    canopy.position.set(3.6, 3.1, 11);
+    canopy.rotation.z = 0.1;
+    canopy.castShadow = true;
+    scene.add(canopy);
+    for (const [px, pz] of [[3.2, 9.2], [3.2, 12.8]]) {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 3.1, 6), mat(0x1c2a52));
+      pole.position.set(px, 1.55, pz);
+      scene.add(pole);
+    }
+    const clock = new THREE.Mesh(new THREE.CircleGeometry(0.34, 20), mat(0xfff2d9));
+    clock.position.set(3.97, 4.6, 11);
+    clock.rotation.y = -Math.PI / 2;
+    scene.add(clock);
+    const rim = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.05, 8, 20), mat(0x1c2a52));
+    rim.position.copy(clock.position);
+    rim.rotation.y = Math.PI / 2;
+    scene.add(rim);
+  }
+
+  // pub com placa pendurada (o Rose and Crown da foto de 1906)
+  {
+    const bracket = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.06, 0.06), mat(0x3a2a20));
+    bracket.position.set(-3.6, 3.0, 4.25);
+    scene.add(bracket);
+    const board = fasciaSign('ROSE & CROWN', { w: 1.15, h: 0.55, bg: '#1f5a33', fg: '#f2c14e' });
+    board.material.side = THREE.DoubleSide;
+    board.position.set(-3.25, 2.55, 4.25);
+    board.rotation.y = Math.PI / 2;
+    scene.add(board);
+    for (const bz of [3.6, 4.9]) {
+      const basket = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x4a3626));
+      basket.rotation.x = Math.PI;
+      basket.position.set(-3.85, 2.62, bz);
+      scene.add(basket);
+      for (let f = 0; f < 3; f += 1) {
+        const fl = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), mat([0xc0392b, 0xf2c14e, 0xe86a9a][f]));
+        fl.position.set(-3.85 + (f - 1) * 0.12, 2.56, bz + (f - 1) * 0.1);
+        scene.add(fl);
+      }
+    }
+  }
+
+  // ── mobiliário de rua real ──
+  // caixa de correio real (Royal Mail) em frente ao Post Office
+  {
+    const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 1.15, 12), mat(0xb3202a));
+    pillar.position.set(-3.3, 0.57, 1.3);
+    pillar.castShadow = true;
+    scene.add(pillar);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xb3202a));
+    cap.position.set(-3.3, 1.14, 1.3);
+    scene.add(cap);
+    const slot = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.05, 0.05), mat(0x1a1a22));
+    slot.position.set(-3.04, 0.92, 1.3);
+    scene.add(slot);
+    addCollider(-3.3, 1.3, 0.32, 0.32);
+  }
+  // cabine telefônica vermelha (K6) em frente ao Costa
+  {
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.55, 0.8), mat(0xb3202a));
+    base.position.set(3.4, 0.28, 7.1);
+    base.castShadow = true;
+    scene.add(base);
+    // faixa de vidro SOBRESSALENTE da caixa vermelha (a K6 é uma lanterna)
+    const glass = new THREE.Mesh(new THREE.BoxGeometry(0.86, 1.35, 0.86), mat(0x9fc5e8));
+    glass.position.set(3.4, 1.22, 7.1);
+    scene.add(glass);
+    const band = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.14, 0.88), mat(0xf2ede0));
+    band.position.set(3.4, 1.98, 7.1);
+    scene.add(band);
+    const top = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.4, 0.86), mat(0xb3202a));
+    top.position.set(3.4, 2.25, 7.1);
+    scene.add(top);
+    addCollider(3.4, 7.1, 0.48, 0.48);
+  }
+  // postes de mão do Welling Corner (HIGH ST / BELLEGROVE RD / STATION RD)
+  {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 2.5, 8), mat(0xf2ede0));
+    post.position.set(-2.6, 1.25, 9.8);
+    post.castShadow = true;
+    scene.add(post);
+    const arms = [['HIGH ST', 0.5, 2.25], ['BELLEGROVE RD', -1.1, 2.0], ['STATION RD', 2.3, 1.75]];
+    for (const [label, ry, ay] of arms) {
+      const arm = fasciaSign(label, { w: 0.95, h: 0.2, bg: '#1f4e79', fg: '#fff6dd' });
+      arm.material.side = THREE.DoubleSide;
+      arm.position.set(-2.6 + Math.sin(ry) * 0.48, ay, 9.8 + Math.cos(ry) * 0.48);
+      arm.rotation.y = ry + Math.PI / 2;
+      scene.add(arm);
+    }
+    addCollider(-2.6, 9.8, 0.14, 0.14);
+  }
+  // placa de chegada quem vem da escola (saída sul)
+  {
+    const board = fasciaSign('WELCOME TO WELLING', { w: 2.4, h: 0.5, bg: '#1f5a33', fg: '#fff6dd' });
+    board.material.side = THREE.DoubleSide; // quem chega pelo norte lê o verso (placa de rua real)
+    board.position.set(2.7, 1.55, -15.0);
+    board.rotation.y = Math.PI;
+    scene.add(board);
+    for (const px of [1.75, 3.65]) {
+      const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 1.1, 6), mat(0x8a8a92));
+      post.position.set(px, 0.55, -15.0);
+      scene.add(post);
+    }
+    addCollider(2.7, -15.0, 0.2, 0.15);
+  }
+  // faixa de pedestres (zebra) + Belisha beacons no sul da rua
+  {
+    const stripeMat = mat(0xf2ede0);
+    for (let i = 0; i < 5; i += 1) {
+      const stripe = new THREE.Mesh(new THREE.PlaneGeometry(8.4, 0.55), stripeMat);
+      stripe.rotation.x = -Math.PI / 2;
+      stripe.position.set(0, 0.006, -13.1 + i * 0.95);
+      stripe.receiveShadow = true;
+      scene.add(stripe);
+    }
+    for (const [bx, bz] of [[3.8, -13.4], [-3.8, -10.6]]) {
+      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.06, 2.5, 8), mat(0xf2ede0));
+      pole.position.set(bx, 1.25, bz);
+      scene.add(pole);
+      const band = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.5, 8), mat(0x1a1a22));
+      band.position.set(bx, 1.55, bz);
+      scene.add(band);
+      // laranja SÓLIDO: o material de brilho ficava creme e não lia como Belisha
+      const globe = new THREE.Mesh(new THREE.SphereGeometry(0.16, 10, 8), mat(0xff8c1a));
+      globe.position.set(bx, 2.62, bz);
+      scene.add(globe);
+      addCollider(bx, bz, 0.1, 0.1);
+    }
+  }
+  // faixa central tracejada
+  for (let z = -12; z <= 13.5; z += 3.2) {
+    const dash = new THREE.Mesh(new THREE.PlaneGeometry(0.16, 1.3), mat(0xd9d4c8));
+    dash.rotation.x = -Math.PI / 2;
+    dash.position.set(0, 0.005, z);
+    scene.add(dash);
+  }
+  // postes de luz quentes (padrão de rua conservada)
   for (const [lx, lz] of [[-3.4, 8], [3.4, 8], [-3.4, -2], [3.4, -2], [-3.4, -12], [3.4, -12]]) {
     const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.09, 3.4, 8), mat(0x2a2a34));
     pole.position.set(lx, 1.7, lz);
@@ -2369,6 +2563,26 @@ export function buildHighStreet(scene) {
     lampLight.position.set(lx, 3.4, lz);
     scene.add(lampLight);
     addCollider(lx, lz, 0.15, 0.15);
+  }
+  // cestos de flores nos postes (padrão de rua inglesa)
+  for (const [bx, bz] of [[-3.4, -2], [3.4, -2], [-3.4, 8]]) {
+    const basket = new THREE.Mesh(new THREE.SphereGeometry(0.15, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x4a3626));
+    basket.rotation.x = Math.PI;
+    basket.position.set(bx, 3.0, bz);
+    scene.add(basket);
+    for (let f = 0; f < 3; f += 1) {
+      const fl = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), mat([0xc0392b, 0xf2c14e, 0xe86a9a][f]));
+      fl.position.set(bx + (f - 1) * 0.1, 2.94, bz + (f - 1) * 0.08);
+      scene.add(fl);
+    }
+  }
+  // latinha de lixo perto dos bancos (par de sempre)
+  for (const [bx, bz] of [[3.4, 6.6], [-3.4, -8.6]]) {
+    const bin = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.17, 0.72, 10), mat(0x2e4a34));
+    bin.position.set(bx, 0.36, bz);
+    bin.castShadow = true;
+    scene.add(bin);
+    addCollider(bx, bz, 0.22, 0.22);
   }
 
   // bancos
