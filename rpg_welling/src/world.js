@@ -94,11 +94,40 @@ function instantiateGlb(scene, src, instances) {
   });
 }
 
+// Fallback do instancing: se o GLB não é instanciável (skinned/morph), devolve
+// o caminho antigo de clone por cópia — árvore invisível com colisor órfão é
+// pior que alguns draw calls extras. Mesmo contrato do instantiateGlb.
+function cloneGlbCopies(scene, src, instances, { cast = true, receive = true } = {}) {
+  if (!src) return [];
+  return instances.map(({ x, y, z, rotY, scale }) => {
+    const copy = src.scene.clone(true);
+    copy.traverse((node) => {
+      if (node.isMesh) {
+        node.castShadow = cast;
+        node.receiveShadow = receive;
+      }
+    });
+    copy.position.set(x, y, z);
+    copy.rotation.y = rotY;
+    copy.scale.setScalar(scale);
+    scene.add(copy);
+    return copy;
+  });
+}
+
+// Instancia quando o GLB é instanciável; senão cai no clone por cópia. Um só
+// ponto de decisão para todos os chamadores (árvores, arbustos).
+function addGlbCopies(scene, src, instances) {
+  if (!src || !instances.length) return null;
+  const instanced = instantiateGlb(scene, src, instances);
+  if (instanced) return instanced;
+  return cloneGlbCopies(scene, src, instances);
+}
+
 // InstancedMesh a partir de uma lista de {position, scale} — mesmo padrão do
 // buildFacadeWindows (matriz via Object3D temporário). Flags de sombra explícitos:
 // cada chamada repassa EXATAMENTE os flags que os meshes individuais tinham.
-function buildInstanced(scene, geometry, material, items, { cast = true, receive = true } = {}) {
-  const mesh = new THREE.InstancedMesh(geometry, material, items.length);
+function buildInstanced(scene, geometry, material, items, { cast = true, receive = true } = {}) {  const mesh = new THREE.InstancedMesh(geometry, material, items.length);
   const tmp = new THREE.Object3D();
   items.forEach(({ position, scale }, i) => {
     tmp.position.copy(position);
@@ -2215,7 +2244,7 @@ export function buildSchool(scene) {
   for (const [cx, cz] of [[-12.1, -3], [12.1, -3], [-12.1, -19], [12.1, -19], [-12.1, -35], [12.1, -35]]) {
     woodCanopy(scene, cx, cz, 1.7, canopySink);
   }
-  instantiateGlb(scene, schoolTreeSrc, schoolTreeInstances);
+  addGlbCopies(scene, schoolTreeSrc, schoolTreeInstances);
   buildInstanced(scene, new THREE.CylinderGeometry(0.12, 0.2, 2, 6), mat(0x4a3626), canopySink.trunk, { cast: false, receive: false });
   buildInstanced(scene, new THREE.SphereGeometry(1.15, 8, 7), mat(0x2f5d33), canopySink.crowns[0], { cast: false, receive: false });
   buildInstanced(scene, new THREE.SphereGeometry(0.82, 8, 7), mat(0x3a6b3c), canopySink.crowns[1], { cast: false, receive: false });
@@ -2696,7 +2725,7 @@ export function buildWoods(scene) {
     [-12.5, 30, 2.1], [12.5, 24, 2.0], [-13, 14, 2.2], [13, 6, 2.0], [-13, -2, 2.1], [12.5, -10, 2.2],
     [-8, 24, 1.6], [7.5, 20, 1.5], [-6, -13, 1.5], [6.5, -17, 1.5],
   ]) tree(x, z, s, Math.abs(x) < 6);
-  instantiateGlb(scene, treeSrc, treeInstances);
+  addGlbCopies(scene, treeSrc, treeInstances);
 
   // riacho + pedras numeradas (padrão 2, 4, 6, ? — embaralhado)
   const stream = new THREE.Mesh(new THREE.PlaneGeometry(44, 2.6), glowMat(0x4f8fc8, 0.9));
@@ -2755,7 +2784,7 @@ export function buildWoods(scene) {
     ]) {
       bushInstances.push({ x: bx, y: 0, z: bz, rotY: Math.random() * Math.PI * 2, scale: s * 0.9 });
     }
-    instantiateGlb(scene, bushSrc, bushInstances);
+    addGlbCopies(scene, bushSrc, bushInstances);
   }
 
   // baú do tesouro escondido (Stylized Treasure Chest, CC-BY) atrás do marco
