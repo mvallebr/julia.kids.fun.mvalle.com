@@ -1,5 +1,6 @@
 // RPG Welling — save local por jogadora (spec §37, sem contas online).
 import { normalizeWords } from './vocab.js';
+import { ACHIEVEMENT_IDS } from './achievements.js';
 
 export const STORAGE_KEY = 'mundo-da-julia.rpgwelling.v1';
 export const GEN_KEY = 'mundo-da-julia.rpgwelling.gen';
@@ -48,6 +49,7 @@ export function emptyState() {
     language: '', // idioma escolhido no HUD ('' = seguir o launcher/URL)
     history: {}, // 'YYYY-MM-DD' → { added, right, wrong } — dias de estudo p/ relatório
     duelWins: 0, // total de duelos vencidos (conta medalhas da Academia)
+    achievements: [], // ids permanentes de conquistas já conquistadas
   };
 }
 
@@ -70,6 +72,9 @@ export function normalizeState(value = {}) {
   }
   state.clues = (Array.isArray(source.clues) ? source.clues : [])
     .filter((id) => typeof id === 'string' && id.length <= 40).slice(0, 50);
+  // filtrar por ACHIEVEMENT_IDS já impõe o mesmo teto: o slice era redundante
+  state.achievements = [...new Set((Array.isArray(source.achievements) ? source.achievements : [])
+    .filter((id) => ACHIEVEMENT_IDS.includes(id)))];
   if (source.challenges && typeof source.challenges === 'object') {
     for (const [id, done] of Object.entries(source.challenges)) {
       if (typeof id === 'string' && id.length <= 40) state.challenges[id] = Boolean(done);

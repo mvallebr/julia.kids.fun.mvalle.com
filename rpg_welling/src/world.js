@@ -2104,7 +2104,10 @@ export function buildHighStreet(scene) {
     exits: [
       { x: 0, z: 15.4, radius: 1.6, target: 'woods', spawn: [0, -14], flag: 'gateOpen' },
       { x: 0, z: -15.4, radius: 1.6, target: 'school', spawn: [0, 1.2] },
-      { x: 5.9, z: 0.2, radius: 1.5, target: 'academy', spawn: [0, 10.5] },
+      // z=-3 fica no vão entre as fileiras de lojas: em z=0.2 o centro da saída
+      // encostava na fachada da TEA ROOM (começa em z=0.3) e a personagem
+      // aparecia dentro da parede ao chegar da academia
+      { x: 5.9, z: -3.0, radius: 1.5, target: 'academy', spawn: [0, 10.5] },
     ],
   };
   scene.userData.zone = zone;
@@ -2245,7 +2248,7 @@ export function buildAcademy(scene) {
     fog: [0x10132e, 30, 110],
     npcSpots: { raven: [0, -8] },
     exits: [
-      { x: 0, z: 11.4, radius: 1.6, target: 'highstreet', spawn: [3.5, 0.2] },
+      { x: 0, z: 11.4, radius: 1.6, target: 'highstreet', spawn: [5.9, -3.0] },
     ],
   };
   scene.userData.zone = zone;

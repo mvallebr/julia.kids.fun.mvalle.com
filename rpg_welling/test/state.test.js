@@ -2,6 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { emptyState, normalizeState, loadState, saveState, recordHistory, historyWeek, studyStreak, STORAGE_KEY, MAP_PIECES } from '../src/state.js';
+import { ACHIEVEMENT_IDS } from '../src/achievements.js';
 
 function fakeStorage() {
   const data = new Map();
@@ -106,4 +107,20 @@ test('normalizeState limpa histórico malformado e corta em 60 dias', () => {
   });
   assert.deepEqual(Object.keys(dirty.history), ['2026-09-21']);
   assert.deepEqual(dirty.history['2026-09-21'], { added: 0, right: 0, wrong: 2 });
+});
+
+test('emptyState começa sem conquistas', () => {
+  assert.deepEqual(emptyState().achievements, []);
+});
+
+test('normalizeState aceita apenas ids conhecidos, sem repetição', () => {
+  const dirty = normalizeState({
+    achievements: [
+      'first-word', 'id-desconhecido', 42, null, 'first-word',
+      ...ACHIEVEMENT_IDS, ...ACHIEVEMENT_IDS,
+    ],
+  });
+  assert.deepEqual(dirty.achievements, [...ACHIEVEMENT_IDS]);
+  assert.equal(dirty.achievements.length, ACHIEVEMENT_IDS.length);
+  assert.equal(normalizeState({ achievements: 'first-word' }).achievements.length, 0);
 });

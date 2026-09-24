@@ -1,7 +1,7 @@
 # Roadmap — RPG Welling
 
-Status deste arquivo: **vivo**. Atualizado em 2026-09-24, logo após a rodada da
-fachada da escola real (commit `76d66ad`, live `?v=20260924k`).
+Status deste arquivo: **vivo**. Atualizado em 2026-09-24 depois da rodada
+"conteúdo + acessibilidade + qualidade" (live `?v=20260924l`, 77 testes).
 
 Este é o plano de evolução do jogo da Julia. Ele existe para que qualquer sessão
 futura saiba o que já foi feito, o que está em andamento e o que é próximo —
@@ -9,9 +9,10 @@ sem depender de conversa anterior.
 
 ---
 
-## 1. Onde o jogo está hoje (diagnóstico de 2026-09-24)
+## 1. Onde o jogo estava antes desta rodada (diagnóstico de 2026-09-24)
 
-Levantamento feito por leitura de código, sem modificar nada.
+Levantamento inicial, feito por leitura de código. Está aqui como linha de base
+— os números de hoje estão nas tabelas das fases.
 
 **Conteúdo**
 
@@ -60,15 +61,20 @@ qualquer item de conteúdo é uma roleta de regressão silenciosa.
 
 | # | Item | Tamanho | Status |
 |---|---|---|---|
-| 0.1 | Teste de fumaça de boot: as 5 zonas constroem sem lançar | M | em andamento |
-| 0.2 | Cache do service worker versionado pelo hash do bundle | P | em andamento |
+| 0.1 | Teste de fumaça de boot: as 5 zonas constroem sem lançar | M | **entregue** |
+| 0.2 | Cache do service worker versionado pelo hash do bundle | P | **parcial** — cache runtime com namespace `rpg-welling-v1` e promotion de JS íntegro; o `?v=` ainda é manual |
 | 0.3 | Quebrar `world.js` e `main.js` em módulos (destrava o paralelismo) | G | planejado |
-| 0.4 | CI: `npm ci && npm run build && npm test` + grep de CJK | P | em andamento |
+| 0.4 | CI: `npm ci && npm run build && npm test` + grep de CJK | P | **entregue** — `.github/workflows/ci.yml`, Node 20.19.4, e `git diff --exit-code -- lib/bundle.js` |
 
-Sobre 0.1: o teste precisa rodar em Node, onde não existe `document` nem canvas.
-A estratégia é um stub mínimo de DOM que **valida** os argumentos que o código
-entrega às APIs de canvas (é aí que o bug mora) e deixar o `three` de verdade
-cuidar de geometria e materiais.
+Sobre 0.1: o teste roda em Node, onde não existe `document` nem canvas, com um
+stub de DOM em `test/helpers/dom-stub.js` que **valida os argumentos** entregues
+às APIs de canvas (é aí que o bug mora). São 8 casos: as 5 zonas constroem e,
+em `highstreet`, o centro de cada saída fica dentro dos limites da zona de
+origem e fora dos colisores segundo o mesmo predicado de produção.
+
+Sobre 0.2: o service worker deixou de apagar cache de origem inteira e deixou de
+promover respostas parciais ou de tipo errado. O que falta é deriving o nome do
+cache do hash do bundle, para dispensar o bump manual do `?v=`.
 
 ## 3. Fase 1 — Progressão e repetibilidade
 
@@ -78,9 +84,9 @@ mapa; depois do portão da mata, acabou.
 | # | Item | Tamanho | Status |
 |---|---|---|---|
 | 1.1 | Missões roláveis a partir de tabelas (gerar objetivos, não lista fixa) | M-G | planejado |
-| 1.2 | Glossário de 34 → 120–150 palavras por tema, trilingue | M | em andamento |
+| 1.2 | Glossário de 34 → 120–150 palavras por tema, trilingue | M | **entregue (parcial)** — 150 glosas em `GLOSSES`, **92 alcançáveis** no jogo (era 7); faltam asnão alcançáveis |
 | 1.3 | Capítulo 2 (e 3): um ramo de mapa + NPC + minigame por capítulo | G | planejado |
-| 1.4 | 12–20 conquistas com painel próprio | M | em andamento |
+| 1.4 | 12–20 conquistas com painel próprio | M | **entregue** — 18 conquistas em `achievements.js`, painel "🏅 Conquistas" no relatório, toast em cadeia ao ganhar |
 
 ## 4. Fase 2 — Minigames
 
@@ -100,9 +106,9 @@ Cada um é um arquivo novo, sem tocar nos outros.
 | 3.1 | Personagens sob demanda (só quem está na zona; cache em disco) | M-G | planejado |
 | 3.2 | Instanciar vegetação (InstancedMesh, como a fachada) | M | planejado |
 | 3.3 | Corrigir `disposeScene` (material + normal/roughness) | P | planejado |
-| 3.4 | Toque ≥44px, `Escape` fecha modal, focus trap, aria-labels i18n | P-M | em andamento |
+| 3.4 | Toque ≥44px, `Escape` fecha modal, focus trap, aria-labels i18n | P-M | **entregue (parcial)** — focus trap, `Escape` no modal do topo, `aria-label`/`aria-pressed` traduzidos, movimento reduzido, contraste do `.word-due` corrigido; **alvos de toque pequenos (X do diário) ainda por padronizar** |
 | 3.5 | Tela de opções (efeitos / ambiente / fala / idioma / tamanho de texto) | P | planejado |
-| 3.6 | README e CREDITS desatualizados | P | em andamento |
+| 3.6 | README e CREDITS desatualizados | P | **entregue** — números reais (77 testes, payload atual) e atribuição Hunyuan3D/Blender correta |
 
 ---
 
@@ -159,10 +165,10 @@ Para que vários agentes trabalhando em paralelo não se atropelem:
 
 Antes de qualquer commit:
 
-1. `grep -rn "[一-龥]" src/*.js` não devolve nada (texto CJK já corrompeu
-   arquivos três vezes).
+1. `npm run verify` passa — ele já roda o grep PCRE de CJK, o build e os testes
+   (texto CJK já corrompeu arquivos três vezes).
 2. `npm run build` passa.
-3. `npm test` passa (baseline hoje: 39).
+3. `npm test` passa (baseline hoje: **77**, eram 39).
 4. Se tocou `world.js` ou qualquer builder: **teste de fumaça de boot** passa.
 5. Se tocou `index.html`: bump de `?v=` no `<script src="lib/bundle.js?v=…">`.
 6. Depois do push: conferir o `?v=` no ar e o **md5 do bundle live = local**.

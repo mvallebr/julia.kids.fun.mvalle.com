@@ -40,8 +40,10 @@ no Diário da missão (chip 📜), embaixo do objetivo principal.
 
 ## Personagens
 
-Todos os 6 personagens principais são gerados por IA **localmente** na
-RTX 4060, com esqueleto e animações (idle/walk/run):
+O jogo usa **sete modelos de personagens** gerados por IA localmente: Ivy,
+Oakley e os cinco NPCs. A tabela agrupa Ivy e Oakley em um único papel, então
+ela tem seis linhas; isso não reduz o total de sete modelos. Todos têm
+esqueleto e animações (idle/walk/run):
 
 | Personagem | Papel |
 |---|---|
@@ -55,8 +57,12 @@ RTX 4060, com esqueleto e animações (idle/walk/run):
 Pipeline: concept art (Minimax) → malha (Hunyuan3D-2mini) → textura
 (Hunyuan3D-2 paint, multiview) → rig + animações (Blender via
 `~/ai/hp3d-rig.py`) → GLB otimizado (gltf-transform, texturas 1024 WebP).
+Os GLBs de personagens são gerados localmente, sem licença de modelo de
+terceiros. Props e fallbacks externos sob CC-BY: ver `assets/CREDITS.md` e o
+botão ℹ️ no jogo.
 
-Props do Sketchfab sob CC-BY: ver `assets/CREDITS.md` e o botão ℹ️ no jogo.
+Os 15 GLBs distribuídos somam aproximadamente 70 MB. O plano de evolução
+vivo do jogo está em `ROADMAP.md`.
 
 ## Controles
 
@@ -78,7 +84,7 @@ Props do Sketchfab sob CC-BY: ver `assets/CREDITS.md` e o botão ℹ️ no jogo.
 
 ```bash
 npm run build   # bundle via esbuild (lib/bundle.js, commitado)
-npm test        # 24 testes (state + vocab + quest)
+npm test        # executa a suíte de testes do jogo
 npm run dev     # esbuild --watch
 ```
 
@@ -92,8 +98,25 @@ npm run dev     # esbuild --watch
 - **Spec**: os comentários `spec §N` vêm das notas de design da sessão de
   planejamento — o documento não está no repositório (histórico, inofensivo).
 - **PWA**: `manifest.webmanifest` + `sw.js` na raiz — cache por runtime
-  (navegação network-first, estáticos cache-first), instalável na tela
-  inicial do tablet e partida offline após a primeira visita.
+  (navegação e JS network-first, demais estáticos cache-first), instalável
+  na tela inicial do tablet. O cache é criado conforme a criança visita:
+  uma navegação anterior do mesmo caminho pode ser reaberta offline mesmo
+  quando a URL atual tem outro `?name`, `?avatar`, `?language` ou `?v`. Isso
+  não garante uma cópia offline para todo destino ou para toda consulta que
+  ainda não foi visitada. O `sw.js` é registrado na raiz e seu escopo `/`
+  controla também o launcher; esse risco é aceito porque o registro do RPG
+  já aponta para esse caminho. O JS é buscado da rede quando disponível,
+  então o `?v=` do HTML não precisa ser editado para a atualização do bundle;
+  o cache só é usado como reserva. O worker não valida releases: um deploy
+  ruim com resposta 200 pode ser promovido para o cache. A checagem de bundle
+  fresco no CI e o smoke test são as proteções contra esse incidente.
+- **Estáticos e atualização**: CSS, fontes, manifesto e imagens de painel não
+  são todos versionados ou content-hashed. Eles usam cache-first; portanto,
+  uma cópia já visitada pode ficar desatualizada para uma criança que retorna
+  até a próxima limpeza/evicção do cache. Para um asset não cacheado, uma
+  resposta HTTP de erro, parcial ou de tipo inesperado não substitui uma cópia
+  boa. O `sw.js` também não força a troca do worker em abas abertas: uma nova
+  versão espera as abas atuais fecharem antes de assumir a próxima navegação.
 - **Save**: `localStorage`, slot com geração (`v1.g<N>`) — o restart
   incrementa a geração, então abas velhas não ressuscitam save apagado.
 

@@ -3,15 +3,22 @@
 // o intervalo dobra; errou, volta em 10 minutos.
 
 const DAY = 24 * 60 * 60 * 1000;
-const MAX_WORDS = 60;
+// teto do diário: com o glossário de 150 palavras, 200 dá folga para as
+// entradas por desafio sem nunca truncar o conteúdo planejado
+export const MAX_WORDS = 200;
 
-// registra (ou atualiza) uma palavra vista numa glosa
+// uma sessão curta cabe melhor aos 7 anos e evita cansaço
+export const MAX_REVIEW_PER_SESSION = 12;
+
+// registra uma palavra vista numa glosa. Quando o diário está cheio, a nova
+// palavra é recusada sem apagar nada e a função devolve false. Assim a interface
+// pode avisar a criança; true significa palavra já existente ou recém-entrada.
 export function registerWord(words, word, gloss) {
-  if (!words || !word || !gloss) return;
-  if (!words[word]) {
-    if (Object.keys(words).length >= MAX_WORDS) return;
-    words[word] = { pt: gloss.pt, streak: 0, due: Date.now() + DAY };
-  }
+  if (!words || !word || !gloss) return false;
+  if (words[word]) return true;
+  if (Object.keys(words).length >= MAX_WORDS) return false;
+  words[word] = { pt: gloss.pt, streak: 0, due: Date.now() + DAY };
+  return true;
 }
 
 // palavras com revisão vencida, mais vencida primeiro

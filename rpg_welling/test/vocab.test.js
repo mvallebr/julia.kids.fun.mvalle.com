@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   registerWord,
   dueWords,
+  MAX_WORDS,
   answerCorrect,
   answerWrong,
   buildQuiz,
@@ -23,14 +24,31 @@ test('registerWord cria entrada com due em 1 dia', () => {
   assert.ok(words.broom.due <= Date.now() + DAY);
 });
 
-test('registerWord não duplica nem passa do limite', () => {
+test('registerWord não duplica', () => {
   const words = {};
   registerWord(words, 'owl', { pt: 'owl = coruja' });
   registerWord(words, 'owl', { pt: 'outra definição' });
   assert.equal(Object.keys(words).length, 1);
   assert.equal(words.owl.pt, 'owl = coruja');
-  for (let i = 0; i < 70; i += 1) registerWord(words, `w${i}`, { pt: `w${i}` });
-  assert.ok(Object.keys(words).length <= 60);
+});
+
+// o limite vem da constante, não de um número solto no teste: subir o teto
+// do diário não pode deixar a suíte vermelha nem perder a cobertura da borda
+test('registerWord respeita MAX_WORDS na entrada e na saída do limite', () => {
+  const words = {};
+  for (let i = 0; i < MAX_WORDS; i += 1) registerWord(words, `w${i}`, { pt: `w${i}` });
+  assert.equal(Object.keys(words).length, MAX_WORDS);
+
+  registerWord(words, 'overflow', { pt: 'overflow' });
+  assert.equal(Object.keys(words).length, MAX_WORDS, 'a palavra acima do teto não entra');
+  assert.equal(words.overflow, undefined);
+
+  // no teto, uma palavra JÁ existente continua válida: registrar de novo não
+  // é recusa (devolve true), não cria duplicata e não mexe no que já está
+  // salvo — a primeira definição é a que fica no diário
+  assert.equal(registerWord(words, 'w0', { pt: 'w0 revisitada' }), true);
+  assert.equal(words.w0.pt, 'w0');
+  assert.equal(Object.keys(words).length, MAX_WORDS);
 });
 
 test('dueWords só retorna vencidas, mais antigas primeiro', () => {

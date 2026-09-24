@@ -6,7 +6,8 @@
   "scripts": {
     "build": "esbuild src/main.js --bundle --minify --outfile=lib/bundle.js",
     "dev": "esbuild src/main.js --bundle --outfile=lib/bundle.js --watch",
-    "test": "node --test test/*.test.js"
+    "test": "node --test test/*.test.js",
+    "verify": "grep -RInP '[\\x{4E00}-\\x{9FFF}]' src --include='*.js'; status=$?; if [ \"$status\" -eq 0 ]; then exit 1; elif [ \"$status\" -ne 1 ]; then exit \"$status\"; fi; npm run build && npm test"
   },
   "license": "ISC",
   "dependencies": {

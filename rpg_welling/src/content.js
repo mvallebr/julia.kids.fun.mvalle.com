@@ -48,7 +48,7 @@ export const STORY_PANELS = [
     image: 'assets/panel-woods.jpg',
     text: {
       pt: 'As corujas voam na frente, até a mata de Oxleas. Entre as árvores, um caminho escondido espera…',
-      en: 'The owls fly ahead, all the way to Oxleas Woods. Among the trees, a hidden path waits…',
+      en: 'The owls fly ahead, all the way to Oxleas Wood. Among the trees, a hidden path waits…',
       es: 'Los búhos vuelan adelante, hasta el bosque de Oxleas. Entre los árboles, un sendero escondido espera…',
     },
   },
@@ -87,6 +87,29 @@ export const CONVERSATIONS = {
       },
     } },
     { gloss: 'map' },
+    { who: 'finch', text: {
+      pt: 'A vassoura acordou uma fita brilhante no cabo. Vou tocar cada palavra da escola que encontrei nela.',
+      en: 'The broom woke a shiny strip on its handle. I will touch each school word I found there.',
+      es: 'La escoba despertó una cinta secreta en el mango. Voy a tocar cada palabra de la escuela que encontré allí.',
+    } },
+    { gloss: 'teacher' },
+    { gloss: 'student' },
+    { gloss: 'class' },
+    { gloss: 'book' },
+    { gloss: 'pencil' },
+    { gloss: 'bag' },
+    { gloss: 'read' },
+    { gloss: 'write' },
+    { gloss: 'question' },
+    { gloss: 'child' },
+    { gloss: 'room' },
+    { gloss: 'gate' },
+    { gloss: 'curious' },
+    { gloss: 'roots' },
+    { gloss: 'tree' },
+    { gloss: 'leaf' },
+    { gloss: 'rock' },
+    { gloss: 'star' },
   ],
   finchAfter: [
     { who: 'finch', text: {
@@ -95,6 +118,31 @@ export const CONVERSATIONS = {
       es: '¿Ya encontraron muchas cosas por aquí? ¡Los libros guardan secretos, solo miren bien!',
     } },
     { gloss: 'broom' },
+    { who: 'finch', text: {
+      pt: 'No armário de achados e perdidos havia um retrato de família, uma chave de casa, um crachá de quarto, bonecos do corpo e roupas para guardar. Vamos aprender os nomes juntos!',
+      en: 'In the lost-and-found cupboard were a family photo, a house key, a room tag, body puppets and clothes to put away. Let us learn their names together!',
+      es: 'En el armario de objetos perdidos había una foto de familia, una llave de casa, una etiqueta de cuarto, muñecos del cuerpo y ropa para guardar. ¡Aprendamos sus nombres juntos!',
+    } },
+    { gloss: 'mother' },
+    { gloss: 'father' },
+    { gloss: 'sister' },
+    { gloss: 'brother' },
+    { gloss: 'house' },
+    { gloss: 'bed' },
+    { gloss: 'head' },
+    { gloss: 'hair' },
+    { gloss: 'eye' },
+    { gloss: 'ear' },
+    { gloss: 'nose' },
+    { gloss: 'mouth' },
+    { gloss: 'hand' },
+    { gloss: 'foot' },
+    { gloss: 'shoulder' },
+    { gloss: 'knee' },
+    { gloss: 'arm' },
+    { gloss: 'face' },
+    { gloss: 'hat' },
+    { gloss: 'trousers' },
   ],
   page: [
     { who: 'page', text: {
@@ -131,6 +179,31 @@ export const CONVERSATIONS = {
       },
     } },
     { gloss: 'library' },
+    { who: 'page', text: {
+      pt: 'O livro velho abriu páginas que viraram paisagem. A biblioteca brotou palavras do tamanho das árvores enquanto os pássaros acordavam!',
+      en: 'The old book opened pages that became landscapes. Words grew as big as trees while the birds woke!',
+      es: 'El libro viejo abrió páginas que se convirtieron en paisajes. ¡Las palabras crecieron como árboles mientras despertaban los pájaros!',
+    } },
+    { gloss: 'story' },
+    { gloss: 'letter' },
+    { gloss: 'tea' },
+    { gloss: 'ancient' },
+    { gloss: 'woods' },
+    { gloss: 'warm' },
+    { gloss: 'kind' },
+    { gloss: 'secret' },
+    { gloss: 'practice' },
+    { gloss: 'golden' },
+    { gloss: 'grateful' },
+    { gloss: 'meadow' },
+    { gloss: 'hill' },
+    { gloss: 'castle' },
+    { gloss: 'pond' },
+    { gloss: 'greenhouse' },
+    { gloss: 'swing' },
+    { gloss: 'pitch' },
+    { gloss: 'path' },
+    { gloss: 'climb' },
   ],
   pageAfter: [
     { who: 'page', text: {
@@ -145,6 +218,29 @@ export const CONVERSATIONS = {
       es: 'Y algo que las búhos me enseñan cada día: ellos confían en quien escucha con calma. ¡Trust, confía!',
     } },
     { gloss: 'trust' },
+    { who: 'page', text: {
+      pt: 'Na última página, um mapa de uma cidade ganhou vida: um museu, um parque, um piquenique com maçã e pão e um cofre brilhando. A etiqueta mandava buscar no carrinho de livros!',
+      en: 'On the last page, a town map came alive: a museum, a park, a picnic with an apple and bread, and a shining treasure chest. Its label said to look in the book trolley!',
+      es: 'En la última página, un mapa de una ciudad cobran vida: ¡un museo, un parque, un pícnic con manzana y pan y un cofre brillante! Su etiqueta decía que miráramos en el carrito de libros.',
+    } },
+    { gloss: 'fetch' },
+    { gloss: 'treasure' },
+    { gloss: 'sparkle' },
+    { gloss: 'magic' },
+    { gloss: 'spell' },
+    { gloss: 'bookmark' },
+    { gloss: 'paper' },
+    { gloss: 'ink' },
+    { gloss: 'quiet' },
+    { gloss: 'borrow' },
+    { gloss: 'return' },
+    { gloss: 'answer' },
+    { gloss: 'chapter' },
+    { gloss: 'title' },
+    { gloss: 'apple' },
+    { gloss: 'bread' },
+    { gloss: 'museum' },
+    { gloss: 'park' },
   ],
   assemble: [
     { choice: {
@@ -160,8 +256,8 @@ export const CONVERSATIONS = {
         { id: 'quarter', label: { pt: '1/4 (um quarto)', en: '1/4 (a quarter)', es: '1/4 (un cuarto)' }, correct: true },
       ],
       success: {
-        pt: 'Um quarto de 4 partes! As bordas se encaixam… e o mapa inteiro brilha: uma trilha até os bosques de Oxleas!',
-        en: 'A quarter, of four pieces! The edges fit… and the whole map glows: a trail into Oxleas Woods!',
+        pt: 'Um quarto de 4 partes! As bordas se encaixam… e o mapa inteiro brilha: uma trilha até a mata de Oxleas!',
+        en: 'A quarter, of four pieces! The edges fit… and the whole map glows: a trail into Oxleas Wood!',
         es: '¡Un cuarto, de 4 partes! ¡Los bordes encajan… y el mapa entero brilla: un sendero hacia el bosque de Oxleas!',
       },
       fail: {
@@ -190,10 +286,10 @@ export const FLAVOR = {
   postOffice: {
     pt: 'Caixa de correio verde: uma carta sem endereço, só o desenho de uma árvore dourada. O carimbo diz "Candy Castle".',
     en: 'A green post box: a letter with no address, just a drawing of a golden tree. The stamp says "Candy Castle".',
-    es: 'Un buzón verde: una carta sin dirección, solo el dibujo de un árbol dorada. El sello dice "Candy Castle".',
+    es: 'Un buzón verde: una carta sin dirección, solo el dibujo de un árbol dorado. El sello dice "Candy Castle".',
   },
   teaRoom: {
-    pt: 'O cheiro de chá e bolo sai da porta aberta. Na quadro: "Today\'s special — cinnamon tea with honey".',
+    pt: 'O cheiro de chá e bolo sai da porta aberta. No quadro: "Today\'s special — cinnamon tea with honey".',
     en: 'The smell of tea and cake drifts through the open door. On the board: "Today\'s special — cinnamon tea with honey".',
     es: 'El olor a té y pastel entra por la puerta abierta. En el cartel: "Today\'s special — cinnamon tea with honey".',
   },
@@ -212,6 +308,16 @@ export const FLAVOR = {
     en: 'Old stone with the tree carved in. On the back, small letters: "Who reads the map sees the way."',
     es: 'Piedra antigua con el árbol tallado. Del otro lado, letras pequeñas: "Quien lee el mapa ve el camino."',
   },
+  clueTable: {
+    pt: 'Na mesa da biblioteca, uma página rasgada guarda a ponta de um mapa. Ao lado, uma maçã e um pão formam o lanche das corujas estudiosas!',
+    en: 'On the library table, a torn page holds the tip of a map. Beside it, an apple and some bread make a snack for the study-minded owls!',
+    es: 'En la mesa de la biblioteca, una página rasgada guarda el borde de un mapa. ¡Al lado, una manzana y pan forman la merienda de los búhos estudiosos!',
+  },
+  clueOak: {
+    pt: 'No carvalho, a página está presa entre raízes fortes. A casca é rugosa e fria, e uma folha dourada ainda brilha ali!',
+    en: 'On the oak, the page is caught between strong roots. The bark feels rough and cool, and one golden leaf still glows there!',
+    es: 'En el roble, la página está atrapada entre raíces fuertes. ¡La corteza es rugosa y fría, y una hoja dorada todavía brilla allí!',
+  },
   // ── novas áreas (escola ampliada + Oxleas) ───────────────────────────────
   playground: {
     pt: 'O parquinho tem balanço, escorregador e um caixote de areia. As marcas na areia parecem letras: "O.L.A.D.A"… e um guarda-chuva roxo encostado na cerca!',
@@ -219,7 +325,7 @@ export const FLAVOR = {
     es: 'El parque tiene columpios, un tobogán y un arenero. Las marcas en la arena dicen "O.L.A.D.A"… ¡y un paraguas morado apoyado en la valla!',
   },
   garden: {
-    pt: 'A horta da escola: couveiros, uma estufa de vidro e um espantalho que parece greeting todo mundo. Cheira a terra molhada!',
+    pt: 'A horta da escola: couveiros, uma estufa de vidro e um espantalho que parece cumprimentar todo mundo. Cheira a terra molhada!',
     en: 'The school garden: vegetable beds, a glass greenhouse and a scarecrow that seems to say hello. It smells of wet earth!',
     es: 'El huerto de la escuela: bancales, un invernadero de cristal y un espantajo que parece saludar. ¡Huele a tierra mojada!',
   },
@@ -239,9 +345,9 @@ export const FLAVOR = {
     es: 'OXLEAS WOOD CAFÉ — ¡el café de verdad está en el prado, en lo alto de la colina! Hay mesas con sombrillas y un cartel: "Today: cake + forest views".',
   },
   severndroog: {
-    pt: 'Uma ruína de pedra no meio de Castle Wood: o castelo de Severndroog, com o tearoom lá em cima e uma vista que vale a subida.',
-    en: 'A stone ruin in the middle of Castle Wood: Severndroog Castle, with its tearoom up top and a view worth the climb.',
-    es: 'Una ruina de piedra en medio de Castle Wood: el castillo de Severndroog, con el tearoom arriba y una vista que vale la subida.',
+    pt: 'Uma antiga casa de campo de pedra, feita para parecer um castelo, espera no meio de Oxleas Wood. A vista lá de cima vale a subida!',
+    en: 'An old stone country house built to look like a castle waits in the middle of Oxleas Wood. The view from the top is worth the climb!',
+    es: 'Una antigua casa de campo de piedra, construida para parecer un castillo, espera en medio de Oxleas Wood. ¡La vista desde arriba vale la subida!',
   },
   pond: {
     pt: 'Um lago de patos e juncos. Cuidado: em Oxleas NUNCA teve rio — o rio Cray passa longe daqui. O que corre depois da chuva é o leito do riacho, e seca.',
@@ -280,7 +386,7 @@ export const CLUES = {
   duelScroll: {
     pt: 'Pergaminho caído no pátio da academia: "…o duelo só começa quando as duas corujas cantam juntas."',
     en: 'A scroll dropped in the academy yard: "…the duel only begins when both owls sing together."',
-    es: 'Un pergamino en el patio de la academia: "…el duelo solo empieza cuando las dos búhos cantan juntas."',
+    es: 'Un pergamino en el patio de la academia: "…el duelo solo empieza cuando los dos búhos cantan juntos."',
   },
   libraryTable: {
     pt: 'Página rasgada de um livro de histórias: "…e o Castelo de Açúcar dava frutas a quem provava legumes primeiro."',
@@ -293,7 +399,7 @@ export const CLUES = {
     es: 'Página pegada al roble: "La puerta solo se abre para quien entiende el mundo, nunca para quien tiene prisa."',
   },
   timetable: {
-    pt: 'Tabela de jogos pregada na cerca da quadra: "Tuesday — PE: year 4 v year 5. Wednesday — Library club. Friday — Choir." Oüllá, o coro é na sexta!',
+    pt: 'Tabela de jogos pregada na cerca da quadra: "Tuesday — PE: year 4 v year 5. Wednesday — Library club. Friday — Choir." Olha, o coro é na sexta!',
     en: 'A games timetable nailed to the court fence: "Tuesday — PE: year 4 v year 5. Wednesday — Library club. Friday — Choir." Look — choir is on Friday!',
     es: 'Un horario de deportes clavado en la valla: "Martes — Ed. física: 4º vs 5º. Miércoles — Club de lectura. Viernes — Coro." ¡Mira, el coro es el viernes!',
   },
@@ -307,6 +413,14 @@ export const UMBRELLA_ASK = [
     es: '¡Qué gusto verlos, queridos! Qué vergüenza: perdí mi paraguas morado en el parque de la escuela. Ayer lloviznaba y yo… en fin, vi un brillo rosa en la arena cerca del columpio.',
   } },
   { gloss: 'umbrella' },
+  { who: 'owl', text: {
+    pt: 'O brilho rosa vinha de um barbante mágico preso ao guarda-chuva: ele sabia dizer o clima de Welling!',
+    en: 'The pink glint came from magic string tied to the umbrella: it knew Welling’s weather!',
+    es: 'El brillo rosa venía de un hilo mágico atado al paraguas: ¡conocía el clima de Welling!',
+  } },
+  { gloss: 'rain' },
+  { gloss: 'wet' },
+  { gloss: 'wind' },
 ];
 export const UMBRELLA_FOUND = [
   { who: 'owl', text: {
@@ -315,6 +429,14 @@ export const UMBRELLA_FOUND = [
     es: '¡Encontrado! Un paraguas morado, plegado y enredado en la tierra. Seguro que se voló del muro del patio ayer. ¡Volvemos con la Sra. Page!',
   } },
   { gloss: 'umbrella' },
+  { who: 'owl', text: {
+    pt: 'Agora o barbante mostra o céu azul e três exemplos de cor. A Sra. Page vai adorar!',
+    en: 'Now the string shows the blue sky and three colours. Ms Page will love it!',
+    es: '¡Ahora el hilo muestra el cielo azul y tres colores! ¡A la Sra. Page le va a encantar!',
+  } },
+  { gloss: 'sunny' },
+  { gloss: 'cloudy' },
+  { gloss: 'weather' },
 ];
 export const UMBRELLA_DONE = [
   { who: 'page', text: {
@@ -323,6 +445,14 @@ export const UMBRELLA_DONE = [
     es: '¡Mi paraguas! ¡Son un verdadero tesoro! Ahora mi té de las cinco está a salvo. ¡Las palabras "umbrella" y "grateful" entraron en tu diario!',
   } },
   { gloss: 'umbrella' },
+  { who: 'owl', text: {
+    pt: 'A Sra. Page amarrou três cores ao barbante: o azul do céu, o vermelho das maçãs e o amarelo do sol. O guarda-chuva agora é um pequeno quadro do mundo!',
+    en: 'Ms Page tied three colours to the string: the blue of the sky, the red of apples and the yellow of the sun. Now the umbrella is a little picture of the world!',
+    es: '¡La Sra. Page ató tres colores al hilo: el azul del cielo, el rojo de las manzanas y el amarillo del sol. ¡Ahora el paraguas es un pequeño cuadro del mundo!',
+  } },
+  { gloss: 'blue' },
+  { gloss: 'red' },
+  { gloss: 'yellow' },
 ];
 
 // Peças do mapa: id → como a criança as ganha (para o diário).
@@ -334,10 +464,13 @@ export const PIECE_NAMES = {
 };
 
 // Glosas ✨ mostradas como brindes de vocabulário (spec §9) — cada uma vira
-// carta no Diário de Palavras com revisão espaçada (src/vocab.js).
+// carta no Diário de Palavras com revisão espaçada (src/vocab.js). As palavras
+// são agrupadas por casa/família, escola, comida, corpo, roupas, cores/números,
+// leitura, natureza, clima, transporte, cidade, sentimentos, verbos, adjetivos
+// e magia/história. Toda entrada é { pt, en, es }, com a palavra em inglês como chave.
 export const GLOSSES = {
-  story: { pt: 'story = história, conto', en: 'story = a tale', es: 'story = cuento' },
-  letter: { pt: 'letter = carta', en: 'letter = a letter in the post', es: 'letter = carta' },
+  story: { pt: 'story = história, conto', en: 'story = words that tell events', es: 'story = cuento' },
+  letter: { pt: 'letter = carta', en: 'letter = a written message sent to someone', es: 'letter = mensaje escrito enviado a alguien' },
   tea: { pt: 'tea = chá', en: 'tea = a warm drink', es: 'tea = té' },
   peculiar: {
     pt: 'peculiar = esquisito, diferente das outras',
@@ -351,12 +484,12 @@ export const GLOSSES = {
   },
   broom: {
     pt: 'broom = vassoura',
-    en: 'broom = vassoura',
+    en: 'broom = a brush for sweeping the floor',
     es: 'broom = escoba',
   },
   ancient: {
-    pt: 'ancient = antiquado, muito antigo',
-    en: 'ancient = very old',
+    pt: 'ancient = muito antigo',
+    en: 'ancient = very, very old',
     es: 'ancient = muy antiguo',
   },
   woods: {
@@ -366,18 +499,18 @@ export const GLOSSES = {
   },
   trust: {
     pt: 'trust = confiar',
-    en: 'trust = to believe in someone',
-    es: 'trust = confiar',
+    en: 'trust = believe someone will be kind and honest',
+    es: 'trust = creer que alguien será amable y honesto',
   },
   warm: {
-    pt: 'warm = quentinho, morno',
-    en: 'warm = a little hot',
-    es: 'warm = calentito',
+    pt: 'warm = morno, quentinho',
+    en: 'warm = pleasantly hot, not painfully hot',
+    es: 'warm = templado, calentito',
   },
   kind: {
-    pt: 'kind = gentil, bondade',
-    en: 'kind = nice, generous',
-    es: 'kind = amable',
+    pt: 'kind = gentil e bondoso',
+    en: 'kind = nice and caring',
+    es: 'kind = amable y bondadoso',
   },
   fetch: {
     pt: 'fetch = buscar e trazer',
@@ -386,8 +519,8 @@ export const GLOSSES = {
   },
   treasure: {
     pt: 'treasure = tesouro',
-    en: 'treasure = valuable things',
-    es: 'treasure = tesoro',
+    en: 'treasure = special things worth finding',
+    es: 'treasure = cosas especiales que vale la pena encontrar',
   },
   sparkle: {
     pt: 'sparkle = brilhar, cintilar',
@@ -396,8 +529,8 @@ export const GLOSSES = {
   },
   secret: {
     pt: 'secret = segredo',
-    en: 'secret = something hidden',
-    es: 'secret = secreto',
+    en: 'secret = something kept hidden',
+    es: 'secret = algo que se mantiene escondido',
   },
   spell: {
     pt: 'spell = feitiço',
@@ -415,9 +548,9 @@ export const GLOSSES = {
     es: 'golden = dorado',
   },
   curious: {
-    pt: 'curious = curioso, quer saber tudo',
-    en: 'curious = wanting to know things',
-    es: 'curious = curioso',
+    pt: 'curious = curioso',
+    en: 'curious = wanting to know or learn more',
+    es: 'curious = que quiere saber o aprender más',
   },
   roots: {
     pt: 'roots = raízes',
@@ -435,8 +568,8 @@ export const GLOSSES = {
     es: 'library = biblioteca',
   },
   gate: {
-    pt: 'gate = portão, portão grande',
-    en: 'gate = a big door in a fence',
+    pt: 'gate = portão',
+    en: 'gate = a door in a fence',
     es: 'gate = portón',
   },
   umbrella: {
@@ -445,7 +578,7 @@ export const GLOSSES = {
     es: 'umbrella = paraguas',
   },
   grateful: {
-    pt: 'grateful = grateful, thankful',
+    pt: 'grateful = agradecido',
     en: 'grateful = thankful for what someone did',
     es: 'grateful = agradecido',
   },
@@ -456,8 +589,8 @@ export const GLOSSES = {
   },
   hill: {
     pt: 'hill = colina, morro',
-    en: 'hill = high ground, not a mountain',
-    es: 'hill = colina',
+    en: 'hill = ground that rises above the land around it',
+    es: 'hill = terreno que sube sobre el suelo alrededor',
   },
   castle: {
     pt: 'castle = castelo',
@@ -465,9 +598,9 @@ export const GLOSSES = {
     es: 'castle = castillo',
   },
   pond: {
-    pt: 'pond = lago pequeno, poça',
-    en: 'pond = a small still lake',
-    es: 'pond = estanque',
+    pt: 'pond = lago pequeno',
+    en: 'pond = a small lake with still water',
+    es: 'pond = lago pequeño de agua quieta',
   },
   greenhouse: {
     pt: 'greenhouse = estufa de vidro',
@@ -494,4 +627,150 @@ export const GLOSSES = {
     en: 'climb = to go up',
     es: 'climb = subir',
   },
+
+  // Casa e família
+  mother: { pt: 'mother = mãe', en: 'mother = your parent who is a woman', es: 'mother = tu progenitora' },
+  father: { pt: 'father = pai', en: 'father = your parent who is a man', es: 'father = tu progenitor' },
+  sister: { pt: 'sister = irmã', en: 'sister = a girl in your family', es: 'sister = una niña de tu familia' },
+  brother: { pt: 'brother = irmão', en: 'brother = a boy in your family', es: 'brother = un niño de tu familia' },
+  house: { pt: 'house = casa', en: 'house = a home for people', es: 'house = casa' },
+  room: { pt: 'room = quarto', en: 'room = a space inside a building', es: 'room = espacio dentro de un edificio' },
+  bed: { pt: 'bed = cama', en: 'bed = where a person sleeps', es: 'bed = cama' },
+  child: { pt: 'child = criança', en: 'child = a boy or girl who is not grown up', es: 'child = una persona joven que todavía no es adulta' },
+
+  // Escola
+  teacher: { pt: 'teacher = quem ensina', en: 'teacher = a person who helps others learn', es: 'teacher = la persona que ayuda a otros a aprender' },
+  student: { pt: 'student = estudante', en: 'student = a person who learns at school', es: 'student = quien aprende en la escuela' },
+  class: { pt: 'class = turma', en: 'class = a group of pupils who learn together', es: 'class = grupo de alumnos que aprenden juntos' },
+  book: { pt: 'book = livro', en: 'book = pages joined inside a cover', es: 'book = páginas unidas dentro de una portada' },
+  pencil: { pt: 'pencil = lápis', en: 'pencil = a tool for writing or drawing', es: 'pencil = herramienta para escribir o dibujar' },
+  bag: { pt: 'bag = sacola ou mochila', en: 'bag = a container used to carry things', es: 'bag = recipiente para llevar cosas' },
+  read: { pt: 'read = ler', en: 'read = look at words and learn what they mean', es: 'read = mirar las palabras y entenderlas' },
+  write: { pt: 'write = escrever', en: 'write = make words or letters on a page', es: 'write = hacer palabras o letras en una página' },
+  question: { pt: 'question = pergunta', en: 'question = words that ask for an answer', es: 'question = palabras que piden una respuesta' },
+
+  // Comida e bebida
+  apple: { pt: 'apple = maçã', en: 'apple = a round fruit that can be red or green', es: 'apple = manzana' },
+  bread: { pt: 'bread = pão', en: 'bread = a baked food made from flour', es: 'bread = pan' },
+  cheese: { pt: 'cheese = queijo', en: 'cheese = a yellow food made from milk', es: 'cheese = queso' },
+  milk: { pt: 'milk = leite', en: 'milk = a white drink from a cow', es: 'milk = leche' },
+  egg: { pt: 'egg = ovo', en: 'egg = an oval that a bird lays', es: 'egg = huevo' },
+  rice: { pt: 'rice = arroz', en: 'rice = small white grains that people eat', es: 'rice = arroz' },
+
+  // Corpo
+  head: { pt: 'head = cabeça', en: 'head = the top of the body', es: 'head = cabeza' },
+  hair: { pt: 'hair = cabelo', en: 'hair = the threads on top of the head', es: 'hair = cabello' },
+  eye: { pt: 'eye = olho', en: 'eye = the organ that lets us see', es: 'eye = ojo' },
+  ear: { pt: 'ear = orelha', en: 'ear = the organ that lets us hear', es: 'ear = oreja' },
+  nose: { pt: 'nose = nariz', en: 'nose = the part of the face used to smell', es: 'nose = nariz' },
+  mouth: { pt: 'mouth = boca', en: 'mouth = the opening used for eating and talking', es: 'mouth = abertura para comer y hablar' },
+  hand: { pt: 'hand = mão', en: 'hand = the end of the arm that holds things', es: 'hand = extremo del brazo que sostiene cosas' },
+  foot: { pt: 'foot = pé', en: 'foot = the end of the leg that touches the ground', es: 'foot = extremo de la pierna que toca el suelo' },
+  shoulder: { pt: 'shoulder = ombro', en: 'shoulder = the upper part of the arm', es: 'shoulder = hombro' },
+  knee: { pt: 'knee = joelho', en: 'knee = the bend in the middle of a leg', es: 'knee = la curva en medio de la pierna' },
+  arm: { pt: 'arm = braço', en: 'arm = the part between the shoulder and hand', es: 'arm = la parte entre el hombro y la mano' },
+  face: { pt: 'face = rosto', en: 'face = the front of the head, with the eyes and mouth', es: 'face = parte frontal de la cabeza, con ojos y boca' },
+
+  // Roupas
+  hat: { pt: 'hat = chapéu', en: 'hat = something worn on the head', es: 'hat = sombrero' },
+  shirt: { pt: 'shirt = camisa', en: 'shirt = a light top worn on the upper body', es: 'shirt = prenda ligera para la parte de arriba del cuerpo' },
+  trousers: { pt: 'trousers = calça', en: 'trousers = clothes worn separately on each leg', es: 'trousers = pantalón' },
+  dress: { pt: 'dress = vestido', en: 'dress = one piece of clothing with a skirt', es: 'dress = prenda de una pieza con falda' },
+  shoes: { pt: 'shoes = sapatos', en: 'shoes = a pair worn on the feet', es: 'shoes = par para los pies' },
+  socks: { pt: 'socks = meias', en: 'socks = soft clothes worn inside shoes', es: 'socks = prendas suaves que se llevan dentro de los zapatos' },
+  coat: { pt: 'coat = casaco', en: 'coat = a warm piece of clothing', es: 'coat = abrigo' },
+
+  // Cores e números
+  red: { pt: 'red = vermelho', en: 'red = the color of blood or a tomato', es: 'red = rojo' },
+  blue: { pt: 'blue = azul', en: 'blue = the color of a clear sky', es: 'blue = azul' },
+  green: { pt: 'green = verde', en: 'green = the color of leaves', es: 'green = verde' },
+  yellow: { pt: 'yellow = amarelo', en: 'yellow = the color of the sun', es: 'yellow = amarillo' },
+  black: { pt: 'black = preto', en: 'black = the color of very dark night', es: 'black = negro' },
+  white: { pt: 'white = branco', en: 'white = the color of fresh snow', es: 'white = blanco' },
+  one: { pt: 'one = um', en: 'one = the number 1', es: 'one = uno' },
+  two: { pt: 'two = dois', en: 'two = the number 2', es: 'two = dos' },
+
+  // Objetos de leitura
+  bookmark: { pt: 'bookmark = marcador de página', en: 'bookmark = a strip that marks the page where you stopped', es: 'bookmark = cinta que marca la página donde paraste' },
+  paper: { pt: 'paper = papel', en: 'paper = a thin sheet used for writing or drawing', es: 'paper = hoja fina para escribir o dibujar' },
+  chapter: { pt: 'chapter = capítulo', en: 'chapter = one main part of a book', es: 'chapter = una de las partes principales de un libro' },
+  title: { pt: 'title = título', en: 'title = the name at the top of a book', es: 'title = nombre que aparece arriba de un libro' },
+  quiet: { pt: 'quiet = silencioso ou calmo', en: 'quiet = making very little sound', es: 'quiet = que hace muy poco ruido' },
+  answer: { pt: 'answer = resposta', en: 'answer = what you say after a question', es: 'answer = lo que dices después de una pregunta' },
+  ink: { pt: 'ink = tinta', en: 'ink = coloured liquid used in a pen', es: 'ink = líquido de color que se usa en un bolígrafo' },
+  borrow: { pt: 'borrow = pegar emprestado', en: 'borrow = take something and give it back later', es: 'borrow = tomar algo y devolverlo después' },
+
+  // Natureza e Oxleas Wood
+  flower: { pt: 'flower = flor', en: 'flower = the colorful part of many plants', es: 'flower = flor' },
+  tree: { pt: 'tree = árvore', en: 'tree = a tall plant with a trunk', es: 'tree = árbol' },
+  leaf: { pt: 'leaf = folha', en: 'leaf = a green part of a plant', es: 'leaf = hoja' },
+  grass: { pt: 'grass = grama', en: 'grass = short green plants on the ground', es: 'grass = pasto' },
+  stream: { pt: 'stream = riacho', en: 'stream = a small water channel that can dry up', es: 'stream = cauce pequeño de agua que puede secarse' },
+  rock: { pt: 'rock = pedra', en: 'rock = hard material from the ground', es: 'rock = roca' },
+  star: { pt: 'star = estrela', en: 'star = a bright point seen in the night sky', es: 'star = estrella' },
+
+  // Clima e estações
+  rain: { pt: 'rain = chuva', en: 'rain = water that falls from clouds', es: 'rain = lluvia' },
+  wet: { pt: 'wet = molhado', en: 'wet = covered or filled with water', es: 'wet = cubierto o lleno de agua' },
+  wind: { pt: 'wind = vento', en: 'wind = moving air', es: 'wind = viento' },
+  sunny: { pt: 'sunny = ensolarado', en: 'sunny = bright with sunshine', es: 'sunny = soleado' },
+  cloudy: { pt: 'cloudy = nublado', en: 'cloudy = covered with clouds', es: 'cloudy = nublado' },
+  weather: { pt: 'weather = tempo', en: 'weather = the sun, rain, wind, and clouds', es: 'weather = clima' },
+
+  // Transportes
+  bus: { pt: 'bus = ônibus', en: 'bus = a big vehicle for many people', es: 'bus = autobús' },
+  car: { pt: 'car = carro', en: 'car = a vehicle with four wheels', es: 'car = carro' },
+  bike: { pt: 'bike = bicicleta', en: 'bike = a vehicle with two wheels that people pedal', es: 'bike = bicicleta' },
+  train: { pt: 'train = trem', en: 'train = vehicles joined together on rails', es: 'train = tren' },
+  boat: { pt: 'boat = barco', en: 'boat = a vehicle that travels on water', es: 'boat = barco' },
+  plane: { pt: 'plane = avião', en: 'plane = a vehicle that flies', es: 'plane = avión' },
+  truck: { pt: 'truck = caminhão', en: 'truck = a large vehicle for carrying heavy things', es: 'truck = camión' },
+  taxi: { pt: 'taxi = táxi', en: 'taxi = a car that takes people somewhere for money', es: 'taxi = taxi' },
+
+  // Cidade e lojas
+  shop: { pt: 'shop = loja', en: 'shop = a place where people buy things', es: 'shop = tienda' },
+  market: { pt: 'market = mercado', en: 'market = a place with many small shops or stalls', es: 'market = mercado' },
+  bakery: { pt: 'bakery = padaria', en: 'bakery = a place that makes and sells bread', es: 'bakery = panadería' },
+  restaurant: { pt: 'restaurant = restaurante', en: 'restaurant = a place where people eat a meal', es: 'restaurant = restaurante' },
+  hospital: { pt: 'hospital = hospital', en: 'hospital = a place where sick people get help', es: 'hospital = hospital' },
+  museum: { pt: 'museum = museu', en: 'museum = a place where people see interesting things', es: 'museum = museo' },
+  park: { pt: 'park = parque', en: 'park = an outdoor place with grass and trees', es: 'park = parque' },
+
+  // Sentimentos
+  happy: { pt: 'happy = feliz', en: 'happy = feeling glad and smiling', es: 'happy = sentirse alegre y sonreír' },
+  sad: { pt: 'sad = triste', en: 'sad = feeling unhappy and wanting to cry', es: 'sad = sentirse infeliz y querer llorar' },
+  angry: { pt: 'angry = com raiva', en: 'angry = feeling very upset and cross', es: 'angry = sentirse muy molesto y enfadado' },
+  tired: { pt: 'tired = cansado', en: 'tired = needing sleep or a rest', es: 'tired = necesitar dormir o descansar' },
+  scared: { pt: 'scared = com medo', en: 'scared = afraid that something may hurt you', es: 'scared = temer que algo pueda hacerte daño' },
+  hungry: { pt: 'hungry = com fome', en: 'hungry = your body needs food', es: 'hungry = necesitar comida' },
+  excited: { pt: 'excited = animado', en: 'excited = so happy you cannot wait!', es: 'excited = ¡tan feliz que no puedes esperar!' },
+  brave: { pt: 'brave = corajoso', en: 'brave = facing something scary and not running away', es: 'brave = afrontar algo que da miedo y no salir corriendo' },
+
+  // Verbos de movimento e ação
+  run: { pt: 'run = correr', en: 'run = move fast on foot', es: 'run = correr' },
+  return: { pt: 'return = devolver ou voltar', en: 'return = bring or go back', es: 'return = llevar o volver' },
+  walk: { pt: 'walk = andar a pé', en: 'walk = move by putting one foot in front of the other', es: 'walk = moverse poniendo un pie delante del otro' },
+  jump: { pt: 'jump = pular', en: 'jump = push off the ground and go up', es: 'jump = saltar' },
+  stop: { pt: 'stop = parar', en: 'stop = do not move any more', es: 'stop = dejar de moverse' },
+  go: { pt: 'go = ir', en: 'go = move towards another place', es: 'go = moverse hacia otro lugar' },
+  come: { pt: 'come = vir', en: 'come = move towards where you are', es: 'come = moverse hacia donde estás' },
+  move: { pt: 'move = se mexer', en: 'move = change place or position', es: 'move = cambiar de lugar o posición' },
+
+  // Adjetivos úteis
+  big: { pt: 'big = grande', en: 'big = taller or wider than something else', es: 'big = más alto o ancho que otra cosa' },
+  small: { pt: 'small = pequeno', en: 'small = shorter or narrower than something else', es: 'small = más bajo o estrecho que otra cosa' },
+  tall: { pt: 'tall = alto', en: 'tall = higher than usual from the ground', es: 'tall = más alto de lo normal desde el suelo' },
+  long: { pt: 'long = comprido', en: 'long = more than a short distance from end to end', es: 'long = más que una distancia corta de un extremo a otro' },
+  fast: { pt: 'fast = rápido', en: 'fast = moving quickly', es: 'fast = rápido' },
+  slow: { pt: 'slow = lento', en: 'slow = moving slowly', es: 'slow = lento' },
+  clean: { pt: 'clean = limpo', en: 'clean = free of dirt', es: 'clean = limpio' },
+  new: { pt: 'new = novo', en: 'new = made recently', es: 'new = nuevo' },
+
+  // Magia e histórias
+  dragon: { pt: 'dragon = dragão', en: 'dragon = a large magical creature that flies', es: 'dragon = dragón' },
+  wizard: { pt: 'wizard = feiticeiro', en: 'wizard = a person who uses magic', es: 'wizard = mago' },
+  crown: { pt: 'crown = coroa', en: 'crown = a special headpiece for a king or queen', es: 'crown = corona' },
+  wand: { pt: 'wand = varinha', en: 'wand = a small stick used to do magic', es: 'wand = varita' },
+  hero: { pt: 'hero = herói', en: 'hero = a brave person who helps others', es: 'hero = héroe' },
+  magic: { pt: 'magic = magia', en: 'magic = a special power that seems impossible', es: 'magic = poder especial que parece imposible' },
 };

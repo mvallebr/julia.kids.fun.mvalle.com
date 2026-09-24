@@ -13,7 +13,9 @@ import { loadState, saveState, bumpGeneration, recordHistory, historyWeek, study
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount, medalTier, MEDAL_EMOJI, secondaryObjectives } from './quest.js';
 import { buildSchool, buildWoods, buildHighStreet, buildAcademy, buildClassroom, makeKid, makeOwl, makeAdult, blobShadow, preloadModels, onModelProgress } from './world.js';
 import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES, UMBRELLA_ASK, UMBRELLA_FOUND, UMBRELLA_DONE } from './content.js';
-import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz, practiceOrder } from './vocab.js';
+import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz, practiceOrder, MAX_REVIEW_PER_SESSION } from './vocab.js';
+import { ACHIEVEMENTS, achievementById, evaluateAchievements } from './achievements.js';
+import { trapFocus, openModalStack, shouldReduceMotion } from './a11y.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
 import { buildNavGrid, findPathToNearest, canStand, nearestStandPoint } from './pathfind.js';
 
@@ -90,6 +92,11 @@ const ZONE_NAMES = {
   classroom: { pt: '🪑 Sala de Aula', en: '🪑 Classroom', es: '🪑 Salón de Clases' },
 };
 
+// Quem pede menos movimento no sistema operacional continua jogando igual:
+// só os enfeites (órbita da coruja, pulso do anel de destino, animação dos
+// modelos) são desligados. O laço de animação e a simulação continuam.
+const reduceMotion = shouldReduceMotion();
+
 // ── three.js: base ────────────────────────────────────────────────────────────
 let renderer, scene, camera, clock, composer;
 let zone = null;
@@ -119,7 +126,7 @@ function armExitsAt(x, z) {
     if (Math.hypot(exit.x - x, exit.z - z) <= exit.radius) exitInside.add(`${exit.target}:${exit.x}:${exit.z}`);
   }
 }
-window.__BUNDLE_V = 'n'; // marcador de versão pra debug de cache
+window.__BUNDLE_V = 'o'; // marcador de versão pra debug de cache
 
 function initThree() {
   renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -287,9 +294,41 @@ function buildScene(zoneName) {
 
 // ── entrada: teclado (WASD/setas) — no toque, quem manda é o tap-to-move ────
 const keys = new Set();
+
+// Escape fecha o painel que estiver no topo, SEMPRE pela função de fechar que
+// já existia. Fechar pelo stack sozinho devolveria o foco mas deixaria a
+// sessão de quiz com overlayCount pendente — o jogo ficaria travado sem
+// nenhuma tela visível.
+const MODAL_CLOSERS = new Map([
+  ['restartBackdrop', () => closeRestart()],
+  ['creditsBackdrop', () => closeCredits()],
+  ['wordsBackdrop', () => closeWords()],
+  ['reportBackdrop', () => closeReport()],
+  ['quizBackdrop', () => closeQuiz()],
+]);
+
+function closeTopModal() {
+  const top = openModalStack.top();
+  if (!top) return false;
+  for (const [backdropId, close] of MODAL_CLOSERS) {
+    const backdrop = $(backdropId);
+    if (!backdrop) continue;
+    const panel = backdrop.querySelector('.rpg-panel') || backdrop;
+    if (panel === top) {
+      close();
+      return true;
+    }
+  }
+  return false;
+}
+
 window.addEventListener('keydown', (event) => {
   if (event.key === 'Enter' || event.key === ' ') advanceDialog?.();
-  if (event.key === 'Escape') stopWalking(); // cancela a rota na hora
+  if (event.key === 'Escape') {
+    if (closeTopModal()) return;
+    if (quizSession) { closeQuiz(); return; }
+    stopWalking(); // cancela a rota na hora
+  }
   if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)) event.preventDefault();
   keys.add(event.key.toLowerCase());
   if (event.key.toLowerCase() === 'e') tryInteract();
@@ -554,13 +593,74 @@ function sayLine(who, text) {
   });
 }
 
+// ── Conquistas ───────────────────────────────────────────────────────────────
+// evaluateAchievements devolve só o que ainda NÃO está em state.achievements,
+// então a gravação é idempotente: chamar checkAchievements() em todos os pontos
+// de progresso é seguro e é o que evita 18 toasts no boot de uma jogadora que
+// volta com o save antigo.
+const TIER_EMOJI = { bronze: '🥉', silver: '🥈', gold: '🥇' };
+let achievementQueue = Promise.resolve();
+
+function checkAchievements({ silent = false } = {}) {
+  const fresh = evaluateAchievements(state.achievements, state);
+  if (fresh.length === 0) return;
+  for (const id of fresh) {
+    if (!state.achievements.includes(id)) state.achievements.push(id);
+  }
+  saveState(localStorage, player, state);
+  if (silent) return;
+
+  // Uma por vez e enfileiradas: toast empilhado no mesmo frame cobriria a tela
+  // inteira e a criança não leria nenhum.
+  achievementQueue = achievementQueue.then(async () => {
+    for (const id of fresh) {
+      const item = achievementById(id);
+      if (!item) continue;
+      const emoji = TIER_EMOJI[item.tier] || '🏅';
+      toast(root, `${emoji} ${lang(item.text, language)}`, { duration: 3600 });
+      sounds.hoot();
+      // sequencial de propósito: o próximo toast espera o anterior sair
+      await new Promise((resolve) => setTimeout(resolve, 3900));
+    }
+  });
+}
+
+// Junta as conquistas ganhas ao relatório: é o único lugar onde a criança e os
+// pais veem o conjunto, então a lista tem de ser legível e honesta — só o que
+// state.achievements realmente contém, nunca o que poderia ter sido ganho.
+function renderAchievements() {
+  const list = $('achievementsList');
+  if (!list) return;
+  const earned = new Set(state.achievements || []);
+  if (earned.size === 0) {
+    list.innerHTML = `<p class="rpg-words-empty">${uiText(language, 'achievementsEmpty')}</p>`;
+    return;
+  }
+  const order = ACHIEVEMENTS.filter((item) => earned.has(item.id));
+  list.innerHTML = order.map((item) => {
+    const emoji = TIER_EMOJI[item.tier] || '🏅';
+    return `<li class="achievement-row"><span class="achievement-emoji">${emoji}</span><span class="achievement-text"><strong>${lang(item.text, language)}</strong><small>${lang(item.hint, language)}</small></span></li>`;
+  }).join('');
+}
+
 // rastreio pro relatório dos pais: palavra nova, acerto e erro do dia
 function registerWordTracked(word, gloss) {
   const isNew = !state.words[word];
-  registerWord(state.words, word, gloss);
+  const stored = registerWord(state.words, word, gloss);
+  // o diário tem teto; sem isto a criança acharia que a palavra foi guardada
+  // e a perderia na próxima ida à escola
+  if (!stored && isNew) {
+    toast(root, lang({
+      pt: 'O teu diário está cheio. Guarda esta palavra para depois!',
+      en: 'Your journal is full. Keep this word for later!',
+      es: 'Tu diario está lleno. Guarda esta palabra para después.',
+    }, language), { duration: 4200 });
+  }
   if (isNew && state.words[word]) recordHistory(state, 'added');
+  checkAchievements();
+  return stored;
 }
-function markRight(word) { answerCorrect(state.words, word); recordHistory(state, 'right'); }
+function markRight(word) { answerCorrect(state.words, word); recordHistory(state, 'right'); checkAchievements(); }
 function markWrong(word) { answerWrong(state.words, word); recordHistory(state, 'wrong'); }
 
 function showGloss(word) {
@@ -580,6 +680,9 @@ function updateReviewBadge() {
   const due = dueWords(state.words);
   badge.classList.toggle('hidden', due.length === 0);
   badge.textContent = String(due.length);
+  // o badge é um <span> dentro do botão: sem o aria-label, quem usa leitor de
+  // tela ouve "Dica da coruja" e nunca o número que o badge mostra na tela
+  refreshDynamicAria();
 }
 
 function renderWordsList() {
@@ -636,7 +739,7 @@ function openQuiz() {
   if (token === null) return;
   // prática na ordem das fracas: vencidas mais atrasadas primeiro, depois streak baixo
   const dueSet = new Set(dueWords(state.words).map(([w]) => w));
-  const queue = practiceOrder(state.words).filter((w) => dueSet.has(w));
+  const queue = practiceOrder(state.words).filter((w) => dueSet.has(w)).slice(0, MAX_REVIEW_PER_SESSION);
 
   const nextQuestion = () => {
     if (liveToken(token) === null) return; // sessão cancelada
@@ -678,6 +781,7 @@ function openQuiz() {
       optionsEl.appendChild(btn);
     }
     $('quizBackdrop').classList.remove('hidden');
+    openModal('quizBackdrop');
   };
   nextQuestion();
 }
@@ -736,6 +840,7 @@ function markChallenge(id) {
   if (!id || state.challenges[id]) return;
   state.challenges[id] = true;
   saveState(localStorage, player, state);
+  checkAchievements();
 }
 
 // ── HUD ──────────────────────────────────────────────────────────────────────
@@ -777,14 +882,42 @@ $('journalClose').addEventListener('click', toggleJournal);
 
 $('homeButton').addEventListener('click', () => { location.href = '../index.html'; });
 
+// ── Foco dos painéis modais ───────────────────────────────────────────────────
+// Só os cinco painéis estáticos são modais de verdade. O diálogo da coruja NÃO
+// entra aqui: ele é um overlay do jogo que o jogador atravessa com Enter, e
+// prendê-lo devolveria o foco e quebraria o avanço da conversa.
+function openModal(backdropId) {
+  const backdrop = $(backdropId);
+  if (!backdrop) return;
+  const panel = backdrop.querySelector('.rpg-panel') || backdrop;
+  if (openModalStack.top() === panel) return;
+  // o botão que abriu é o foco atual; trapFocus devolve o foco a ele no close
+  const opener = document.activeElement;
+  const release = trapFocus(panel, { activeElement: opener, fallbackFocusTarget: panel });
+  openModalStack.push(panel, { release, opener });
+  panel.focus?.();
+}
+
+function closeModal(backdropId) {
+  const backdrop = $(backdropId);
+  if (!backdrop) return;
+  const panel = backdrop.querySelector('.rpg-panel') || backdrop;
+  // o registro sai da pilha e o release devolve o foco — os dois caminhos
+  // passam por aqui, inclusive o clique no fundo e o botão "depois"
+  openModalStack.close(panel);
+}
+
 // reiniciar (apaga o save desta jogadora e volta à escolha de personagem)
 function openRestart() {
-  const overlay = $('restartBackdrop');
-  overlay.classList.remove('hidden');
+  $('restartBackdrop').classList.remove('hidden');
+  openModal('restartBackdrop');
   const focusable = $('restartCancel');
   setTimeout(() => focusable.focus(), 0);
 }
-function closeRestart() { $('restartBackdrop').classList.add('hidden'); }
+function closeRestart() {
+  $('restartBackdrop').classList.add('hidden');
+  closeModal('restartBackdrop');
+}
 function confirmRestart() {
   // Abas antigas abertas podem ressuscitar o save apagado via autosave
   // (visto acontecer). Incrementar a geração do slot faz as abas velhas
@@ -798,13 +931,16 @@ function confirmRestart() {
 // ── Créditos (atribuições CC-BY dos modelos 3D) ────────────────────────────────
 function openCredits() {
   $('creditsBackdrop').classList.remove('hidden');
+  openModal('creditsBackdrop');
 }
 function closeCredits() {
   $('creditsBackdrop').classList.add('hidden');
+  closeModal('creditsBackdrop');
 }
 function openWords() {
   renderWordsList();
   $('wordsBackdrop').classList.remove('hidden');
+  openModal('wordsBackdrop');
 }
 // Delegação de eventos: os botões dos modais podem ter seus nós substituídos
 // no DOM (observado com o modal de restart pós-fim de aventura), e listeners
@@ -855,16 +991,21 @@ function openReport() {
   ];
   $('reportBody').innerHTML = rows.join('')
     + `<p style="font-size:11.5px;color:rgba(255,255,255,.55);margin:10px 0 0">${t('repMasterHint')}</p>`;
+  renderAchievements();
   $('reportBackdrop').classList.remove('hidden');
+  openModal('reportBackdrop');
 }
 function closeReport() {
   $('reportBackdrop').classList.add('hidden');
+  closeModal('reportBackdrop');
 }
 function closeWords() {
   $('wordsBackdrop').classList.add('hidden');
+  closeModal('wordsBackdrop');
 }
 function closeQuiz() {
   abortQuizSession(); // cancela sessão ativa e devolve o overlayCount
+  closeModal('quizBackdrop');
 }
 
 // ── Duelo de Feitiços vs Prof. Raven (melhor de 3, usando o diário) ────────────
@@ -915,6 +1056,7 @@ function runDuel() {
       optionsEl.appendChild(btn);
     }
     $('quizBackdrop').classList.remove('hidden');
+    openModal('quizBackdrop');
   };
 
   const endDuel = () => {
@@ -927,6 +1069,7 @@ function runDuel() {
         state.duelWins += 1;
         saveState(localStorage, player, state);
         updateHUD();
+        checkAchievements();
         sounds.fanfare();
         confetti(root, 140);
         const tier = medalTier(state.duelWins);
@@ -966,6 +1109,7 @@ $('soundButton').addEventListener('click', () => {
   setMuted(!state.sound);
   saveState(localStorage, player, state);
   updateHUD();
+  refreshDynamicAria();
   sounds.tap();
 });
 // 🔊 do quiz repete a palavra falada (funciona em qualquer uma das 3 sessões)
@@ -1013,6 +1157,7 @@ async function collectPiece(id) {
   toast(root, uiText(language, 'toastPiece', { count: pieceCount(state) }));
   if (canAssembleMap(state)) setTimeout(() => { sounds.magic(); toast(root, `🌳 ${uiText(language, 'objAssemble')}`, { duration: 3600 }); }, 500);
   updateHUD();
+  checkAchievements();
 }
 
 async function addClue(id) {
@@ -1024,6 +1169,9 @@ async function addClue(id) {
   saveState(localStorage, player, state);
   sounds.pickup();
   toast(root, uiText(language, 'toastClue'));
+  // evaluate antes da conversa: se a última pista fecha a caça, a conquista
+  // entra no save mesmo que a criança pule a fala da coruja
+  checkAchievements();
   await runConversation([{ who: 'owl', text: CLUES[id] }]);
 }
 
@@ -1045,6 +1193,7 @@ async function gotoZone(zoneName, spawnOverride = null) {
   veil.remove();
   updateHUD();
   overlayCount -= 1;
+  checkAchievements();
 }
 
 async function openGate() {
@@ -1074,6 +1223,7 @@ function showEnding() {
   ended = true;
   state.flags.endingSeen = true; // mostra uma vez só; depois o portão vira saída normal
   saveState(localStorage, player, state);
+  checkAchievements();
   overlayCount += 1;
   hidePrompt();
   sounds.fanfare();
@@ -1130,12 +1280,15 @@ async function interact(id) {
       if (state.flags.umbrellaFound && !state.flags.umbrellaDone) {
         await runConversation(UMBRELLA_DONE);
         state.flags.umbrellaDone = true;
-        registerWord(state.words, 'umbrella', GLOSSES.umbrella);
-        registerWord(state.words, 'grateful', GLOSSES.grateful);
+        // via registerWordTracked: o guarda-chuva também conta pro histórico e
+        // pode fechar um limiar de palavras — um registerWord cru perderia os dois
+        registerWordTracked('umbrella', GLOSSES.umbrella);
+        registerWordTracked('grateful', GLOSSES.grateful);
         saveState(localStorage, player, state);
         sounds.magic();
         confetti(root, 80);
         updateHUD();
+        checkAchievements();
       } else if (!state.flags.umbrellaAsked && !state.flags.umbrellaDone) {
         await runConversation(UMBRELLA_ASK);
         state.flags.umbrellaAsked = true;
@@ -1149,13 +1302,22 @@ async function interact(id) {
   if (id === 'board') return void runConversation([{ who: 'owl', text: FLAVOR.board }]);
   // ── lousa da sala de aula: lição emoji → palavra em inglês ─────────────────
   if (id === 'blackboard') {
+    // Palavras de sala de aula, todas com glossário trilíngue real: a lição
+    // antigo usava definições improvisadas que ficavam só em português dentro
+    // de um diário que a criança pode ler em inglês ou espanhol.
     const LESSON = [
-      { en: 'owl', emoji: '🦉', pt: 'coruja' },
+      { en: 'teacher', emoji: '🧑‍🏫', pt: 'quem ensina' },
+      { en: 'student', emoji: '🧒', pt: 'estudante' },
+      { en: 'class', emoji: '👫', pt: 'turma' },
       { en: 'book', emoji: '📖', pt: 'livro' },
-      { en: 'cat', emoji: '🐱', pt: 'gato' },
+      { en: 'pencil', emoji: '✏️', pt: 'lápis' },
+      { en: 'bag', emoji: '🎒', pt: 'mochila' },
+      { en: 'read', emoji: '👀', pt: 'ler' },
+      { en: 'write', emoji: '✍️', pt: 'escrever' },
+      { en: 'question', emoji: '❓', pt: 'pergunta' },
+      { en: 'child', emoji: '🧒', pt: 'criança' },
+      { en: 'tree', emoji: '🌳', pt: 'árvore' },
       { en: 'star', emoji: '⭐', pt: 'estrela' },
-      { en: 'broom', emoji: '🧹', pt: 'vassoura' },
-      { en: 'moon', emoji: '🌙', pt: 'lua' },
     ];
     const token = beginQuizSession('lesson');
     if (token === null) return;
@@ -1190,7 +1352,7 @@ async function interact(id) {
         btn.textContent = opt;
         btn.addEventListener('click', () => {
           if (liveToken(token) === null) return;
-          if (!state.words[lesson.en]) registerWordTracked(lesson.en, { pt: `${lesson.en} = ${lesson.pt}`, en: lesson.en, es: lesson.en });
+          if (!state.words[lesson.en]) registerWordTracked(lesson.en, GLOSSES[lesson.en]);
           if (opt === lesson.en) {
             markRight(lesson.en);
             btn.classList.add('correct');
@@ -1207,6 +1369,7 @@ async function interact(id) {
         optionsEl.appendChild(btn);
       }
       $('quizBackdrop').classList.remove('hidden');
+      openModal('quizBackdrop');
     };
     return void nextLesson();
   }
@@ -1356,9 +1519,10 @@ async function interact(id) {
       state.challenges.sportsChoice = true;
       saveState(localStorage, player, state);
       sounds.magic();
-      registerWord(state.words, 'pitch', GLOSSES.pitch);
+      registerWordTracked('pitch', GLOSSES.pitch);
       confetti(root, 50);
       updateHUD();
+      checkAchievements();
     }
     return;
   }
@@ -1577,17 +1741,21 @@ function animate() {
       while (delta < -Math.PI) delta += Math.PI * 2;
       playerObj.rotation.y += delta * Math.min(1, dt * 12);
     }
-    playerObj.userData.animate?.(t, moving ? (running ? 2 : 1) : 0);
+    // Movimento reduzido: o laçoanimate() NÃO pode parar — ele carrega o
+    // movimento, o click-to-move, a câmera, a detecção de saída, o
+    // showEnding() e o composer.render(). Só o enfeite é desligado.
+    const animSpeed = reduceMotion ? 0 : (moving ? (running ? 2 : 1) : 0);
+    playerObj.userData.animate?.(t, animSpeed);
 
-    // coruja fiel orbita a cabeça da jogadora
-    const owlAngle = t * 1.5;
+    // coruja fiel orbita a cabeça da jogadora — enfeite puro
+    const owlAngle = reduceMotion ? 0.6 : t * 1.5;
     owlObj.position.set(
       playerObj.position.x + Math.cos(owlAngle) * 0.85,
-      1.85 + Math.sin(t * 2.2) * 0.1,
+      1.85 + (reduceMotion ? 0 : Math.sin(t * 2.2) * 0.1),
       playerObj.position.z + Math.sin(owlAngle) * 0.85
     );
     owlObj.rotation.y = -owlAngle + Math.PI / 2;
-    owlObj.userData.animate?.(t, moving);
+    owlObj.userData.animate?.(t, reduceMotion ? 0 : (moving ? 1 : 0));
 
     // irmã/irmão acompanha por perto (spec §2) — corre se estiver muito longe
     const distanceToPlayer = companionObj.position.distanceTo(playerObj.position);
@@ -1597,11 +1765,11 @@ function animate() {
       const step = Math.min(distanceToPlayer - 0.95, (companionRunning ? 7 : 4.6) * dt);
       companionObj.position.addScaledVector(direction, step);
       companionObj.rotation.y = Math.atan2(direction.x, direction.z);
-      companionObj.userData.animate?.(t, companionRunning ? 2 : 1);
+      companionObj.userData.animate?.(t, reduceMotion ? 0 : (companionRunning ? 2 : 1));
     } else {
       companionObj.userData.animate?.(t, 0);
     }
-    companionOwl.userData.animate?.(t, distanceToPlayer > 2);
+    companionOwl.userData.animate?.(t, reduceMotion ? 0 : (distanceToPlayer > 2));
 
     // NPCs IA: atualiza o AnimationMixer (idle) de cada um
     for (const id of Object.keys(npcs)) {
@@ -1697,11 +1865,11 @@ function animate() {
 
   // marcador do destino do toque (pulsa enquanto existe destino)
   if (clickMarker) {
-    clickMarker.visible = Boolean(moveTarget);
-    if (moveTarget) {
-      clickMarker.position.set(moveTarget.x, 0.05, moveTarget.z);
-      clickMarker.scale.setScalar(1 + 0.15 * Math.sin(t * 6));
-    }
+  clickMarker.visible = Boolean(moveTarget);
+  if (moveTarget) {
+    clickMarker.position.set(moveTarget.x, 0.05, moveTarget.z);
+    clickMarker.scale.setScalar(reduceMotion ? 1 : 1 + 0.15 * Math.sin(t * 6));
+  }
   }
 
   zone?.update?.(dt, t);
@@ -1715,6 +1883,45 @@ function animate() {
 function applyStaticI18n() {
   for (const node of document.querySelectorAll('[data-i18n]')) {
     node.innerHTML = uiText(language, node.dataset.i18n);
+  }
+  // Rótulos acessíveis são um canal separado: o texto visível de um botão de
+  // ícone é o próprio emoji, então quem usa leitor de tela depende inteiramente
+  // do aria-label — deixá-lo em português fixo silenciaria en/es.
+  for (const node of document.querySelectorAll('[data-i18n-aria]')) {
+    node.setAttribute('aria-label', uiText(language, node.dataset.i18nAria, ariaVars(node)));
+  }
+  // <html lang> governa pronúncia do leitor de tela e o corretor ortográfico;
+  // sem isso a página inteira seria anunciada como português nos outros idiomas.
+  document.documentElement.lang = language;
+}
+
+// Variáveis dos rótulos acessíveis. O HTML declara valores padrão em
+// data-i18n-vars (JSON); aqui eles são atualizados com o estado real, porque
+// idioma atual e revisões pendentes só existem em tempo de execução.
+function ariaVars(node) {
+  let vars = {};
+  try {
+    vars = JSON.parse(node.dataset.i18nVars || '{}') || {};
+  } catch {
+    vars = {};
+  }
+  if (node.id === 'langButton') vars.lang = language.toUpperCase();
+  if (node.id === 'hintButton') vars.n = dueWords(state.words).length;
+  return vars;
+}
+
+// O som é o único controle com chave dependente do estado (ligado/desligado),
+// então ele não cabe no passe genérico de data-i18n-aria.
+function refreshDynamicAria() {
+  const sound = $('soundButton');
+  if (sound) {
+    sound.setAttribute('aria-pressed', String(Boolean(state.sound)));
+    sound.setAttribute('aria-label', uiText(language, state.sound ? 'soundOn' : 'soundOff'));
+  }
+  for (const node of document.querySelectorAll('[data-i18n-aria]')) {
+    if (node.id === 'langButton' || node.id === 'hintButton') {
+      node.setAttribute('aria-label', uiText(language, node.dataset.i18nAria, ariaVars(node)));
+    }
   }
 }
 
@@ -1745,6 +1952,7 @@ async function boot() {
   }
   setMuted(!state.sound);
   applyStaticI18n();
+  refreshDynamicAria();
   ensureAudio();
   window.addEventListener('pointerdown', () => ensureAudio(), { once: true });
   updateHUD();
@@ -1754,6 +1962,11 @@ async function boot() {
   const preload = preloadModels();
   if (!state.character) state.character = await chooseCharacter();
   saveState(localStorage, player, state);
+
+  // backfill silencioso: quem jogou antes das conquistas precisa receber o que
+  // já ganhou, senão a lista ficaria vazia para sempre. Silencioso porque 18
+  // toasts de uma vez cobririam a tela na abertura.
+  checkAchievements({ silent: true });
 
   try {
     await preload;

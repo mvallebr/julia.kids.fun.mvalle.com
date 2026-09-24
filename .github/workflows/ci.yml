@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.4'
+          cache: npm
+          cache-dependency-path: rpg_welling/package-lock.json
+      - name: Install dependencies
+        working-directory: rpg_welling
+        run: npm ci
+      - name: Verify
+        working-directory: rpg_welling
+        run: npm run verify
+      # O GitHub Pages serve o bundle commitado e não faz build no servidor.
+      # Portanto, o bundle recém-gerado precisa ser igual ao artefato versionado.
+      - name: Build must match the committed bundle
+        working-directory: rpg_welling
+        run: git diff --exit-code -- lib/bundle.js
