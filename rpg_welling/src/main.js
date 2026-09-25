@@ -11,7 +11,7 @@ import { uiText, lang } from './i18n.js';
 import { ensureAudio, setMuted, setAmbienceEnabled, setZoneAmbience, footstep, sounds } from './audio.js';
 import { loadState, saveState, bumpGeneration, recordHistory, historyWeek, studyStreak, dayKey, CHARACTERS, MAP_PIECES } from './state.js';
 import { currentObjective, hintKey, checkStone, canAssembleMap, pieceCount, medalTier, MEDAL_EMOJI, secondaryObjectives } from './quest.js';
-import { buildSchool, buildWoods, buildHighStreet, buildAcademy, buildClassroom, makeKid, makeOwl, makeAdult, blobShadow, preloadModels, onModelProgress } from './world.js';
+import { buildSchool, buildWoods, buildHighStreet, buildAcademy, buildClassroom, makeKid, makeOwl, makeAdult, blobShadow, preloadCoreModels, preloadZoneModels, onModelProgress } from './world.js';
 import { NPCS, CONVERSATIONS, STORY_PANELS, FLAVOR, CLUES, GLOSSES, PIECE_NAMES, UMBRELLA_ASK, UMBRELLA_FOUND, UMBRELLA_DONE } from './content.js';
 import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz, practiceOrder, MAX_REVIEW_PER_SESSION } from './vocab.js';
 import { ACHIEVEMENTS, achievementById, evaluateAchievements } from './achievements.js';
@@ -22,6 +22,7 @@ import { createMemoryGame } from './games/memory.js';
 import { createDictation, DICTATION_PHRASES, DICTATION_FLAGS } from './games/dictation.js';
 import { createPenalty } from './games/penalty.js';
 import { createWords, spotById } from './games/words.js';
+import { createListen, getListenTarget } from './games/listen.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
 import { buildNavGrid, findPathToNearest, canStand, nearestStandPoint } from './pathfind.js';
 import { cameraFit, cameraDistance, safeArmDistance } from './camera.js';
@@ -83,6 +84,7 @@ const PROMPTS = {
   wordsHighStreet: { pt: '📚 Palavras da High Street', en: '📚 High Street words', es: '📚 Palabras de High Street' },
   wordsClassroom: { pt: '📚 Palavras da sala de aula', en: '📚 Classroom words', es: '📚 Palabras del salón de clases' },
   wordsAcademy: { pt: '📚 Palavras da varanda da academia', en: '📚 Academy veranda words', es: '📚 Palabras del pórtico de la academia' },
+  listenSchool: { pt: '🎧 Ouvir e repetir', en: '🎧 Listen and repeat', es: '🎧 Escuchar y repetir' },
   woodCafe: { pt: '☕ Café no alto da colina', en: '☕ Café on top of the hill', es: '☕ Café en la colina' },
   severndroog: { pt: '🏰 Visitar o castelo de Severe', en: '🏰 Visit Severndroog Castle', es: '🏰 Visitar el castillo de Severe' },
   pond: { pt: '🦆 Ver o lago e os patinhos', en: '🦆 See the pond and the ducks', es: '🦆 Ver el estanque y los patos' },
@@ -1291,21 +1293,50 @@ async function gotoZone(zoneName, spawnOverride = null) {
   overlayCount += 1;
   hidePrompt();
   const veil = fade(root);
-  await veil.cover();
-  sounds.door();
-  buildScene(zoneName);
-  if (spawnOverride && playerObj) {
-    playerObj.position.set(spawnOverride[0], 0, spawnOverride[1]);
-    armExitsAt(spawnOverride[0], spawnOverride[1]);
+  // O painel é filho da cortina para que a criança veja progresso mesmo com o jogo oculto.
+  const zoneProgress = el('div');
+  zoneProgress.setAttribute('role', 'status');
+  zoneProgress.setAttribute('aria-live', 'polite');
+  zoneProgress.style.cssText = 'position:absolute;inset:0;z-index:71;display:grid;place-items:center;background:#06040f;color:#fff;font:600 18px sans-serif;';
+  const zoneProgressLabel = el('p', '', `${uiText(language, 'loadingZone')} 0%`);
+  zoneProgressLabel.style.cssText = 'margin:0 0 14px;text-align:center;';
+  zoneProgressLabel.lang = language;
+  const zoneProgressTrack = el('div');
+  zoneProgressTrack.style.cssText = 'width:min(320px,70vw);height:12px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden;';
+  const zoneProgressFill = el('div');
+  zoneProgressFill.style.cssText = 'height:100%;width:0;border-radius:999px;background:linear-gradient(90deg,#ffd166,#f0a63a);transition:width .2s;';
+  zoneProgressTrack.append(zoneProgressFill);
+  zoneProgress.append(zoneProgressLabel, zoneProgressTrack);
+  (root.querySelector('.rpg-fade') || root).append(zoneProgress);
+
+  const setZoneProgress = (ratio) => {
+    const safeRatio = Number.isFinite(ratio) ? Math.max(0, Math.min(1, ratio)) : 0;
+    const pct = Math.round(safeRatio * 100);
+    zoneProgressFill.style.width = `${pct}%`;
+    zoneProgressLabel.textContent = `${uiText(language, 'loadingZone')} ${pct}%`;
+  };
+  let previousModelProgress = null;
+  try {
+    previousModelProgress = onModelProgress(setZoneProgress);
+    await veil.cover();
+    await preloadZoneModels(zoneName);
+    sounds.door();
+    buildScene(zoneName);
+    if (spawnOverride && playerObj) {
+      playerObj.position.set(spawnOverride[0], 0, spawnOverride[1]);
+      armExitsAt(spawnOverride[0], spawnOverride[1]);
+    }
+    state.zone = zoneName;
+    state.flags[`visited_${zoneName}`] = true;
+    state.position = spawnOverride ? [spawnOverride[0], spawnOverride[1]] : null;
+    saveState(localStorage, player, state);
+    updateHUD();
+    checkAchievements();
+  } finally {
+    onModelProgress(previousModelProgress);
+    veil.remove();
+    overlayCount = Math.max(0, overlayCount - 1);
   }
-  state.zone = zoneName;
-  state.flags[`visited_${zoneName}`] = true;
-  state.position = spawnOverride ? [spawnOverride[0], spawnOverride[1]] : null;
-  saveState(localStorage, player, state);
-  veil.remove();
-  updateHUD();
-  overlayCount -= 1;
-  checkAchievements();
 }
 
 async function openGate() {
@@ -1457,6 +1488,26 @@ let memoryGame = null;
 let dictationUi = null;
 let penaltyGame = null;
 let wordsGame = null;
+let listenGame = null;
+
+// A fábrica local mantém o construtor fora do fluxo do jogo: navegadores
+// expõem o Recognition com nomes diferentes e, sem suporte, devolvemos null
+// para o módulo oferecer a digitação.
+function createListenRecognizer() {
+  const Recognition = globalThis.SpeechRecognition || globalThis.webkitSpeechRecognition;
+  if (typeof Recognition !== 'function') return null;
+  try {
+    return new Recognition();
+  } catch {
+    return null;
+  }
+}
+
+// O módulo aceita uma fonte injetável; esta função deixa a escolha do alvo
+// concentrada neste fluxo sem espalhar chamadas de Math.random pelo mundo.
+function listenRandom() {
+  return Math.random();
+}
 
 // vocabulário do cenário: as âncoras do mundo (addInteract em world.js) têm o
 // id words<Zona>; o painel em si é o spot homônimo em games/words.js
@@ -1480,6 +1531,7 @@ function closeGame() {
   if (dictationUi) { dictationUi.destroy(); dictationUi = null; }
   if (penaltyGame) { penaltyGame.destroy(); penaltyGame = null; }
   if (wordsGame) { wordsGame.destroy(); wordsGame = null; }
+  if (listenGame) { listenGame.destroy(); listenGame = null; }
   $('gameBody').replaceChildren();
 }
 
@@ -1795,6 +1847,53 @@ async function interact(id) {
   // ── school e woods ampliados: Flavor + glosses das novas áreas ──────────────
   if (id === 'playground') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.playground }, { gloss: 'swing' }]); }
   if (id === 'garden') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.garden }, { gloss: 'greenhouse' }]); }
+  // nesta peça a criança fala a palavra em inglês; a âncora fica no mesmo
+  // pátio do parquinho, sem criar outro painel de vocabulário na escola.
+  if (id === 'listenSchool') {
+    // state.zone já vem normalizado para um dos ids de LISTEN_SPOTS (school,
+    // woods, highstreet, classroom ou academy), então a âncora da escola nunca
+    // fica sem alvo.
+    const listenTarget = getListenTarget(state.zone, language, listenRandom);
+    if (!listenTarget) {
+      sounds.hoot();
+      return void runConversation([{ who: 'owl', text: FLAVOR.playground }]);
+    }
+    sounds.hoot();
+    closeGame();
+    openGameModal();
+    listenGame = createListen({
+      container: $('gameBody'),
+      lang: language,
+      target: listenTarget,
+      speech: globalThis.speechSynthesis,
+      createRecognizer: createListenRecognizer,
+      onDone: ({ passed, stars }) => {
+        const word = listenTarget.word;
+        if (passed) markRight(word); else markWrong(word);
+        if (passed) {
+          // A palavra da peça tem glosa no próprio módulo; o diário precisa da
+          // entrada correspondente em GLOSSES. Onde ela existe, a palavra entra
+          // no diário; o acerto também conta no histórico de estudo.
+          const gloss = GLOSSES[word];
+          if (gloss) registerWordTracked(word, gloss);
+        }
+        saveState(localStorage, player, state);
+        if (passed) {
+          sounds.magic();
+          confetti(root, 20 + stars * 20);
+        } else {
+          sounds.wrong();
+        }
+        // markRight, markWrong e registerWordTracked já avaliaram conquistas;
+        // aqui é só a festa e a atualização da HUD.
+        updateHUD();
+      },
+      onClose: closeGame,
+      reduceMotion,
+    });
+    if (!listenGame) closeGame();
+    return;
+  }
   // vocabulário do cenário: tocar no parquinho, na beira da mata, na rua, na
   // mesa da sala ou na varanda da academia abre um painel com 4 palavras
   // daquele lugar. A criança revela a tradução, ouve a palavra e guarda no
@@ -2449,8 +2548,11 @@ function refreshDynamicAria() {
 }
 
 // barra da tela de carregamento (0–100% dos GLB)
+let bootProgressPct = 0;
 function setBootProgress(ratio) {
-  const pct = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+  const nextPct = Math.round(Math.max(0, Math.min(1, ratio)) * 100);
+  const pct = Math.max(bootProgressPct, nextPct);
+  bootProgressPct = pct;
   const fill = $('bootFill');
   const label = $('bootPct');
   if (fill) fill.style.width = `${pct}%`;
@@ -2485,9 +2587,9 @@ async function boot() {
   window.addEventListener('pointerdown', () => ensureAudio(), { once: true });
   updateHUD();
 
-  // GLBs baixam EM PARALELO com a escolha de personagem (33MB); a tela de
-  // carregamento fica em z-40, atrás do select (z-60), e some quando acaba
-  const preload = preloadModels();
+  // O núcleo de GLBs baixa EM PARALELO com a escolha de personagem (22,8MB);
+  // a tela de carregamento fica em z-40, atrás do select (z-60), e some quando acaba
+  const corePreload = preloadCoreModels();
   if (!state.character) state.character = await chooseCharacter();
   saveState(localStorage, player, state);
 
@@ -2497,7 +2599,7 @@ async function boot() {
   checkAchievements({ silent: true });
 
   try {
-    await preload;
+    await Promise.all([corePreload, preloadZoneModels(state.zone)]);
   } catch (error) {
     console.warn('Falha ao carregar modelos 3D externos; usando fallback procedural.', error);
     if (location.protocol === 'file:') {

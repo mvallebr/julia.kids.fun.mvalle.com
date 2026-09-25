@@ -381,6 +381,14 @@
     body[data-text-scale="xlarge"] .rpg-credits-list { font-size: 16px; }
     body[data-text-scale="large"] .rpg-words-empty { font-size: 15px; }
     body[data-text-scale="xlarge"] .rpg-words-empty { font-size: 17px; }
+    body[data-text-scale="large"] .rpg-listen-word { font-size: 33px; }
+    body[data-text-scale="xlarge"] .rpg-listen-word { font-size: 37px; }
+    body[data-text-scale="large"] .rpg-listen-gloss, body[data-text-scale="large"] .rpg-listen-feedback { font-size: 17px; }
+    body[data-text-scale="xlarge"] .rpg-listen-gloss, body[data-text-scale="xlarge"] .rpg-listen-feedback { font-size: 19px; }
+    body[data-text-scale="large"] .rpg-listen-instructions { font-size: 15px; }
+    body[data-text-scale="xlarge"] .rpg-listen-instructions { font-size: 17px; }
+    body[data-text-scale="large"] .rpg-listen-label { font-size: 15px; }
+    body[data-text-scale="xlarge"] .rpg-listen-label { font-size: 17px; }
     body[data-text-scale="large"] .achievements-heading { font-size: 16px; }
     body[data-text-scale="xlarge"] .achievements-heading { font-size: 17.5px; }
     body[data-text-scale="large"] .achievement-text strong { font-size: 15px; }
@@ -475,6 +483,40 @@
     .rpg-words-save, .rpg-words-close { min-height: 48px; padding: 10px 18px; font-size: 15px; }
     @media (max-width: 420px) {
       .rpg-words-list { grid-template-columns: minmax(0, 1fr); }
+    }
+
+    /* Escutar e repetir (a criança fala e o minigame pontua por semelhança) */
+    .rpg-listen-root { display: grid; gap: 10px; text-align: center; }
+    .rpg-listen-title { margin: 0; font: 700 19px 'Fredoka', sans-serif; color: #ffd166; }
+    .rpg-listen-card { display: grid; gap: 4px; justify-items: center; padding: 14px 12px; border: 2px solid #4a5aa8; border-radius: 16px; background: #232d5e; }
+    .rpg-listen-word { font: 700 30px 'Fredoka', sans-serif; color: #fff; }
+    .rpg-listen-gloss { margin: 0; font: 600 16px 'Fredoka', sans-serif; color: #c9d4ff; }
+    .rpg-listen-instructions { margin: 0; font: 500 14px/1.45 'Fredoka', sans-serif; color: #b8d8ff; }
+    /* o feedback é o nó com role="status": altura mínima para o texto não pular
+       quando a locução chega e muda de tamanho */
+    .rpg-listen-feedback { margin: 0; min-height: 42px; display: grid; gap: 2px; align-content: center; font: 600 15px/1.4 'Fredoka', sans-serif; color: #ffd166; }
+    .rpg-listen-audio, .rpg-listen-repeat { min-height: 48px; min-width: 48px; padding: 10px 18px; font-size: 15px; }
+    .rpg-listen-repeat[aria-pressed="true"] { background: linear-gradient(135deg, #ffd166, #f0a63a); color: #241505; border-color: #ffd166; }
+    .rpg-listen-input { width: min(100%, 240px); min-height: 48px; box-sizing: border-box; padding: 10px 12px; border: 2px solid #4a5aa8; border-radius: 12px; background: #1b2350; color: #fff; font: 600 16px 'Fredoka', sans-serif; text-align: center; }
+    .rpg-listen-input:focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
+    /* o rótulo fica com o campo: o input marca a palavra inglesa e a orientação
+       traduzida mora aqui, para não ser lida com a fonética do conteúdo */
+    .rpg-listen-label { justify-self: center; margin: 0; padding: 12px 0; min-height: 44px; display: flex; align-items: center; font: 600 14px/1.35 'Fredoka', sans-serif; color: #c9d4ff; cursor: text; }
+    .rpg-listen-fallback-notice { margin: 0; font: 500 13px/1.4 'Fredoka', sans-serif; color: #ffb3a7; }
+    .rpg-listen-close { justify-self: center; min-height: 48px; padding: 10px 18px; font-size: 15px; }
+    /* o módulo esconde o input, o rótulo e o aviso com .hidden; sem isto uma
+       regra de display futura venceria o [hidden] do navegador e mostraria os três */
+    .rpg-listen-input[hidden], .rpg-listen-label[hidden], .rpg-listen-fallback-notice[hidden] { display: none; }
+    .rpg-listen-root.rpg-listen-celebrating .rpg-listen-card { border-color: #7ec97e; background: #23412f; animation: rpg-listen-pop .4s ease-out; }
+    @keyframes rpg-listen-pop {
+      from { transform: scale(.96); }
+      to { transform: scale(1); }
+    }
+    /* o módulo já respeita prefers-reduced-motion, mas a classe e a media query
+       juntas garantem o contrato mesmo se uma animação nova entrar no CSS */
+    .rpg-listen-calm *, .rpg-listen-calm { animation: none !important; transition: none !important; }
+    @media (prefers-reduced-motion: reduce) {
+      .rpg-listen-root * { animation: none !important; transition: none !important; }
     }
 
     /* Pênaltis do Welling FC (campo de futebol da escola) */
@@ -611,7 +653,7 @@
         <li><strong>Arbustos</strong> — <code>bush.glb</code>, <em>"Stylized Bush"</em>, CC-BY.</li>
         <li><strong>Fallback de personagem</strong> — <code>kid-animated.glb</code>, <em>"Mini Chibi Kid (Free Demo)"</em>, CC-BY. Usado apenas se o modelo dedicado não estiver disponível ou não tiver animações.</li>
         <li><strong>Fallback de NPC</strong> — <code>npc.glb</code>, <em>"Business Man - Low Polygon game character"</em>, CC-BY. Não é o modelo atual dos cinco NPCs dedicados.</li>
-        <li><strong>Kid reservado</strong> — <code>kid.glb</code>, <em>"The Noble Craftsman"</em>, CC-BY. Está no preload, mas não é usado atualmente.</li>
+        <li><strong>Kid reservado</strong> — <code>kid.glb</code>, <em>"The Noble Craftsman"</em>, CC-BY. Não é carregado pelo jogo; fica reservado para uma fase futura.</li>
         <li><strong>Fundo real de Oxleas Wood</strong> — fotografia do próprio parque, usada como panorama do horizonte da mata.</li>
         <li><strong>Imagens locais</strong> — painéis desenhados em <code>content.js</code>.</li>
       </ul>
@@ -677,6 +719,6 @@
     // offline + "adicionar à tela inicial": cache por runtime, sem pre-cache
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(() => {});
   </script>
-  <script src="lib/bundle.js?v=20260925b"></script>
+  <script src="lib/bundle.js?v=20260925c"></script>
 </body>
 </html>

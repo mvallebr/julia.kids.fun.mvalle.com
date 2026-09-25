@@ -3,6 +3,7 @@
 const PT = {
   title: 'RPG Welling',
   loading: 'Carregando a aventura…',
+  loadingZone: 'Carregando a próxima zona…',
   canvasHelp: 'Um mapa 3D para explorar a aventura. Use WASD, as setas do teclado ou toque no mapa para andar. Use os botões do jogo para conversar e aprender!',
   webglFail: 'Este navegador não conseguiu abrir o 3D. Tente em um Chrome mais novo!',
   chooseCharacter: 'Quem vai explorar?',
@@ -117,6 +118,7 @@ const EN = {
   title: 'RPG Welling',
   warpDebug: 'Quick exploration mode',
   loading: 'Loading the adventure…',
+  loadingZone: 'Loading the next area…',
   canvasHelp: 'A 3D map for exploring the adventure. Use WASD, the arrow keys, or tap the map to move. Use the game buttons to talk and learn!',
   webglFail: 'This browser could not start 3D. Try a newer Chrome!',
   chooseCharacter: 'Who is going to explore?',
@@ -230,6 +232,7 @@ const ES = {
   title: 'RPG Welling',
   warpDebug: 'Modo de exploración rápida',
   loading: 'Cargando la aventura…',
+  loadingZone: 'Cargando la siguiente zona…',
   canvasHelp: 'Un mapa 3D para explorar la aventura. Usa WASD, las flechas del teclado o toca el mapa para moverte. ¡Usa los botones del juego para hablar y aprender!',
   webglFail: '¡Este navegador no pudo abrir el 3D! Prueba en un Chrome más nuevo.',
   chooseCharacter: '¿Quién va a explorar?',

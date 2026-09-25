@@ -8,44 +8,120 @@ import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 
 // ── cache de modelos GLB (carregados sob demanda) ─────────────────────────────
 const gltfLoader = new GLTFLoader();
-const glbPromises = new Map(); // filename → Promise<{scene, animations}>
-const glbScenes = new Map(); // filename → {scene, animations} (preenchido por preloadModels)
+const glbScenes = new Map(); // filename → {scene, animations} (preenchido pelos preloads)
 const ASSETS = './assets/';
 
 // progresso global do carregamento: o GLTFLoader usa o LoadingManager padrão
 // do three.js, então todos os GLB (e texturas) contam no mesmo contador
 let modelProgressCb = null;
 export function onModelProgress(cb) {
+  const previous = modelProgressCb;
   modelProgressCb = cb;
+  return previous;
 }
 THREE.DefaultLoadingManager.onProgress = (_url, loaded, total) => {
   if (total) modelProgressCb?.(loaded / total);
 };
 THREE.DefaultLoadingManager.onLoad = () => modelProgressCb?.(1);
 
-export function loadGlb(filename) {
-  if (!glbPromises.has(filename)) {
-    glbPromises.set(filename, new Promise((resolve, reject) => {
-      gltfLoader.load(
-        ASSETS + filename,
-        (gltf) => resolve({ scene: gltf.scene, animations: gltf.animations || [] }),
-        undefined,
-        (err) => reject(err),
-      );
-    }));
-  }
-  return glbPromises.get(filename);
+// A promessa entra no cache antes de qualquer segundo pedido, inclusive quando
+// a requisição falha: o resultado continua unívoco durante toda a sessão.
+export function createGlbCache(loadOne) {
+  const promises = new Map();
+  return function cachedLoad(filename) {
+    if (!promises.has(filename)) {
+      let resolvePromise;
+      let rejectPromise;
+      const promise = new Promise((resolve, reject) => {
+        resolvePromise = resolve;
+        rejectPromise = reject;
+      });
+      promises.set(filename, promise);
+      try {
+        resolvePromise(loadOne(filename));
+      } catch (error) {
+        rejectPromise(error);
+      }
+    }
+    return promises.get(filename);
+  };
 }
 
-// pre-carrega todos os modelos externos. Após await, glbScenes está populado e makeKid/makeOwl/etc podem usar síncrono.
-export async function preloadModels() {
-  const files = ['ivy-rigged.glb', 'oakley-rigged.glb', 'finch-rigged.glb', 'page-rigged.glb', 'raven-rigged.glb', 'crumb-rigged.glb', 'willow-rigged.glb', 'owl.glb', 'npc.glb', 'trees.glb', 'kid-animated.glb', 'kid.glb', 'chest.glb', 'books.glb', 'bush.glb'];
-  const results = await Promise.allSettled(files.map(loadGlb));
-  files.forEach((f, i) => {
-    const r = results[i];
-    if (r.status === 'fulfilled') glbScenes.set(f, r.value);
-    else console.warn(`preloadModels: falha ao carregar ${f}`, r.reason);
+function loadGlbOnce(filename) {
+  return new Promise((resolve, reject) => {
+    gltfLoader.load(
+      ASSETS + filename,
+      (gltf) => resolve({ scene: gltf.scene, animations: gltf.animations || [] }),
+      undefined,
+      (err) => reject(err),
+    );
   });
+}
+
+export const loadGlb = createGlbCache(loadGlbOnce);
+
+// Este catálogo é a única fonte dos nomes GLB: consumo e preloading precisam
+// permanecer sincronizados sem repetir literais em funções diferentes.
+export const MODEL_FILES = Object.freeze({
+  core: Object.freeze(Object.assign(Object.create(null), {
+    ivy: 'ivy-rigged.glb',
+    oakley: 'oakley-rigged.glb',
+    owl: 'owl.glb',
+    npc: 'npc.glb',
+    animatedKid: 'kid-animated.glb',
+  })),
+  adults: Object.freeze(Object.assign(Object.create(null), {
+    finch: 'finch-rigged.glb',
+    page: 'page-rigged.glb',
+    baker: 'crumb-rigged.glb',
+    raven: 'raven-rigged.glb',
+    willow: 'willow-rigged.glb',
+  })),
+  props: Object.freeze(Object.assign(Object.create(null), {
+    books: 'books.glb',
+    trees: 'trees.glb',
+    bush: 'bush.glb',
+    chest: 'chest.glb',
+  })),
+});
+
+// O núcleo aparece em toda zona; NPCs e props são carregados só na entrada da
+// zona para não bloquear o primeiro quadro com o mapa inteiro.
+export const CORE_MODEL_FILES = Object.freeze(Object.values(MODEL_FILES.core));
+
+export const ZONE_MODEL_FILES = Object.freeze(Object.assign(Object.create(null), {
+  school: [MODEL_FILES.adults.finch, MODEL_FILES.adults.page, MODEL_FILES.props.books, MODEL_FILES.props.trees],
+  highstreet: [MODEL_FILES.adults.baker],
+  academy: [MODEL_FILES.adults.raven],
+  classroom: [MODEL_FILES.adults.willow],
+  woods: [MODEL_FILES.props.trees, MODEL_FILES.props.bush, MODEL_FILES.props.chest],
+}));
+
+export const ALL_MODEL_FILES = Object.freeze([
+  ...new Set([...CORE_MODEL_FILES, ...Object.values(ZONE_MODEL_FILES).flat()]),
+]);
+
+// Após o await, glbScenes fica disponível para a instanciação síncrona. Como
+// loadGlb memoriza a promessa, repetir o preload não repete o download.
+async function preloadFiles(files, source) {
+  const results = await Promise.allSettled(files.map(loadGlb));
+  files.forEach((file, i) => {
+    const result = results[i];
+    if (result.status === 'fulfilled') glbScenes.set(file, result.value);
+    else console.warn(`${source}: falha ao carregar ${file}`, result.reason);
+  });
+}
+
+export function preloadCoreModels() {
+  return preloadFiles(CORE_MODEL_FILES, 'preloadCoreModels');
+}
+
+export function preloadZoneModels(zoneName) {
+  const files = typeof zoneName === 'string'
+    && Object.prototype.hasOwnProperty.call(ZONE_MODEL_FILES, zoneName)
+    ? ZONE_MODEL_FILES[zoneName]
+    : [];
+  return preloadFiles(files, 'preloadZoneModels');
 }
 
 // Helper: retorna o bundle {scene, animations} do GLB cacheado, ou null se preload falhou.
@@ -682,8 +758,8 @@ function facePlane(parent, texture, size) {
 
 export function makeKid(characterId) {
   // ── 1ª escolha: modelo IA dedicado (oakley tem o próprio), senão Ivy tintada ──
-  const dedicated = characterId === 'oakley' ? glbSource('oakley-rigged.glb') : null;
-  const ai = dedicated || glbSource('ivy-rigged.glb');
+  const dedicated = characterId === 'oakley' ? glbSource(MODEL_FILES.core.oakley) : null;
+  const ai = dedicated || glbSource(MODEL_FILES.core.ivy);
   if (ai && ai.animations && ai.animations.length) {
     const g = new THREE.Group();
     // skinned mesh NÃO pode usar .clone() comum: os clones compartilham o
@@ -767,7 +843,7 @@ export function makeKid(characterId) {
   }
 
   // ── 2ª escolha: chibi rigged do Sketchfab ──────────────────────────────────
-  const src = glbSource('kid-animated.glb');
+  const src = glbSource(MODEL_FILES.core.animatedKid);
   if (src && src.animations && src.animations.length) {
     const g = new THREE.Group();
     const kid = src.scene.clone(true);
@@ -834,7 +910,7 @@ export function makeKid(characterId) {
     return g;
   }
 
-  // ── fallback procedural (se kid-animated.glb falhou) ───────────────────────
+  // ── fallback procedural (se o modelo animado falhou) ───────────────────────
   const g = new THREE.Group();
   const parts = {};
   const skin = mat(0xf6cfa4);
@@ -988,7 +1064,7 @@ function owlFaceTexture(variant = 0) {
 
 export function makeOwl(variant = 0) {
   // Preferir GLB (qualidade stylized PBR). Fallback procedural se preload falhou.
-  const src = glbSource('owl.glb');
+  const src = glbSource(MODEL_FILES.core.owl);
   if (src) {
     const g = new THREE.Group();
     // clone recursivo: cada owl precisa de sua própria instância (Object3D não pode ter 2 parents)
@@ -1055,14 +1131,7 @@ export function makeOwl(variant = 0) {
 
 export function makeAdult(dress, face = 'mustache') {
   // ── 1ª escolha: modelo IA dedicado do NPC (id → arquivo) ──────────────────
-  const DEDICATED_FILES = {
-    finch: 'finch-rigged.glb',
-    page: 'page-rigged.glb',
-    baker: 'crumb-rigged.glb',
-    raven: 'raven-rigged.glb',
-    willow: 'willow-rigged.glb',
-  };
-  const dedicated = glbSource(DEDICATED_FILES[face] || '__none__');
+  const dedicated = glbSource(MODEL_FILES.adults[face] || '__none__');
   if (dedicated) {
     const g = new THREE.Group();
     const npc = SkeletonUtils.clone(dedicated.scene);
@@ -1096,7 +1165,7 @@ export function makeAdult(dress, face = 'mustache') {
     return g;
   }
   // ── 2ª escolha: Business Man genérico do Sketchfab ─────────────────────────
-  const src = glbSource('npc.glb');
+  const src = glbSource(MODEL_FILES.core.npc);
   if (src) {
     const g = new THREE.Group();
     const npc = src.scene.clone(true);
@@ -1106,7 +1175,7 @@ export function makeAdult(dress, face = 'mustache') {
         c.receiveShadow = true;
       }
     });
-    // npc.glb guarda a altura no -Z (medido: z ∈ [-1.68, 0], braços no X).
+    // o modelo NPC guarda a altura no -Z (medido: z entre -1.68 e 0, braços no X).
     // rotation.x = +PI/2 mapeia -Z → +Y: levanta exato do chão, sem offset.
     npc.rotation.x = Math.PI / 2;
     g.add(npc);
@@ -2012,7 +2081,7 @@ export function buildSchool(scene) {
   addInteract('orderFeather', 3.3, -5.6, 1.5);
 
   // pilhas de livros reais (Antique Book Set, CC-BY) na mesa e pelo chão da biblioteca
-  const bookSrc = glbSource('books.glb');
+  const bookSrc = glbSource(MODEL_FILES.props.books);
   if (bookSrc) {
     for (const [bx, by, bz, ry, s] of [
       [2.7, 0.78, -21.6, 0.4, 1.0],
@@ -2102,7 +2171,7 @@ export function buildSchool(scene) {
   // Árvores do GLB viram instâncias (cada clone eram 6 draw calls — o pack
   // tem 6 primitivas); posições, rotação aleatória por árvore, escala ×1,5 e
   // colliders exatamente como no caminho de clone.
-  const schoolTreeSrc = glbSource('trees.glb');
+  const schoolTreeSrc = glbSource(MODEL_FILES.props.trees);
   const schoolTreeInstances = [];
   const schoolTree = (x, z, scale = 1.2, collider = true) => {
     if (!schoolTreeSrc) return;
@@ -2195,6 +2264,8 @@ export function buildSchool(scene) {
   addInteract('umbrellaSpot', 11.0, 2.0, 1.5);
   addInteract('playground', 9.4, -1.2, 2.0);
   addInteract('wordsSchool', 10.6, 0.6, 1.5);
+  // A criança fala a palavra em inglês neste ponto ao lado do parquinho.
+  addInteract('listenSchool', 8.0, -4.8, 1.5);
 
   // ── horta (oeste, meio): estufa de vidro + canteiros elevados ─────────────
   const soil = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 8.4), mat(0x6b4a2e));
@@ -2684,16 +2755,7 @@ export function buildHighStreet(scene) {
   addInteract('orderBun', -2.2, -5.2, 1.6);
   addInteract('wordsHighStreet', 1.8, -4.0, 1.4);
 
-  // NPC padeiro (Business Man re-tintado de avental)
-  if (zone.npcSpots.baker) {
-    const [bx, bz] = zone.npcSpots.baker;
-    const baker = makeAdult(0x8a5a34, 'baker');
-    blobShadow(baker, 0.5);
-    baker.position.set(bx, 0, bz);
-    baker.rotation.y = Math.PI;
-    scene.add(baker);
-    zone.baker = baker;
-  }
+  // ponto de conversa do padeiro
   addInteract('baker', 2.2, -6, 1.7);
 
   // lojas da rua viram ponto de vocabulário (story / letter / tea)
@@ -2782,16 +2844,7 @@ export function buildAcademy(scene) {
   addInteract('duel', 0, -8, 2.2);
   glowSprite(scene, zone, 0x9ecbff, 0.9, 0, 0.4, -8, { opacity: 0.25, amp: 0.12, speed: 1.6 });
 
-  // a rival: Miss Raven (Business Man tingido de azul-aço)
-  if (zone.npcSpots.raven) {
-    const [rx, rz] = zone.npcSpots.raven;
-    const raven = makeAdult(0x8fa3c0, 'raven');
-    blobShadow(raven, 0.5);
-    raven.position.set(rx, 0, rz);
-    raven.rotation.y = Math.PI;
-    scene.add(raven);
-    zone.raven = raven;
-  }
+  // ponto de conversa da rival Miss Raven
   addInteract('raven', 0, -7, 1.7);
 
   // página escondida junto à torre
@@ -2895,16 +2948,7 @@ export function buildClassroom(scene) {
     }
   }
 
-  // professora Willow (dedicated GLB se existir; senão Business Man tintado)
-  if (zone.npcSpots.willow) {
-    const [wx, wz] = zone.npcSpots.willow;
-    const willow = makeAdult(0x4a6a5a, 'willow');
-    blobShadow(willow, 0.5);
-    willow.position.set(wx, 0, wz);
-    willow.rotation.y = 0.4;
-    scene.add(willow);
-    zone.willow = willow;
-  }
+  // ponto de conversa da professora Willow
   addInteract('willow', -2.2, -5.6, 1.7);
 
   // página escondida na verga da janela direita
@@ -2988,7 +3032,7 @@ export function buildWoods(scene) {
   // tenta GLB pack; se preloadModels não rodou, fallback procedural.
   // Com pack, as 28 cópias viram instâncias (cada clone eram 6 draw calls);
   // rotação/escala/colisores idênticos ao caminho de clone.
-  const treeSrc = glbSource('trees.glb');
+  const treeSrc = glbSource(MODEL_FILES.props.trees);
   const treeInstances = [];
   const tree = (x, z, scale = 1, collider = true) => {
     if (treeSrc) {
@@ -3072,7 +3116,7 @@ export function buildWoods(scene) {
   // marco de pedra com a árvore + heras
   // arbustos reais (Stylized Bush, CC-BY) ao longo do caminho da mata:
   // mesmas 15 cópias de sempre, agora 1 InstancedMesh por primitiva do GLB
-  const bushSrc = glbSource('bush.glb');
+  const bushSrc = glbSource(MODEL_FILES.props.bush);
   if (bushSrc) {
     const bushInstances = [];
     for (const [bx, bz, s] of [
@@ -3087,7 +3131,7 @@ export function buildWoods(scene) {
   }
 
   // baú do tesouro escondido (Stylized Treasure Chest, CC-BY) atrás do marco
-  const chestSrc = glbSource('chest.glb');
+  const chestSrc = glbSource(MODEL_FILES.props.chest);
   if (chestSrc) {
     const chest = chestSrc.scene.clone(true);
     chest.traverse((c) => {

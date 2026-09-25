@@ -106,7 +106,7 @@ Cada um é um arquivo novo, sem tocar nos outros.
 
 | # | Item | Tamanho | Status |
 |---|---|---|---|
-| 2.1 | Escutar e repetir (fala com pontuação por semelhança) | M | planejado |
+| 2.1 | Escutar e repetir (fala com pontuação por semelhança) | M | **entregue** — `games/listen.js`: 20 palavras em 5 zonas (sem sobrepor as de 2.4), âncora `listenSchool` no pátio do parquinho, 3 tentativas, pontuação por similaridade de Levenshtein (0,9/0,6/0,35 = 3/2/1 estrelas) e digitação como reserva quando o navegador não tem `SpeechRecognition`; a fala é reprovada em 0,2 se **qualquer** palavra da frase for negação ("I don't know swing", "não sei swing"), com uma única exceção documentada: um "no," inicial é marcador de discurso e é removido antes da varredura — reprovar quem disse a frase errada é melhor do que aprovar quem disse "não sei"; o acerto grava a palavra no diário e conta no histórico de estudo |
 | 2.2 | Sequência / memória (4–6 itens) | M | **entregue** — `games/memory.js` na biblioteca da escola (âncora `memoryLibrary`), 4 rodadas 3→6 cartas, dica no 2º erro, erro repete a sequência |
 | 2.3 | Ditado de campo (3 frases escondidas no mundo) | M | **entregue** — `games/dictation.js` no correio (High Street), placa do Green Chain e torre Severndroog (woods); flags `dictation1/2/3`, 1 deslize de digitação perdoado, revelação gentil após 3 tentativas |
 | 2.4 | Vocabulário no cenário (tocar no objeto oferece 4 palavras) | M | **entregue** — `games/words.js`: 5 âncoras (`wordsSchool`, `wordsWoods`, `wordsHighStreet`, `wordsClassroom`, `wordsAcademy`), 4 palavras por lugar, revelação por toque, áudio por `speechSynthesis` (quando há voz) e "Guardar no diário" que grava **só** o que a criança revelou; o painel só anuncia sucesso quando houve gravação real (`saved > 0`), senão diz "Nada novo para guardar" |
@@ -115,12 +115,20 @@ Cada um é um arquivo novo, sem tocar nos outros.
 
 | # | Item | Tamanho | Status |
 |---|---|---|---|
-| 3.1 | Personagens sob demanda (só quem está na zona; cache em disco) | M-G | planejado |
+| 3.1 | Personagens sob demanda (só quem está na zona; cache em disco) | M-G | **entregue** — `CORE_MODEL_FILES` (Ivy, Oakley, coruja, NPC, criança animada — 22,8 MB) carrega no boot e `ZONE_MODEL_FILES` por zona, com `preloadZoneModels()` e painel de progresso dentro do véu da troca (`loadingZone` nos três idiomas); cada arquivo falha sozinho (`Promise.allSettled` + aviso) e os fallbacks procedurais (`makeKid`/`makeOwl`/`makeAdult`) seguram o jogo; o boot caiu de **65,6 MB para 24,9 MB na mata**; `kid.glb` saiu do preload (9,6 MB que o jogo nunca usava). Nota: ainda não há cache em disco — quem pede o arquivo duas vezes na sessão paga duas vezes |
 | 3.2 | Instanciar vegetação (InstancedMesh, como a fachada) | M | **entregue** — árvores da escola e da mata, arbustos, sebes e copas em InstancedMesh por primitiva do GLB (~28 clones × 6 primitivas → 6 draw calls na mata) |
 | 3.3 | Corrigir `disposeScene` (material + normal/roughness) | P | **entregue** — `stashZoneResources` no fim dos 5 builders: materiais, todas as maps e buffers de instância da zona anterior liberados na troca |
 | 3.4 | Toque ≥44px, `Escape` fecha modal, focus trap, aria-labels i18n | P-M | **entregue** — (rodada 1: foco/Escape/aria/reduced-motion/contraste; os alvos de toque já estavam em 44px desde então — a nota de "X do diário pequeno" estava desatualizada) |
 | 3.5 | Tela de opções (efeitos / ambiente / fala / idioma / tamanho de texto) | P | **entregue (parcial)** — `options.js` com tamanho de texto (normal/grande/gigante) e sons de ambiente; idioma e som geral já existiam no HUD; centralizar tudo num painel único ficou opcional |
 | 3.6 | README e CREDITS desatualizados | P | **entregue** |
+
+**Dívida conhecida (fora da lista, para não se perder):** `stashZoneResources`
+roda dentro dos builders de zona, antes de o `main.js` adicionar os objetos da
+zona nova, e pode alcançar recursos de GLB que o `createGlbCache` compartilha
+entre zonas. Ninguém quebrou por causa disso ainda e mexer agora, com o 3.1
+recém-entregue, arrisca trocar um bug raro por um crash de tela preta. Fica
+marcado para quando os personagens da Ivy e do Oakley passarem a ser
+instanciados de verdade em vez de cacheados.
 
 ---
 
