@@ -599,16 +599,22 @@ function closeDialog() {
   overlayCount = Math.max(0, overlayCount - 1);
 }
 
-// ✕ aborta a conversa no meio (ninguém fica preso num desafio, spec §43)
+// ✕ aborta a conversa no meio (ninguém fica preso num desafio, spec §43).
+// O sinal de abort é POR CONVERSA: o antigo flag global `dialogAborted`
+// vazava entre conversas — um ✕ (ou um ✕ de uma conversa órfã de dois fluxos
+// entrelaçados) mantinha o flag true e o próximo interact('field') morria no
+// `if (dialogAborted) return` SEM abrir o jogo de pênaltis, sem erro no
+// console (6/10 dos cliques numa sessão envelhecida). Cada runConversation
+// agora tem a própria sessão e devolve { aborted } para o chamador decidir.
 let currentAbort = null;
-let dialogAborted = false;
+let activeConversation = null;
 $('dialogClose').addEventListener('click', () => {
   if (dialog.classList.contains('hidden')) return;
   sounds.tap();
-  dialogAborted = true;
+  activeConversation?.abort(); // sinaliza exatamente a conversa ATIVA
   const abort = currentAbort;
   closeDialog();
-  abort?.();
+  abort?.(); // destrava a fala/desafio pendente
 });
 
 function speakEnglish(text) {
@@ -874,22 +880,31 @@ function askChoice(node) {
 }
 
 async function runConversation(nodes) {
-  dialogAborted = false;
-  openDialog();
-  for (const node of nodes) {
-    if (node.choice) {
-      const solved = await askChoice(node.choice);
-      if (solved) markChallenge(node.choice.challengeId);
-    } else if (node.gloss) {
-      showGloss(node.gloss);
-    } else {
-      await sayLine(node.who, node.text);
+  const session = { aborted: false };
+  activeConversation = session;
+  try {
+    openDialog();
+    for (const node of nodes) {
+      if (node.choice) {
+        const solved = await askChoice(node.choice);
+        if (solved) markChallenge(node.choice.challengeId);
+      } else if (node.gloss) {
+        showGloss(node.gloss);
+      } else {
+        await sayLine(node.who, node.text);
+      }
+      if (session.aborted) break;
     }
-    if (dialogAborted) break;
+  } finally {
+    // limpeza idempotente: mesmo que uma exceção estoure no meio das falas,
+    // a conversa morre sem deixar currentAbort/advanceDialog apontando para
+    // botões de uma conversa que não existe mais
+    if (activeConversation === session) activeConversation = null;
+    closeDialog();
+    advanceDialog = null;
+    currentAbort = null;
   }
-  closeDialog();
-  advanceDialog = null;
-  currentAbort = null;
+  return { aborted: session.aborted };
 }
 
 function markChallenge(id) {
@@ -1603,7 +1618,24 @@ function tryDictation(spotId) {
   return true;
 }
 
-async function interact(id) {
+// Guarda de reentrância: interact é async e tem gatilhos que podem disparar
+// juntos (duplo toque no prompt de celular, tecla E + toque, handle de QA).
+// Dois fluxos entrelaçados compartilhavam os módulos do diálogo
+// (currentAbort/advanceDialog): o ✕ de um abortava o outro, um sayLine
+// substituía os botões do outro e a fala órfã ficava pendente para sempre —
+// é a raça que fazia o "⚽ Chutar os pênaltis" abrir o diálogo e nunca abrir
+// o jogo. Enquanto um interact corre, os novos são IGNORADOS: chega antes
+// que estrague o que já está rodando.
+let interactInFlight = false;
+function interact(id) {
+  if (interactInFlight) return;
+  interactInFlight = true;
+  return runInteract(id).finally(() => {
+    interactInFlight = false;
+  });
+}
+
+async function runInteract(id) {
   if (id === 'finch' || id === 'page') {
     // Capítulo 2: a Sra. Page oferece "O Segredo da Biblioteca" antes do fluxo dela
     if (id === 'page' && (await maybeChapter2(id))) return;
@@ -1772,8 +1804,10 @@ async function interact(id) {
     ]).then(() => runDuel());
   }
   if (id === 'signTree') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.signTree }, { gloss: 'golden' }]); }
-  // o anel da arena também é gatilho do duelo (mesmo caminho da Prof. Raven)
-  if (id === 'duel') return void interact('raven');
+  // o anel da arena também é gatilho do duelo (mesmo caminho da Prof. Raven).
+  // Alias INTERNO: chama runInteract direto — passar pelo wrapper entraria na
+  // própria guarda e seria ignorado, pois este fluxo já está em curso.
+  if (id === 'duel') return void runInteract('raven');
   if (id === 'marker') return void runConversation([{ who: 'owl', text: FLAVOR.marker }, { gloss: 'ancient' }]);
   if (id === 'pieceShelf') return void collectPiece('shelf');
   if (id === 'pieceTrolley') return void collectPiece('trolley');
@@ -1942,25 +1976,39 @@ async function interact(id) {
   // de pênaltis (5 cobranças, 3 zonas, palavra de futebol a cada gol/defesa).
   if (id === 'field') {
     sounds.hoot();
-    await runConversation([{ who: 'owl', text: FLAVOR.field }, { gloss: 'pitch' }]);
-    if (dialogAborted) return;
+    // abort agora é o retorno da PRÓPRIA conversa: não existe flag global
+    // para uma conversa anterior envenenar esta decisão (bug do jogo que
+    // não abria)
+    const { aborted } = await runConversation([{ who: 'owl', text: FLAVOR.field }, { gloss: 'pitch' }]);
+    if (aborted) return;
     closeGame();
     openGameModal();
-    penaltyGame = createPenalty({
-      container: $('gameBody'),
-      lang: language,
-      onDone: ({ goals, words }) => {
-        state.flags.penaltyPlayed = true;
-        for (const word of words.slice(0, 3)) {
-          if (!state.words[word]) registerWordTracked(word, GLOSSES[word]);
-        }
-        saveState(localStorage, player, state);
-        sounds.magic();
-        confetti(root, 60 + goals * 12);
-        checkAchievements();
-        updateHUD();
-      },
-    });
+    // A fábrica LANÇA em entrada inválida (não devolve null): sem o catch, o
+    // openGameModal acima já rodou e sobra modal aberto com corpo vazio +
+    // rejeição sem tratamento. Fecha o modal antes de repassar o erro.
+    try {
+      penaltyGame = createPenalty({
+        container: $('gameBody'),
+        lang: language,
+        onDone: ({ goals, words }) => {
+          state.flags.penaltyPlayed = true;
+          for (const word of words.slice(0, 3)) {
+            if (!state.words[word]) registerWordTracked(word, GLOSSES[word]);
+          }
+          saveState(localStorage, player, state);
+          sounds.magic();
+          confetti(root, 60 + goals * 12);
+          checkAchievements();
+          updateHUD();
+        },
+      });
+    } catch (error) {
+      closeGame();
+      throw error;
+    }
+    // Fábrica recusando sem lançar (defensivo) também não pode deixar um
+    // modal morto na frente da cena — mesmo padrão do branch words.
+    if (!penaltyGame) closeGame();
     return;
   }
   if (id === 'woodCafe') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.cafe }, { gloss: 'meadow' }, { gloss: 'hill' }]); }
@@ -2002,24 +2050,32 @@ async function interact(id) {
     if (state.challenges.sportsChoice) {
       return void runConversation([{ who: 'owl', text: FLAVOR.sports }]);
     }
-    const ok = await askChoice({
-      prompt: { pt: 'Welling FC joga contra quem no sábado?', en: 'Who does Welling FC play on Saturday?', es: '¿Contra quién juega Welling FC el sábado?' },
-      options: [
-        { label: { pt: 'Welling United', en: 'Welling United', es: 'Welling United' } },
-        { label: { pt: 'Manor Park Rangers', en: 'Manor Park Rangers', es: 'Manor Park Rangers' }, correct: true },
-        { label: { pt: 'The Moon', en: 'The Moon', es: 'La Luna' } },
-      ],
-      success: { pt: 'Isso! Welling FC 2 × 1 Manor Park Rangers. E o chá de domingo fica por nossa conta!', en: 'That’s right! Welling FC 2–1 Manor Park Rangers. And Sunday tea is on us!', es: '¡Correcto! Welling FC 2–1 Manor Park Rangers. ¡Y el té del domingo corre por nuestra cuenta!' },
-      fail: { pt: 'Quase! O adversário é o Manor Park Rangers. De novo:', en: 'Almost! The opponents are Manor Park Rangers. Again:', es: '¡Casi! Los rivales son Manor Park Rangers. Otra vez:' },
-    });
-    if (ok) {
-      state.challenges.sportsChoice = true;
-      saveState(localStorage, player, state);
+    // A escolha passa PELO runConversation: era o único askChoice solto do
+    // jogo e o #dialog ficava hidden (askChoice não abre overlay) — escolha
+    // invisível com a promise pendendo para sempre. Com a guarda de
+    // reentrância do interact isso virava soft-lock TOTAL: nada mais
+    // respondia até recarregar. Pelo runConversation há openDialog, escape
+    // pelo ✕ e o desafio marcado via markChallenge(node.choice.challengeId).
+    await runConversation([{
+      choice: {
+        challengeId: 'sportsChoice',
+        prompt: { pt: 'Welling FC joga contra quem no sábado?', en: 'Who does Welling FC play on Saturday?', es: '¿Contra quién juega Welling FC el sábado?' },
+        options: [
+          { label: { pt: 'Welling United', en: 'Welling United', es: 'Welling United' } },
+          { label: { pt: 'Manor Park Rangers', en: 'Manor Park Rangers', es: 'Manor Park Rangers' }, correct: true },
+          { label: { pt: 'The Moon', en: 'The Moon', es: 'La Luna' } },
+        ],
+        success: { pt: 'Isso! Welling FC 2 × 1 Manor Park Rangers. E o chá de domingo fica por nossa conta!', en: 'That’s right! Welling FC 2–1 Manor Park Rangers. And Sunday tea is on us!', es: '¡Correcto! Welling FC 2–1 Manor Park Rangers. ¡Y el té del domingo corre por nuestra cuenta!' },
+        fail: { pt: 'Quase! O adversário é o Manor Park Rangers. De novo:', en: 'Almost! The opponents are Manor Park Rangers. Again:', es: '¡Casi! Los rivales son Manor Park Rangers. Otra vez:' },
+      },
+    }]);
+    if (state.challenges.sportsChoice) {
+      // markChallenge (dentro do runConversation) já salvou o estado e checou
+      // conquistas; aqui é só a festa.
       sounds.magic();
       registerWordTracked('pitch', GLOSSES.pitch);
       confetti(root, 50);
       updateHUD();
-      checkAchievements();
     }
     return;
   }
@@ -2656,6 +2712,9 @@ window.__rpgWelling = {
     // responde "por que estou vendo através da parede?" num playtest
     fadedCount: () => fader.fadedCount(),
     fadedNames: () => fader.fadedNames(),
+    // QA de cena viva: inventário de meshes por região (o que é isso na frente
+    // da câmera?) sem instrumentar o jogo. Somente leitura.
+    scene: () => scene,
   }),
   interact: (id) => interact(id),
   kids: () => [playerObj, companionObj].map((o) => o && ({

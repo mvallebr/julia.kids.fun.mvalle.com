@@ -285,3 +285,101 @@ test('woods executa o caminho assíncrono de composição da foto', () => {
     'o load assíncrono deve substituir a textura do placeholder');
   assert.strictEqual(woods.photoBand.material.map, woodsPhotoAfterLoad);
 });
+
+// ── árvores do pack x áreas de jogo da escola ────────────────────────────────
+// Bug medido em produção (debug().scene()): o pack de árvores tem as 6
+// primitivas fora da origem (bbox local x −2.41..2.59, z −2.64..−1.13) e o
+// instancing depositava árvores individuais a até ~5·escala do ponto da
+// instância — inclusive no retângulo do campo, em cima da âncora `field`
+// (0, −32.5). O conserto é duplo: compensação de centro por instância
+// (SCHOOL_TREE_INSTANCE_OPTIONS.center) + fileiras afastadas. Este teste é
+// estático: computa o pior AABB de cada instância (mesma matemática que a
+// produção usa, via schoolTreeFootprintBounds) contra as áreas proibidas.
+const SCHOOL_FORBIDDEN_AREAS = [
+  {
+    // campo: pitch 22×8 em z −32.5 → x −11..11, z −36.5..−28.5; gols em z
+    // −36.3/−28.7. Expandido 1m para todo lado: a borda norte (−27.7) já
+    // cobre a pista de terra (z −28.2) e a margem junto ao bloco sul.
+    label: 'campo de pênaltis +1m',
+    minX: -12, maxX: 12, minZ: -37.3, maxZ: -27.7,
+  },
+  {
+    // quadra MUGA: piso 4×14 em (9.6, −14) → x 7.6..11.6, z −21..−7; a
+    // margem vai até a sebe leste (x 11.8). Sem colisor (railing é visual):
+    // é exatamente onde a criança fica para o quiz do Welling FC.
+    label: 'quadra MUGA',
+    minX: 7.6, maxX: 11.8, minZ: -21, maxZ: -7,
+  },
+  {
+    // horta oeste: solo 3,4×8,4 em (−9.6, −9.4) → x −11.3..−7.9,
+    // z −13.6..−5.2, estufa e espantalho (−11, −10) dentro; margem até a
+    // sebe oeste (−11.8). Conservador em altura: vale para copa também.
+    label: 'horta/estufa',
+    minX: -11.8, maxX: -7.9, minZ: -13.6, maxZ: -5.2,
+  },
+];
+
+function boxesIntersect(a, b) {
+  return a.minX <= b.maxX && a.maxX >= b.minX
+    && a.minZ <= b.maxZ && a.maxZ >= b.minZ;
+}
+
+test('escola publica o layout determinístico das 21 árvores do pack', () => {
+  const school = builtZones.get('school');
+  const trees = school.schoolTrees;
+  assert.ok(Array.isArray(trees), 'a zona school deve expor schoolTrees');
+  // 2 do gramado da frente + 11 da fila sul + 2×4 laterais: tocar nesse
+  // número é sinal de que o layout mudou — revalidar as áreas proibidas.
+  assert.equal(trees.length, 21, 'esperadas 21 instâncias de árvore na escola');
+  for (const tree of trees) {
+    for (const key of ['x', 'z', 'rotY', 'scale']) {
+      assert.ok(Number.isFinite(tree[key]), `instância de árvore deve ter ${key} finito`);
+    }
+    // rotação determinística em múltiplos de 90°: 0/π espalham o pack no
+    // eixo x (fila sul), ±π/2 o deitam no eixo z (laterais). O espalhamento
+    // precisa ser previsível para a garantia estática valer em toda execução
+    assert.ok(Math.abs(tree.rotY % (Math.PI / 2)) < 1e-9,
+      `rotY deve ser múltiplo de π/2 (foi ${tree.rotY}) — aleatoriedade aqui reabre o bug original`);
+  }
+});
+
+test('nenhuma árvore do pack invade campo, quadra MUGA ou horta', () => {
+  // A compensação de centro é o coração do conserto: sem ela o centro do
+  // pack se afasta do ponto da instância por R(rotY)·S·centro e o teste
+  // abaixo volta a falhar (foi exatamente o estado antigo).
+  assert.equal(world.SCHOOL_TREE_INSTANCE_OPTIONS?.center, true,
+    'SCHOOL_TREE_INSTANCE_OPTIONS.center deve estar ligado (compensação do pack)');
+  const school = builtZones.get('school');
+  const offenders = [];
+  for (const tree of school.schoolTrees) {
+    const box = world.schoolTreeFootprintBounds(tree);
+    for (const area of SCHOOL_FORBIDDEN_AREAS) {
+      if (boxesIntersect(box, area)) {
+        offenders.push(
+          `${area.label}: (${tree.x}, ${tree.z}) escala ${tree.scale.toFixed(2)} espalha até `
+          + `x [${box.minX.toFixed(2)}, ${box.maxX.toFixed(2)}] z [${box.minZ.toFixed(2)}, ${box.maxZ.toFixed(2)}]`,
+        );
+      }
+    }
+  }
+  assert.deepEqual(offenders, [],
+    `árvores dentro de área proibida:\n${offenders.join('\n')}`);
+});
+
+test('o modelo de espalhamento do teste reflete a matriz de produção', () => {
+  // Guarda contra drift entre schoolTreeFootprintBounds e o instancing real:
+  // com rotY=0 e compensado, o AABB fica centrado no ponto e com as meias
+  // extensões do bbox medido; com rotY=π/2 sem compensação, o centro do pack
+  // se desloca pela rotação — a mesma conta de instantiateGlb/cloneGlbCopies.
+  const halfX = (world.TREE_PACK_BBOX.maxX - world.TREE_PACK_BBOX.minX) / 2;
+  const halfZ = (world.TREE_PACK_BBOX.maxZ - world.TREE_PACK_BBOX.minZ) / 2;
+  const centered = world.schoolTreeFootprintBounds({ x: 5, z: -7, rotY: 0, scale: 2 });
+  assert.ok(Math.abs((centered.minX + centered.maxX) / 2 - 5) < 1e-9, 'centro X deve cair no ponto');
+  assert.ok(Math.abs((centered.minZ + centered.maxZ) / 2 - -7) < 1e-9, 'centro Z deve cair no ponto');
+  assert.ok(Math.abs((centered.maxX - centered.minX) / 2 - halfX * 2) < 1e-9, 'meia-extensão X esperada');
+  assert.ok(Math.abs((centered.maxZ - centered.minZ) / 2 - halfZ * 2) < 1e-9, 'meia-extensão Z esperada');
+  const quarter = world.schoolTreeFootprintBounds({ x: 0, z: 0, rotY: Math.PI / 2, scale: 2 });
+  // independente do modo, o AABB não pode ser menor que o bbox girado
+  assert.ok(quarter.maxX - quarter.minX >= halfZ * 2 - 1e-9);
+  assert.ok(quarter.maxZ - quarter.minZ >= halfX * 2 - 1e-9);
+});

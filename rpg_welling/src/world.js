@@ -136,7 +136,27 @@ function glbSource(filename) {
 // call cada, com a matriz EXATA que cada clone tinha: instância = T·R·S da
 // cópia aplicado ANTES da matriz que o mesh já tinha dentro do GLB.
 // Referência do padrão no arquivo: buildFacadeWindows.
-function instantiateGlb(scene, src, instances) {
+// Centro do pack em espaço do GLB: união das bboxes das primitivas já
+// transformadas pela matriz-base de cada uma. Só X/Z importam — as instâncias
+// nascem no chão (y=0) e o pack já assenta nele; afundar pelo centro-Y do
+// bbox enterraria as copas no gramado.
+function computePackCenter(src) {
+  src.scene.updateMatrixWorld(true);
+  const union = new THREE.Box3();
+  const part = new THREE.Box3();
+  src.scene.traverse((node) => {
+    if (!node.isMesh) return;
+    if (!node.geometry.boundingBox) node.geometry.computeBoundingBox();
+    part.copy(node.geometry.boundingBox).applyMatrix4(node.matrixWorld);
+    union.union(part);
+  });
+  const center = new THREE.Vector3();
+  if (!union.isEmpty()) union.getCenter(center);
+  center.y = 0;
+  return center;
+}
+
+function instantiateGlb(scene, src, instances, { center = false } = {}) {
   if (!src || !instances.length) return null;
   src.scene.updateMatrixWorld(true);
   const parts = [];
@@ -149,15 +169,25 @@ function instantiateGlb(scene, src, instances) {
     parts.push({ geometry: node.geometry, material: node.material, base: node.matrixWorld.clone() });
   });
   if (!simple || !parts.length) return null;
+  // packs "de verdade" não têm as peças na origem (o pack de árvores espalha
+  // árvores por ~5m em x): com center, o CENTRO do pack cai no ponto pedido
+  // e o espalhamento fica simétrico em volta dele, em vez de despejar
+  // árvores individuais a até ~5·escala do ponto, em direção imprevisível.
+  const packCenter = center ? computePackCenter(src) : null;
   const tmp = new THREE.Object3D();
   return parts.map(({ geometry, material, base }) => {
+    // base deslocada UMA vez por primitiva: a matriz da instância vira
+    // T(ponto)·R·S·T(−centro)·base, então o centro do pack mapeia no ponto.
+    const shiftedBase = packCenter
+      ? new THREE.Matrix4().makeTranslation(-packCenter.x, 0, -packCenter.z).multiply(base)
+      : base;
     const mesh = new THREE.InstancedMesh(geometry, material, instances.length);
     instances.forEach(({ x, y, z, rotY, scale }, i) => {
       tmp.position.set(x, y, z);
       tmp.rotation.set(0, rotY, 0);
       tmp.scale.setScalar(scale);
       tmp.updateMatrix();
-      mesh.setMatrixAt(i, tmp.matrix.clone().multiply(base));
+      mesh.setMatrixAt(i, tmp.matrix.clone().multiply(shiftedBase));
     });
     mesh.instanceMatrix.needsUpdate = true;
     mesh.castShadow = true;
@@ -172,9 +202,12 @@ function instantiateGlb(scene, src, instances) {
 
 // Fallback do instancing: se o GLB não é instanciável (skinned/morph), devolve
 // o caminho antigo de clone por cópia — árvore invisível com colisor órfão é
-// pior que alguns draw calls extras. Mesmo contrato do instantiateGlb.
-function cloneGlbCopies(scene, src, instances, { cast = true, receive = true } = {}) {
+// pior que alguns draw calls extras. Mesmo contrato do instantiateGlb,
+// incluindo o center: sem a mesma compensação, o fallback regrediria o bug
+// das árvores dentro do campo sempre que o GLB caísse no caminho de clone.
+function cloneGlbCopies(scene, src, instances, { cast = true, receive = true, center = false } = {}) {
   if (!src) return [];
+  const packCenter = center ? computePackCenter(src) : null;
   return instances.map(({ x, y, z, rotY, scale }) => {
     const copy = src.scene.clone(true);
     copy.traverse((node) => {
@@ -186,18 +219,74 @@ function cloneGlbCopies(scene, src, instances, { cast = true, receive = true } =
     copy.position.set(x, y, z);
     copy.rotation.y = rotY;
     copy.scale.setScalar(scale);
+    // mesma conta do instantiateGlb, no espaço do grupo: o centro do pack
+    // (R(rotY)·S·centro) sai da posição para o ponto pedido cair no centro.
+    if (packCenter) {
+      const cos = Math.cos(rotY);
+      const sin = Math.sin(rotY);
+      copy.position.set(
+        x - (packCenter.x * cos + packCenter.z * sin) * scale,
+        y,
+        z - (-packCenter.x * sin + packCenter.z * cos) * scale,
+      );
+    }
     scene.add(copy);
     return copy;
   });
 }
 
 // Instancia quando o GLB é instanciável; senão cai no clone por cópia. Um só
-// ponto de decisão para todos os chamadores (árvores, arbustos).
-function addGlbCopies(scene, src, instances) {
+// ponto de decisão para todos os chamadores (árvores, arbustos). options é
+// repassado para os DOIS caminhos: default sem center preserva mata/bushes.
+function addGlbCopies(scene, src, instances, options = {}) {
   if (!src || !instances.length) return null;
-  const instanced = instantiateGlb(scene, src, instances);
+  const instanced = instantiateGlb(scene, src, instances, options);
   if (instanced) return instanced;
-  return cloneGlbCopies(scene, src, instances);
+  return cloneGlbCopies(scene, src, instances, options);
+}
+
+// ── pack de árvores da escola: contrato estático p/ o teste de fumaça ────────
+// bbox do pack de árvores (props.trees) MEDIDA no navegador (debug().scene(),
+// bbox local do mesh "RPG_TreePack"): as 6 primitivas NÃO estão na origem. É
+// o número que alimenta o pior caso do teste — se o modelo mudar, re-medir
+// aqui e no debug do navegador.
+export const TREE_PACK_BBOX = Object.freeze({ minX: -2.41, maxX: 2.59, minZ: -2.64, maxZ: -1.13 });
+
+// Modo de posicionamento das árvores da escola, lido TANTO pela chamada real
+// de addGlbCopies quanto pelo teste: assim o teste computa o espalhamento
+// exatamente no modo em que a produção roda (desligar a compensação sem
+// mexer no layout faz o teste quebrar, como deve).
+export const SCHOOL_TREE_INSTANCE_OPTIONS = Object.freeze({ center: true });
+
+// Puro e exportado para o teste: AABB conservador no mundo do pior
+// espalhamento do pack para UMA instância {x, z, rotY, scale}. Com a
+// compensação ligada, o centro do pack coincide com o ponto da instância e a
+// caixa é o bbox do pack girado por rotY (AABB que contém o giro) escalado;
+// sem ela, o pack inteiro fica deslocado por R(rotY)·S·centroDoPack — que é
+// exatamente o bug original das árvores no campo de pênaltis.
+export function schoolTreeFootprintBounds({ x, z, rotY, scale }) {
+  const cos = Math.abs(Math.cos(rotY));
+  const sin = Math.abs(Math.sin(rotY));
+  const halfX = (TREE_PACK_BBOX.maxX - TREE_PACK_BBOX.minX) / 2;
+  const halfZ = (TREE_PACK_BBOX.maxZ - TREE_PACK_BBOX.minZ) / 2;
+  const centerX = (TREE_PACK_BBOX.maxX + TREE_PACK_BBOX.minX) / 2;
+  const centerZ = (TREE_PACK_BBOX.maxZ + TREE_PACK_BBOX.minZ) / 2;
+  // sem compensação, o centro do pack se afasta do ponto pela própria
+  // rotação/escala da instância (mesma matriz do instantiateGlb/clone)
+  let offsetX = 0;
+  let offsetZ = 0;
+  if (!SCHOOL_TREE_INSTANCE_OPTIONS.center) {
+    offsetX = (centerX * Math.cos(rotY) + centerZ * Math.sin(rotY)) * scale;
+    offsetZ = (-centerX * Math.sin(rotY) + centerZ * Math.cos(rotY)) * scale;
+  }
+  const reachX = (cos * halfX + sin * halfZ) * scale;
+  const reachZ = (sin * halfX + cos * halfZ) * scale;
+  return {
+    minX: x + offsetX - reachX,
+    maxX: x + offsetX + reachX,
+    minZ: z + offsetZ - reachZ,
+    maxZ: z + offsetZ + reachZ,
+  };
 }
 
 // InstancedMesh a partir de uma lista de {position, scale} — mesmo padrão do
@@ -2169,14 +2258,20 @@ export function buildSchool(scene) {
 
   // ── expansão: as novas áreas da escola (tudo sobre o gramado base) ──────
   // Árvores do GLB viram instâncias (cada clone eram 6 draw calls — o pack
-  // tem 6 primitivas); posições, rotação aleatória por árvore, escala ×1,5 e
-  // colliders exatamente como no caminho de clone.
+  // tem 6 primitivas); posições, rotação e escala ×1,5 como no caminho de
+  // clone. As instâncias são registradas MESMO sem o GLB (assim o teste de
+  // fumaça valida o layout em Node; quem ignora src nula é addGlbCopies) e o
+  // collider continua dependendo do GLB, para não nascer parede invisível.
   const schoolTreeSrc = glbSource(MODEL_FILES.props.trees);
   const schoolTreeInstances = [];
-  const schoolTree = (x, z, scale = 1.2, collider = true) => {
-    if (!schoolTreeSrc) return;
-    schoolTreeInstances.push({ x, y: 0, z, rotY: Math.random() * Math.PI * 2, scale: scale * 1.5 });
-    if (collider) addCollider(scene, x, z, 0.7 * scale, 0.7 * scale);
+  const schoolTree = (x, z, scale = 1.2, collider = true, rotY = null) => {
+    // rotação determinística: degraus de 180° por padrão — Math.random aqui
+    // depositava árvore seca no lugar do pênalti. O override (±90°) serve
+    // para as fileiras laterais: deita o espalhamento de ~5m do pack no eixo
+    // z, mantendo a largura em x (±0,76·escala) fora da sebe e da quadra.
+    const angle = rotY ?? (schoolTreeInstances.length % 2) * Math.PI;
+    schoolTreeInstances.push({ x, y: 0, z, rotY: angle, scale: scale * 1.5 });
+    if (collider && schoolTreeSrc) addCollider(scene, x, z, 0.7 * scale, 0.7 * scale);
   };
 
   // anexo da sala de aula (a porta que leva à zona classroom)
@@ -2402,19 +2497,25 @@ export function buildSchool(scene) {
   // Julia reconhece nas fotos. Aqui: fileira de árvores do GLB na beira do
   // campo, copa mais barata atrás da sebe e laterais fechando o gramado.
   // Todas sem colisor: quem fecha o gramado é a sebe.
-  for (let i = 0; i < 11; i += 1) schoolTree(-11 + i * 2.2, -36.3 - (i % 2) * 0.4, 1.5 + (i % 3) * 0.3, false);
+  // Fileiras posicionadas para NEM o pior espalhamento do pack entrar em
+  // área de jogo (ver schoolTreeFootprintBounds + teste de fumaça): a fila
+  // sul fica atrás da sebe (z −36,9), fora do campo + 1m (z −37,3..−27,7);
+  // as laterais em x ±14 com o pack GIRADO 90° — o alcance de ~2,5·escala
+  // vira longitudinal (z) e a largura em x cai para ±0,76·escala
+  // (x mínimo 12,5), fora da sebe (±11,8) e da quadra MUGA (x ≤ 11,6).
+  for (let i = 0; i < 11; i += 1) schoolTree(-11 + i * 2.2, -40 - (i % 2) * 0.4, 1.5 + (i % 3) * 0.3, false);
   // copas baratas do horizonte: as 3 peças de sempre (sem sombra, como antes),
   // agora 1 InstancedMesh por peça em vez de 3 meshes por árvore
   const canopySink = { trunk: [], crowns: [[], []] };
   for (let i = 0; i < 9; i += 1) woodCanopy(scene, -11 + i * 2.7, -37.2, 1.9 + (i % 3) * 0.4, canopySink);
-  for (let i = 0; i < 5; i += 1) {
-    schoolTree(-11.6, -2 - i * 8, 1.3, false);
-    schoolTree(11.6, -2 - i * 8, 1.3, false);
+  for (let i = 0; i < 4; i += 1) {
+    schoolTree(-14, -2 - i * 7.5, 1.3, false, Math.PI / 2);
+    schoolTree(14, -2 - i * 7.5, 1.3, false, Math.PI / 2);
   }
   for (const [cx, cz] of [[-12.1, -3], [12.1, -3], [-12.1, -19], [12.1, -19], [-12.1, -35], [12.1, -35]]) {
     woodCanopy(scene, cx, cz, 1.7, canopySink);
   }
-  addGlbCopies(scene, schoolTreeSrc, schoolTreeInstances);
+  addGlbCopies(scene, schoolTreeSrc, schoolTreeInstances, SCHOOL_TREE_INSTANCE_OPTIONS);
   buildInstanced(scene, new THREE.CylinderGeometry(0.12, 0.2, 2, 6), mat(0x4a3626), canopySink.trunk, { cast: false, receive: false });
   buildInstanced(scene, new THREE.SphereGeometry(1.15, 8, 7), mat(0x2f5d33), canopySink.crowns[0], { cast: false, receive: false });
   buildInstanced(scene, new THREE.SphereGeometry(0.82, 8, 7), mat(0x3a6b3c), canopySink.crowns[1], { cast: false, receive: false });
@@ -2433,6 +2534,10 @@ export function buildSchool(scene) {
     for (const cloud of zone.clouds) cloud.position.x += dt * 0.35; // nuvens derivam
     if (zone.globe) zone.globe.rotation.y += dt * 0.18; // globo da biblioteca gira (Malta inclusive)
   };
+  // layout das instâncias de árvore exposto p/ QA e p/ o teste de fumaça
+  // (que em Node não carrega GLB e por isso não encontraria as InstancedMesh
+  // na cena): é a MESMA lista que o addGlbCopies acima consome.
+  zone.schoolTrees = schoolTreeInstances;
   stashZoneResources(scene); // roadmap 3.3: lembra os recursos p/ liberar na próxima troca
   return zone;
 }
