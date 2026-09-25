@@ -1,16 +1,16 @@
-// Testes das regras puras de enquadramento, distância e braço da câmera.
+// Testes das regras puras de enquadramento e distância da câmera. O corte do
+// braço (safeArmDistance) foi removido do módulo: hoje o que está na frente da
+// câmera é esmaecido (src/occlusion.js), e a câmera vai sempre à distância
+// pedida — limitada só pelo piso e pelo teto do produto fit×zoom, testados aqui.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CAM_ASPECT_REF,
   CAM_DIST_PRODUCT_MAX,
+  CAM_DIST_PRODUCT_MIN,
   CAM_FIT_MAX,
-  CAMERA_ARM_MARGIN,
-  CAMERA_ARM_MIN,
-  CAMERA_ARM_TINY,
   cameraDistance,
   cameraFit,
-  safeArmDistance,
 } from '../src/camera.js';
 
 test('cameraFit mantém telas largas em 1 e limita o afastamento das telas estreitas', () => {
@@ -35,23 +35,39 @@ test('cameraDistance compõe fit e zoom sem ultrapassar o teto do afastamento', 
   assert.ok(Math.abs(desktopDistance - 11.2) < 1e-12);
 
   const phoneFit = cameraFit(390 / 844);
-  const phoneDistance = cameraDistance(base, phoneFit, 1.45);
+  const phoneDistance = cameraDistance(base, phoneFit, 1.8);
   assert.ok(phoneDistance > desktopDistance);
   assert.ok(phoneDistance <= ceiling);
 
-  const standardPhoneDistance = cameraDistance(base, cameraFit(320 / 568), 1.45);
-  const tallPhoneDistance = cameraDistance(base, cameraFit(320 / 900), 1.45);
+  const standardPhoneDistance = cameraDistance(base, cameraFit(320 / 568), 1.8);
+  const tallPhoneDistance = cameraDistance(base, cameraFit(320 / 900), 1.8);
   assert.ok(tallPhoneDistance > 0);
   assert.ok(tallPhoneDistance >= standardPhoneDistance);
   assert.ok(tallPhoneDistance <= ceiling);
 
   // Combinações claramente saturadas precisam parar no teto, não em zero.
-  for (const [fit, zoom] of [[10, 10], [CAM_FIT_MAX, 1.45], [2, 2]]) {
+  for (const [fit, zoom] of [[10, 10], [CAM_FIT_MAX, 1.8], [2, 2]]) {
     assert.ok(Math.abs(cameraDistance(base, fit, zoom) - ceiling) < 1e-12);
   }
 });
 
-test('cameraDistance valida base, fit, zoom e maxProduct', () => {
+test('cameraDistance tem piso: o zoom máximo de perto fica em ~3 m em qualquer tela', () => {
+  const base = 11.2;
+  const floor = base * CAM_DIST_PRODUCT_MIN;
+
+  // Desktop (fit = 1): 0.14 < 0.27 → o piso segura a distância mínima.
+  assert.ok(Math.abs(cameraDistance(base, 1, 0.14) - floor) < 1e-12);
+
+  // Celular em pé: fit ~1.77–1.96 × 0.14 fica ABAIXO do piso — é exatamente
+  // para esse caso que ele existe ("bem perto" não pode voltar a colar na nuca).
+  assert.ok(cameraDistance(base, cameraFit(320 / 568), 0.14) === floor);
+  assert.ok(cameraDistance(base, cameraFit(390 / 844), 0.14) > floor);
+
+  // Zoom confortável nunca é afetado pelo piso (só o teto manda lá em cima).
+  assert.ok(Math.abs(cameraDistance(base, 1, 1) - base) < 1e-12);
+});
+
+test('cameraDistance valida base, fit, zoom, maxProduct e minProduct', () => {
   for (const invalid of [NaN, Infinity, -Infinity]) {
     assert.throws(() => cameraDistance(invalid, 1, 1), TypeError);
     assert.throws(() => cameraDistance(11.2, invalid, 1), TypeError);
@@ -66,43 +82,13 @@ test('cameraDistance valida base, fit, zoom e maxProduct', () => {
   for (const maxProduct of [0, -1]) {
     assert.throws(() => cameraDistance(11.2, 1, 1, { maxProduct }), RangeError);
   }
-});
-
-test('safeArmDistance aproveita espaço e bloqueia paredes coladas sem atravessá-las', () => {
-  // Quando há espaço legítimo, o braço usa exatamente a folga da parede.
-  for (const hitDistance of [2, 6]) {
-    const result = safeArmDistance(hitDistance);
-    assert.equal(result.roomy, true);
-    assert.equal(result.dist, hitDistance - CAMERA_ARM_MARGIN);
-  }
-  assert.equal(safeArmDistance(2).dist, CAMERA_ARM_MIN);
-
-  // Regressão do P1: uma parede próxima precisa zerar o braço, sem devolver
-  // uma distância que colocaria a câmera do outro lado da superfície.
-  for (const hitDistance of [0.1, 0.4, 0.65]) {
-    const result = safeArmDistance(hitDistance);
-    assert.equal(result.blocked, true);
-    assert.equal(result.dist, 0);
-    assert.ok(result.dist <= hitDistance);
-  }
-});
-
-test('safeArmDistance respeita o limite exato e nunca passa da superfície', () => {
-  const limit = CAMERA_ARM_MARGIN + CAMERA_ARM_TINY;
-  const atLimit = safeArmDistance(limit);
-  assert.equal(atLimit.blocked, true);
-  assert.equal(atLimit.dist, 0);
-
-  const aboveLimit = safeArmDistance(limit + 0.01);
-  assert.equal(aboveLimit.blocked, false);
-  assert.ok(aboveLimit.dist <= limit + 0.01);
-
-  // Varredura determinística de toda a faixa sensível, de 0 a 5 m.
-  for (let step = 0; step <= 100; step += 1) {
-    const hitDistance = step * 0.05;
-    assert.ok(safeArmDistance(hitDistance).dist <= hitDistance, `hit ${hitDistance}`);
+  for (const minProduct of [0, -1]) {
+    assert.throws(() => cameraDistance(11.2, 1, 1, { minProduct }), RangeError);
   }
 
-  assert.throws(() => safeArmDistance(-0.01), RangeError);
-  assert.throws(() => safeArmDistance(NaN), RangeError);
+  // Piso e teto customizados: o piso segura produto abaixo dele e o teto
+  // sempre manda quando os dois limites se cruzam.
+  assert.ok(Math.abs(cameraDistance(10, 1, 1, { minProduct: 0.5 }) - 10) < 1e-12);
+  assert.ok(Math.abs(cameraDistance(10, 0.4, 1, { minProduct: 0.5 }) - 5) < 1e-12);
+  assert.ok(Math.abs(cameraDistance(10, 10, 1, { minProduct: 0.5, maxProduct: 2 }) - 20) < 1e-12);
 });

@@ -25,7 +25,8 @@ import { createWords, spotById } from './games/words.js';
 import { createListen, getListenTarget } from './games/listen.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
 import { buildNavGrid, findPathToNearest, canStand, nearestStandPoint } from './pathfind.js';
-import { cameraFit, cameraDistance, safeArmDistance } from './camera.js';
+import { cameraFit, cameraDistance } from './camera.js';
+import { createOcclusionFader } from './occlusion.js';
 
 // ── parâmetros da lançadora ───────────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
@@ -185,14 +186,14 @@ function buildScene(zoneName) {
     : zoneName === 'academy' ? buildAcademy(scene)
     : zoneName === 'classroom' ? buildClassroom(scene)
     : buildSchool(scene);
-  // oclusores da câmera: malhas reais da zona (paredes, telhados, móveis,
-  // árvores instanciadas). Colliders 2D não conhecem telhado — cortar o braço
-  // da câmera só por eles enfiava a câmera dentro do beiral.
-  // Só ESTRUTURA (parede, telhado, prédio) pode cortar o braço da câmera.
-  // Mobília, trave de gol, cerca e tudo que é InstancedMesh (vegetação,
-  // árvores, arbustos) saem: com eles no raycast a câmera travava a ~2 m no
-  // meio do campo de futebol e do jardim — e aí nenhum zoom surtia efeito,
-  // que era exatamente "no celular a câmera fica colada e não dá pra zoom".
+  // occlusores da câmera: malhas reais da zona (paredes, telhados, móveis
+  // grandes). Colliders 2D não conhecem telhado — decidir o que bloqueia a
+  // câmera só por eles enfiava a câmera dentro do beiral.
+  // Só ESTRUTURA (parede, telhado, prédio, estante grande) entra na lista:
+  // hoje ela não corta mais o braço da câmera — vira fantasma esmaecido
+  // (src/occlusion.js) — mas o critério continua: malha pequena e InstancedMesh
+  // (vegetação, árvores, arbustos) ficam de fora, senão o campo de futebol e o
+  // jardim inteiro piscavam a cada passinho da menina.
   occluders = [];
   scene.traverse((node) => {
     if (!node.isMesh || !node.visible || node.isInstancedMesh) return;
@@ -202,6 +203,9 @@ function buildScene(zoneName) {
     }
     occluders.push(node);
   });
+  // a cena é nova: a antiga inteira foi descartada, então não existe mais o
+  // que restaurar — o fader só pode esquecer os meshes da zona anterior
+  fader.reset();
   if (ZONE_NAMES[zoneName]) {
     setTimeout(() => toast(root, lang(ZONE_NAMES[zoneName], language), { duration: 2600 }), 600);
   }
@@ -2114,56 +2118,43 @@ let camYaw = 0;
 let camZoom = 1;
 let camPitch = 0.55; // rad; arraste vertical ajusta — baixo = vê os rostos
 const CAM_R = 11.2; // distância base da câmera (× camZoom)
-const CAM_FOV_BASE = 50; // FOV vertical normal (degrees)
-const CAM_FOV_CLIPPED = 42; // FOV apertado quando a parede manda no braço
 const CAM_PITCH_MIN = 0.22; // ~13°: quase atrás da jogadora
-const CAM_PITCH_MAX = 1.05; // ~60°: de cima ainda dá pra ver as personagens
-const CAM_ZOOM_MIN = 0.55;
-// zoom máximo moderado: mais longe que isto e as personagens viram pontinhos
-const CAM_ZOOM_MAX = 1.45;
+// ~72°: o ângulo "de cima, olhando o mapa" do RPG. Antes era 1.05 (~60°) porque
+// inclinar forte encostava a câmera no teto indoor; com o fade de paredes isso
+// acabou e a visão de mapa pode ser inclinada de verdade.
+const CAM_PITCH_MAX = 1.25;
+// zoom REAL nos dois extremos agora que o fade garante que a câmera chega lá:
+// 0.14 × fit ~1.96 do celular em pé bate no piso do produto (CAM_DIST_PRODUCT_MIN)
+// → ~3 m de perto (o close que a Julia já gosta, sem colar na nuca); 1.8 no
+// desktop (fit = 1) → ~20 m de visão RPG de longe, e no celular o teto do
+// produto (2.6) entrega até ~29 m.
+const CAM_ZOOM_MIN = 0.14;
+const CAM_ZOOM_MAX = 1.8;
 const lookTarget = new THREE.Vector3();
 
-// ── a câmera nunca fica atrás de parede nem dentro do telhado ────────────────
+// ── o que está entre a jogadora e a câmera é ESMAECIDO, não corta mais ───────
 // Raycast contra as malhas reais da zona (occluders, montado no buildScene):
-// colliders 2D não conhecem telhado/beiral, e cortar o braço só por eles
-// enfiava a câmera dentro do beiral. Com raycast, a câmera para NA PRIMEIRA
-// superfície de verdade entre a cabeça da jogadora e a posição desejada.
-const CAM_OCCLUDER_MIN_RADIUS = 1.6; // só malha grande (estrutura) corta a câmera
+// colliders 2D não conhecem telhado/beiral, então o raio é contra a geometria
+// de verdade. Antes, o primeiro hit puxava a câmera para ~1.6 m da nuca — e
+// indoor era o tempo todo, então o zoom-out nunca funcionava dentro da escola.
+// Agora a câmera vai SEMPRE à posição desejada e o fader deixa translúcido o
+// que estiver na frente (src/occlusion.js): visão de RPG de longe sem parede
+// ou mesa bloqueando a tela.
+const CAM_OCCLUDER_MIN_RADIUS = 1.6; // só malha grande (estrutura) vira fantasma
 let globeFocus = false; // diálogo do globo aberto → câmera faz close no planeta
 const cameraRay = new THREE.Raycaster();
 let occluders = [];
-let lastCamHit = null; // debug: o que a câmera bateu por último
-let cameraClipped = false; // o frame atual está com o braço cortado?
-
-function clipCameraArm(head, desired) {
-  const dir = new THREE.Vector3().subVectors(desired, head);
-  const len3 = dir.length();
-  if (len3 < 1e-4 || occluders.length === 0) {
-    cameraClipped = false; // sem raycast não há parede: o FOV volta ao normal
-    return { pos: null, blocked: false };
-  }
-  cameraRay.set(head, dir.normalize()); // dir vira VETOR UNITÁRIO aqui
-  cameraRay.far = len3;
-  const hits = cameraRay.intersectObjects(occluders, false);
-  // primeira superfície de verdade, mesmo colada na jogadora: ignorar os
-  // primeiros centímetros fazia o raycast "encontrar" a parede DE TRÁS e a
-  // câmera atravessar para o outro lado dela
-  const hit = hits[0];
-  lastCamHit = hit ?? null; // relatório formatado só em camHit(), sob demanda
-  if (!hit) { cameraClipped = false; return { pos: null, blocked: false }; }
-  cameraClipped = true;
-  // nunca ultrapassar a superfície: o clamp puro garante dist <= hit − folga
-  // mesmo com a parede colada na menina (o Math.max(0.4, front) antigo
-  // empurrava a câmera para o outro lado da parede quando o hit era < 0.8 m).
-  // Sem distância válida (cabeça já dentro da parede), blocked=true: quem
-  // chama congela a câmera no lugar em vez de inventar uma posição inválida.
-  const arm = safeArmDistance(hit.distance);
-  // Sem folga possível (cabeça já encostada/dentro da parede), a única posição
-  // que com certeza NÃO atravessa nada é a própria cabeça da jogadora. Congelar
-  // a câmera no lugar era pior: ela podia estar do outro lado de uma parede
-  // vinda de um giro anterior, e o lerp de saída atravessaria essa parede.
-  return { pos: arm.blocked ? head.clone() : new THREE.Vector3().copy(dir).multiplyScalar(arm.dist).add(head), blocked: arm.blocked };
-}
+let lastCamHit = null; // debug: o que o raio encontrou por último (QA usa)
+const fader = createOcclusionFader({
+  // Raycaster único e `far` por chamada para não varrer além da câmera.
+  // `occluders` é let: o closure lê sempre a lista da zona atual.
+  raycast: (origin, direction, far) => {
+    cameraRay.set(origin, direction);
+    cameraRay.far = far;
+    return cameraRay.intersectObjects(occluders, false);
+  },
+  now: () => performance.now(),
+});
 
 // Relatório do que a câmera bateu, montado só quando o QA chama camHit():
 // formatar strings e arrays dentro do animate custava caro justamente no
@@ -2359,45 +2350,31 @@ function animate() {
     );
     const desiredCam = new THREE.Vector3().copy(playerObj.position).add(off);
     const head = new THREE.Vector3(playerObj.position.x, 0.6, playerObj.position.z);
-    const arm = clipCameraArm(head, desiredCam);
+    // o fade roda TODO frame (é ele que decide o que é fantasma); no close do
+    // globo fica desligado, porque o raycast cabeça→câmera não é o que manda
+    // no enquadramento ali — e esmaecer/restaurar naquele frame era mentira
+    const occlusion = fader.update({ head, desired: desiredCam, enabled: !(globeFocus && zone.globe) });
+    lastCamHit = occlusion.firstHit; // relatório formatado só em camHit(), sob demanda
     if (globeFocus && zone.globe) {
       // close no planeta enquanto a coruja fala de Malta
       const g = zone.globe.position;
       camera.position.lerp(new THREE.Vector3(g.x + 0.7, g.y + 0.26, g.z + 0.8), 1 - Math.exp(-dt * 3.5));
-    } else if (arm.blocked) {
-      // cabeça encostada na parede: a câmera encosta na menina (posição que
-      // existe) em vez de ficar presa num ponto antigo possivelmente além da
-      // parede. Sai de lá sozinha no frame em que a parede deixar de bater.
-      camera.position.copy(arm.pos);
-    } else if (arm.pos) {
-      // parede/telo entre a jogadora e a câmera: encaixa NA HORA na frente
-      // (lerp atravessaria por vários frames)
-      camera.position.copy(arm.pos);
+    } else if (occlusion.blocked) {
+      // único resto do corte: cabeça dentro/em cima da geometria (spawn em
+      // quina) — a câmera encosta na menina, a única posição que com certeza
+      // não atravessa nada. Sai de lá sozinha no frame em que a geometria
+      // deixar de estar colada nela.
+      camera.position.copy(head);
     } else {
-      cameraClipped = false;
+      // caminho livre (ou livre DEPOIS do fade): o zoom pedido vale de verdade,
+      // com o mesmo lerp suave de sempre — sem o snap que entregava ~1.6 m
       camera.position.lerp(desiredCam, 1 - Math.exp(-dt * 5));
     }
-    // Zoom com o braço saturado (parede/teto colado): a DISTÂNCIA não muda
-    // porque a parede manda, então o zoom "não fazia nada" indoor. Aqui o
-    // mesmo zoom passa a apertar o FOV, que é livre mesmo com a câmera colada —
-    // sem isso os botões parecem quebrados dentro da escola.
-    const zoomTight = Math.min(1, Math.max(0, (CAM_ZOOM_MAX - camZoom) / (CAM_ZOOM_MAX - CAM_ZOOM_MIN)));
-    const wantedFov = cameraClipped ? CAM_FOV_BASE - (CAM_FOV_BASE - CAM_FOV_CLIPPED) * zoomTight : CAM_FOV_BASE;
-    if (Math.abs(camera.fov - wantedFov) > 0.01) {
-      camera.fov += (wantedFov - camera.fov) * (1 - Math.exp(-dt * 6));
-      camera.updateProjectionMatrix();
-    }
+    // FOV fixo em 50 (o da criação da câmera): com o fade não existe mais
+    // "braço cortado", então nada aperta o campo de visão para disfarçar.
     if (globeFocus && zone.globe) {
       const g = zone.globe.position;
       lookTarget.set(g.x, g.y + 0.04, g.z);
-    } else if (cameraClipped) {
-      // vista apertada (sala pequena): mira num ponto ALÉM dela — a menina
-      // fica baixa no quadro e o que ela está fazendo aparece na frente
-      lookTarget.set(
-        head.x + (desiredCam.x - head.x) * -0.35,
-        0.9,
-        head.z + (desiredCam.z - head.z) * -0.35
-      );
     } else {
       lookTarget.set(playerObj.position.x, 0.6, playerObj.position.z);
     }
@@ -2666,6 +2643,10 @@ window.__rpgWelling = {
     camHit: () => describeCamHit(lastCamHit),
     camFov: () => +camera.fov.toFixed(2),
     occluders: () => occluders.length,
+    // QA do fade: quantos meshes estão de fantasma agora (e quais) — é o que
+    // responde "por que estou vendo através da parede?" num playtest
+    fadedCount: () => fader.fadedCount(),
+    fadedNames: () => fader.fadedNames(),
   }),
   interact: (id) => interact(id),
   kids: () => [playerObj, companionObj].map((o) => o && ({
