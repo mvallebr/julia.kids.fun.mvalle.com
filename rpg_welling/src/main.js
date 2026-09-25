@@ -2146,14 +2146,16 @@ const cameraRay = new THREE.Raycaster();
 let occluders = [];
 let lastCamHit = null; // debug: o que o raio encontrou por último (QA usa)
 const fader = createOcclusionFader({
-  // Raycaster único e `far` por chamada para não varrer além da câmera.
-  // `occluders` é let: o closure lê sempre a lista da zona atual.
+  // Raycaster único e `far` por chamada para não varrer além da câmera (o
+  // fader chama 5× por frame: cone central + 4 paralelos). `occluders` é let:
+  // os closures leem sempre a lista da zona atual.
   raycast: (origin, direction, far) => {
     cameraRay.set(origin, direction);
     cameraRay.far = far;
     return cameraRay.intersectObjects(occluders, false);
   },
   now: () => performance.now(),
+  occluders: () => occluders,
 });
 
 // Relatório do que a câmera bateu, montado só quando o QA chama camHit():
@@ -2350,10 +2352,16 @@ function animate() {
     );
     const desiredCam = new THREE.Vector3().copy(playerObj.position).add(off);
     const head = new THREE.Vector3(playerObj.position.x, 0.6, playerObj.position.z);
+    // corte de camada (diorama de cima): pitch de brincar (0.55) NÃO corta
+    // teto nenhum — sem raio-x surpresa em ângulo baixo; só quando a criança
+    // inclina para baixo de verdade (~52°) ou afasta além de ~20 m é que a
+    // camada entre ela e a câmera sobe como fantasma (o fade de raio só, com
+    // o telhado cobrindo o mapa, era a "fresta de raio-x" que o QA fotografou)
+    const layerCut = camPitch >= 0.9 || dist >= 20;
     // o fade roda TODO frame (é ele que decide o que é fantasma); no close do
     // globo fica desligado, porque o raycast cabeça→câmera não é o que manda
     // no enquadramento ali — e esmaecer/restaurar naquele frame era mentira
-    const occlusion = fader.update({ head, desired: desiredCam, enabled: !(globeFocus && zone.globe) });
+    const occlusion = fader.update({ head, desired: desiredCam, enabled: !(globeFocus && zone.globe), layerCut });
     lastCamHit = occlusion.firstHit; // relatório formatado só em camHit(), sob demanda
     if (globeFocus && zone.globe) {
       // close no planeta enquanto a coruja fala de Malta
@@ -2366,9 +2374,10 @@ function animate() {
       // deixar de estar colada nela.
       camera.position.copy(head);
     } else {
-      // caminho livre (ou livre DEPOIS do fade): o zoom pedido vale de verdade,
-      // com o mesmo lerp suave de sempre — sem o snap que entregava ~1.6 m
-      camera.position.lerp(desiredCam, 1 - Math.exp(-dt * 5));
+      // o desired de VOLTA já vem ajustado pelo anti-embebimento (encurtado
+      // quando a ponta ia estacionar dentro de laje/telhadura). Objeto {x,y,z}
+      // simples serve: o lerp do three só lê x/y/z.
+      camera.position.lerp(occlusion.desired, 1 - Math.exp(-dt * 5));
     }
     // FOV fixo em 50 (o da criação da câmera): com o fade não existe mais
     // "braço cortado", então nada aperta o campo de visão para disfarçar.
