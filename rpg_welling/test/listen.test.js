@@ -48,6 +48,35 @@ function installModernDom() {
     // O DOM real marca elementos com nodeType 1; o stub compartilhado nao marca.
     // Sem isso nao da para provar que os textos sao filhos DIRETOS e nao netos.
     element.nodeType = ELEMENT_NODE;
+    // O classList do stub compartilhado e um no-op que sempre devolve false.
+    // Aqui ele passa a guardar as classes em className, como o navegador, para
+    // que a classe de comemoracao possa ser observada de verdade.
+    element.classList = {
+      add(...names) {
+        const current = String(element.className || '').split(' ').filter(Boolean);
+        for (const name of names) {
+          if (!current.includes(String(name))) current.push(String(name));
+        }
+        element.className = current.join(' ');
+      },
+      remove(...names) {
+        const removidos = new Set(names.map(String));
+        element.className = String(element.className || '')
+          .split(' ')
+          .filter(Boolean)
+          .filter((name) => !removidos.has(name))
+          .join(' ');
+      },
+      contains(name) {
+        return String(element.className || '').split(' ').includes(String(name));
+      },
+      toggle(name, forcar) {
+        const alvo = forcar === undefined ? !element.classList.contains(name) : Boolean(forcar);
+        if (alvo) element.classList.add(name);
+        else element.classList.remove(name);
+        return alvo;
+      },
+    };
     // O navegador insere os filhos do fragmento e esvazia o fragmento, tanto
     // em replaceChildren quanto em appendChild.
     element.appendChild = (node) => {
@@ -2049,5 +2078,376 @@ test('todas as palavras da peça têm glosa no diário, nos três idiomas', () =
       );
     }
   }
+});
+
+// ---------------------------------------------------------------------------
+// Rodada 8 — o cartão verde da rodada perdida e a instrução que apontava para
+// um botão que não existia.
+// ---------------------------------------------------------------------------
+
+// Falante com lista de vozes controlável. Nada de SpeechSynthesis real: o
+// evento `voiceschanged` é disparado à mão, como o navegador dispara quando as
+// vozes chegam de forma assíncrona.
+function voiceSpeech(initialVoices) {
+  const voiceListeners = new Set();
+  const speech = {
+    voices: initialVoices,
+    spoken: [],
+    getVoices() { return speech.voices; },
+    speak(utterance) { speech.spoken.push(utterance); },
+    cancel() {},
+    addEventListener(type, listener) { if (type === 'voiceschanged') voiceListeners.add(listener); },
+    removeEventListener(type, listener) { if (type === 'voiceschanged') voiceListeners.delete(listener); },
+    setVoices(next) {
+      speech.voices = next;
+      for (const listener of [...voiceListeners]) listener({ type: 'voiceschanged' });
+    },
+  };
+  return speech;
+}
+
+test('rodada 8: rodada perdida não acende o cartão de comemoração', () => {
+  installModernDom();
+  // Caminho da digitação: setFallback(true) na construção e submitTyped nos
+  // cliques. Nenhuma voz TTS real é necessária.
+  const panel = typedGame({ target: { word: 'sun', gloss: 'sol' } });
+  const input = byClass(panel.root, 'rpg-listen-input');
+  const repeat = byClass(panel.root, 'rpg-listen-repeat');
+
+  for (const palavra of ['one', 'two', 'three']) {
+    input.value = palavra;
+    repeat.dispatchEvent({ type: 'click' });
+  }
+
+  // O contrato do fim de rodada não muda: três tentativas, zero estrelas.
+  assert.deepEqual(panel.reports, [{ attempts: 3, best: 0, stars: 0, heard: 'one', passed: false }]);
+  // A revelação continua na tela e o minigame fecha normalmente.
+  assert.equal(byClass(panel.root, 'rpg-listen-feedback').textContent, 'Vamos ver juntos: sun significa sol.');
+  assert.equal(panel.game.getState().done, true);
+  // A medida do defeito: o cartão NÃO pode ficar verde numa rodada perdida.
+  assert.equal(panel.root.classList.contains('rpg-listen-celebrating'), false);
+  assert.equal(panel.root.classList.contains('rpg-listen-calm'), true);
+  panel.game.destroy();
+
+  // O mesmo contrato vale no caminho da fala, que é o que roda no navegador.
+  const recognizers = [];
+  const falado = gameWithRecognizers(recognizers, { target: { word: 'sun', gloss: 'sol' } });
+  const repeatFalado = byClass(falado.container.children[0], 'rpg-listen-repeat');
+  for (const palavra of ['xxxx', 'yyyy', 'zzzz']) {
+    repeatFalado.dispatchEvent({ type: 'click' });
+    recognizers.at(-1).emit('result', recognitionResult(palavra));
+  }
+  assert.deepEqual(falado.reports, [{ attempts: 3, best: 0, stars: 0, heard: 'xxxx', passed: false }]);
+  assert.equal(falado.container.children[0].classList.contains('rpg-listen-celebrating'), false);
+  falado.game.destroy();
+});
+
+test('rodada 8: rodada aprovada acende o cartão de comemoração', () => {
+  installModernDom();
+  const panel = typedGame({ target: { word: 'sun', gloss: 'sol' } });
+  const input = byClass(panel.root, 'rpg-listen-input');
+  input.value = 'sun';
+  byClass(panel.root, 'rpg-listen-repeat').dispatchEvent({ type: 'click' });
+
+  assert.deepEqual(panel.reports, [{ attempts: 1, best: 1, stars: 3, heard: 'sun', passed: true }]);
+  assert.equal(byClass(panel.root, 'rpg-listen-feedback').textContent, 'Muito bem! A palavra é sun.');
+  assert.equal(panel.root.classList.contains('rpg-listen-celebrating'), true);
+  panel.game.destroy();
+
+  // Uma estrela já é aprovação: a classe acompanha `passed`, não as três.
+  const parcial = typedGame({ target: { word: 'bird', gloss: 'pássaro' } });
+  byClass(parcial.root, 'rpg-listen-input').value = 'bard';
+  byClass(parcial.root, 'rpg-listen-repeat').dispatchEvent({ type: 'click' });
+  assert.equal(parcial.reports[0].stars, 2);
+  assert.equal(parcial.reports[0].passed, true);
+  assert.equal(parcial.root.classList.contains('rpg-listen-celebrating'), true);
+  parcial.game.destroy();
+});
+
+test('rodada 8: a instrução descreve a ação que existe na tela', () => {
+  installModernDom();
+  const abrindoDepoisRecognizers = [];
+  const montando = (options) => {
+    const container = document.createElement('div');
+    const game = createListen({
+      container,
+      reduceMotion: true,
+      target: { word: 'hat', gloss: 'chapéu' },
+      ...options,
+    });
+    return { game, root: container.children[0] };
+  };
+
+  // Sem voz TTS e com o campo aberto: mandar tocar em Ouvir seria mentira.
+  const semVoz = montando({ speech: voiceSpeech([]) });
+  assert.equal(byClass(semVoz.root, 'rpg-listen-audio').hidden, true);
+  assert.equal(byClass(semVoz.root, 'rpg-listen-input').hidden, false);
+  assert.equal(
+    byClass(semVoz.root, 'rpg-listen-instructions').textContent,
+    DEFAULT_STRINGS.instructionsType.pt,
+  );
+  semVoz.game.destroy();
+
+  // Com voz inglesa e Recognition disponível (campo fechado) a instrução
+  // original vale: o caminho de ouvir é real.
+  const comVoz = montando({
+    speech: voiceSpeech([{ lang: 'en-GB' }]),
+    createRecognizer: () => makeRecognizer(),
+  });
+  assert.equal(byClass(comVoz.root, 'rpg-listen-audio').hidden, false);
+  assert.equal(byClass(comVoz.root, 'rpg-listen-input').hidden, true);
+  assert.equal(
+    byClass(comVoz.root, 'rpg-listen-instructions').textContent,
+    DEFAULT_STRINGS.instructions.pt,
+  );
+  comVoz.game.destroy();
+
+  // Sem voz e sem digitação (Recognition presente, campo fechado): o botão
+  // Ouvir não existe e o campo também não, então sobra o microfone.
+  const soMicrofone = montando({
+    speech: voiceSpeech([]),
+    createRecognizer: () => makeRecognizer(),
+  });
+  assert.equal(byClass(soMicrofone.root, 'rpg-listen-audio').hidden, true);
+  assert.equal(byClass(soMicrofone.root, 'rpg-listen-input').hidden, true);
+  assert.equal(
+    byClass(soMicrofone.root, 'rpg-listen-instructions').textContent,
+    DEFAULT_STRINGS.instructionsSpeak.pt,
+  );
+  soMicrofone.game.destroy();
+
+  // O fallback abrindo no meio da sessão também troca a instrução: o campo
+  // aparece durante o jogo, não só na abertura.
+  const abrindoDepois = montando({
+    speech: voiceSpeech([]),
+    createRecognizer: () => {
+      const recognizer = makeRecognizer();
+      abrindoDepoisRecognizers.push(recognizer);
+      return recognizer;
+    },
+  });
+  assert.equal(
+    byClass(abrindoDepois.root, 'rpg-listen-instructions').textContent,
+    DEFAULT_STRINGS.instructionsSpeak.pt,
+  );
+  byClass(abrindoDepois.root, 'rpg-listen-repeat').dispatchEvent({ type: 'click' });
+  abrindoDepoisRecognizers[0].emit('error', { error: 'not-allowed' });
+  assert.equal(byClass(abrindoDepois.root, 'rpg-listen-input').hidden, false);
+  assert.equal(
+    byClass(abrindoDepois.root, 'rpg-listen-instructions').textContent,
+    DEFAULT_STRINGS.instructionsType.pt,
+  );
+  abrindoDepois.game.destroy();
+
+  for (const language of ['pt', 'en', 'es']) {
+    const panel = montando({ lang: language, speech: voiceSpeech([]) });
+    assert.equal(
+      byClass(panel.root, 'rpg-listen-instructions').textContent,
+      DEFAULT_STRINGS.instructionsType[language],
+      language,
+    );
+    panel.game.destroy();
+
+    // As duas instruções passam pelos três idiomas. Sem microfone em português
+    // e espanhol o nome é igual; o resto do texto muda junto com o idioma.
+    const falado = montando({
+      lang: language,
+      speech: voiceSpeech([]),
+      createRecognizer: () => makeRecognizer(),
+    });
+    assert.equal(
+      byClass(falado.root, 'rpg-listen-instructions').textContent,
+      DEFAULT_STRINGS.instructionsSpeak[language],
+      language,
+    );
+    assert.ok(
+      byClass(falado.root, 'rpg-listen-instructions').textContent.includes('inglês')
+      || byClass(falado.root, 'rpg-listen-instructions').textContent.includes('inglés')
+      || language === 'en',
+      language,
+    );
+    falado.game.destroy();
+  }
+
+  // Acento: o arquivo nunca escreve "ingles" sem acento em português.
+  assert.ok(DEFAULT_STRINGS.instructionsType.pt.includes('inglês'));
+  assert.ok(DEFAULT_STRINGS.instructionsType.es.includes('inglés'));
+  assert.ok(DEFAULT_STRINGS.instructionsSpeak.pt.includes('inglês'));
+  assert.ok(DEFAULT_STRINGS.instructionsSpeak.es.includes('inglés'));
+});
+
+// O eixo das duas frases que aparecem com o campo aberto é o MICROFONE, que é
+// o que `input.hidden` de fato mede. "Sem áudio" mentia na célula em que o
+// botão Ouvir está visível e funcionando.
+test('rodada 8: a instrução e o aviso falam do microfone, não do som', () => {
+  installModernDom();
+  // Em cada idioma o nome do aparelho é diferente, e é o único lugar onde a
+  // grafia muda: "microphone" em inglês, "micrófono" com acento em espanhol,
+  // "microfone" sem acento em português.
+  const microfone = { pt: 'microfone', en: 'microphone', es: 'micrófono' };
+  const eixoErrado = {
+    instructionsType: ['áudio', 'audio'],
+    fallbackNotice: ['fala', 'voz', 'speech', 'voice'],
+  };
+
+  for (const language of ['pt', 'en', 'es']) {
+    for (const [key, errados] of Object.entries(eixoErrado)) {
+      const texto = DEFAULT_STRINGS[key][language];
+      const minusculo = texto.toLowerCase();
+      assert.ok(minusculo.includes(microfone[language]), `${key}/${language} precisa citar o microfone: ${texto}`);
+      for (const errado of errados) {
+        assert.equal(minusculo.includes(errado), false, `${key}/${language} não pode falar de "${errado}": ${texto}`);
+      }
+    }
+  }
+
+  // O acento do espanhol é obrigatório, e português e inglês não o usam.
+  for (const key of Object.keys(eixoErrado)) {
+    assert.ok(DEFAULT_STRINGS[key].es.includes('micrófono'), key);
+    assert.equal(DEFAULT_STRINGS[key].pt.includes('micrófono'), false, key);
+    assert.equal(DEFAULT_STRINGS[key].en.includes('micrófono'), false, key);
+  }
+
+  // As duas frases continuam terminando com o convite a escrever, que é a
+  // ação que o campo aberto realmente oferece.
+  assert.ok(DEFAULT_STRINGS.instructionsType.pt.includes('escreva a palavra'));
+  assert.ok(DEFAULT_STRINGS.fallbackNotice.pt.includes('escrever a palavra'));
+  assert.ok(DEFAULT_STRINGS.instructionsType.en.includes('write') || DEFAULT_STRINGS.instructionsType.en.includes('type'));
+  assert.ok(DEFAULT_STRINGS.fallbackNotice.en.includes('write the word'));
+});
+
+// A 4a célula: voz inglesa presente e Recognition AUSENTE. É a configuração mais
+// comum em desktop (Chrome com TTS instalado e sem SpeechRecognition), e o
+// botão Repetir entrega o texto digitado em vez de abrir o microfone. Aqui a
+// instrução antiga mandava ouvir e falar, o que é impossível, enquanto o aviso
+// de fallback logo abaixo mandava exatamente o contrário.
+test('rodada 8: voz inglesa sem Recognition manda escrever, não falar', () => {
+  installModernDom();
+  const speech = voiceSpeech([{ lang: 'en-GB' }]);
+  const container = document.createElement('div');
+  const reports = [];
+  const game = createListen({
+    container,
+    reduceMotion: true,
+    target: { word: 'hat', gloss: 'chapéu' },
+    speech,
+    onDone: (result) => reports.push(result),
+  });
+  const root = container.children[0];
+  const instructions = byClass(root, 'rpg-listen-instructions');
+  const audio = byClass(root, 'rpg-listen-audio');
+  const input = byClass(root, 'rpg-listen-input');
+  const notice = byClass(root, 'rpg-listen-fallback-notice');
+  const repeat = byClass(root, 'rpg-listen-repeat');
+
+  // O botão de áudio existe (há voz), mas o campo aberto é o que manda: sem
+  // Recognition o botão Repetir escreve em vez de ouvir a criança.
+  assert.equal(audio.hidden, false);
+  assert.equal(input.hidden, false);
+  assert.equal(notice.hidden, false);
+  assert.equal(instructions.textContent, DEFAULT_STRINGS.instructionsType.pt);
+  // A instrução e o aviso precisam contar a mesma história.
+  assert.notEqual(instructions.textContent, DEFAULT_STRINGS.instructions.pt);
+  assert.ok(instructions.textContent.includes('escreva a palavra'));
+  // O botão Ouvir está visível E funciona: ele fala a palavra. É por isso que
+  // o texto não pode dizer "sem áudio" — o que falta aqui é o microfone.
+  audio.dispatchEvent({ type: 'click' });
+  assert.equal(speech.spoken.length, 1);
+  assert.equal(speech.spoken[0].text, 'hat');
+  assert.equal(speech.spoken[0].lang, 'en-GB');
+  assert.equal(instructions.textContent, DEFAULT_STRINGS.instructionsType.pt);
+  // O aviso de fallback, logo abaixo da instrução, fala do mesmo eixo.
+  assert.equal(notice.textContent, DEFAULT_STRINGS.fallbackNotice.pt);
+  assert.ok(notice.textContent.includes('microfone'));
+  assert.ok(instructions.textContent.includes('microfone'));
+
+  // E o botão Repetir confirma: ele escreve, não abre microfone.
+  input.value = 'hat';
+  repeat.dispatchEvent({ type: 'click' });
+  assert.deepEqual(reports, [{ attempts: 1, best: 1, stars: 3, heard: 'hat', passed: true }]);
+
+  // Uma voz que chega depois (voiceschanged) não troca a instrução de lugar.
+  speech.setVoices([{ lang: 'en-US' }, { lang: 'pt-BR' }]);
+  assert.equal(instructions.textContent, DEFAULT_STRINGS.instructionsType.pt);
+  game.destroy();
+});
+
+test('rodada 8: atualizar a instrução várias vezes não duplica texto nem cria elemento', () => {
+  installModernDom();
+  // Campo FECHADO: aqui quem manda na instrução é o áudio, então cada
+  // `voiceschanged` pode trocar o texto de verdade.
+  const speech = voiceSpeech([]);
+  const container = document.createElement('div');
+  const game = createListen({
+    container,
+    reduceMotion: true,
+    target: { word: 'hat', gloss: 'chapéu' },
+    speech,
+    createRecognizer: () => makeRecognizer(),
+  });
+  const root = container.children[0];
+  const instructions = byClass(root, 'rpg-listen-instructions');
+
+  assert.equal(instructions.textContent, DEFAULT_STRINGS.instructionsSpeak.pt);
+
+  // Espia a escrita DEPOIS da construção para contar as reescritas do DOM.
+  let escritas = 0;
+  let valor = instructions.textContent;
+  Object.defineProperty(instructions, 'textContent', {
+    configurable: true,
+    get: () => valor,
+    set: (novo) => { escritas += 1; valor = String(novo); },
+  });
+  const filhos = descendants(root).length;
+
+  // Mesmo estado repetido: nenhuma reescrita.
+  speech.setVoices([]);
+  speech.setVoices([]);
+  assert.equal(escritas, 0);
+  assert.equal(instructions.textContent, DEFAULT_STRINGS.instructionsSpeak.pt);
+  assert.equal(instructions.children.length, 0);
+
+  // Mudança real de estado: uma escrita só.
+  speech.setVoices([{ lang: 'en-GB' }]);
+  assert.equal(escritas, 1);
+  assert.equal(instructions.textContent, DEFAULT_STRINGS.instructions.pt);
+
+  // Repetir o mesmo estado de novo não escreve nada.
+  speech.setVoices([{ lang: 'en-GB' }]);
+  speech.setVoices([{ lang: 'en-GB' }]);
+  assert.equal(escritas, 1);
+
+  // Ida e volta escreve duas vezes e não cria nem remove nenhum elemento.
+  speech.setVoices([]);
+  speech.setVoices([{ lang: 'en-GB' }]);
+  assert.equal(escritas, 3);
+  assert.equal(instructions.textContent, DEFAULT_STRINGS.instructions.pt);
+  assert.equal(descendants(root).length, filhos);
+  game.destroy();
+
+  // Campo ABERTO: agora quem manda é a digitação, então chegar uma voz nova
+  // não pode reescrever a instrução nenhuma vez.
+  const outraVoz = voiceSpeech([]);
+  const outroContainer = document.createElement('div');
+  const outroJogo = createListen({
+    container: outroContainer,
+    reduceMotion: true,
+    target: { word: 'hat', gloss: 'chapéu' },
+    speech: outraVoz,
+  });
+  const outraInstrucao = byClass(outroContainer.children[0], 'rpg-listen-instructions');
+  let outrasEscritas = 0;
+  let outroValor = outraInstrucao.textContent;
+  Object.defineProperty(outraInstrucao, 'textContent', {
+    configurable: true,
+    get: () => outroValor,
+    set: (novo) => { outrasEscritas += 1; outroValor = String(novo); },
+  });
+
+  outraVoz.setVoices([{ lang: 'en-GB' }]);
+  outraVoz.setVoices([{ lang: 'en-GB' }, { lang: 'pt-BR' }]);
+  assert.equal(outrasEscritas, 0);
+  assert.equal(outraInstrucao.textContent, DEFAULT_STRINGS.instructionsType.pt);
+  outroJogo.destroy();
 });
 

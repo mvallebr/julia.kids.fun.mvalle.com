@@ -98,6 +98,25 @@ export const DEFAULT_STRINGS = {
     en: 'Tap Listen, then say the word in English.',
     es: 'Toca Escuchar y después di la palabra en inglés.',
   },
+  // Caminho com o campo ABERTO: o módulo entrou em fallback e o que falta é o
+  // MICROFONE, não o som. Vale com ou sem áudio: numa configuração comum
+  // (voz TTS inglesa instalada, sem SpeechRecognition) o botão Ouvir aparece e
+  // funciona, e mesmo assim a criança não tem como falar. Por isso o texto fala
+  // de microfone e não de áudio.
+  instructionsType: {
+    pt: 'Sem microfone, escreva a palavra em inglês no campo abaixo.',
+    en: 'With no microphone, type the English word in the box below.',
+    es: 'Sin micrófono, escribe la palabra en inglés en el recuadro de abajo.',
+  },
+  // Caminho com o campo FECHADO e sem voz inglesa: o botão Ouvir some e sobra
+  // o microfone. O texto repete o rótulo de `repeat` do mesmo jeito que
+  // `instructions` repete o de `listen`: um hospedeiro que renomear um botão
+  // precisa renomear a instrução junto.
+  instructionsSpeak: {
+    pt: 'Toque em Repetir e diga a palavra em inglês.',
+    en: 'Tap Repeat and say the word in English.',
+    es: 'Toca Repetir y di la palabra en inglés.',
+  },
   listen: {
     pt: 'Ouvir',
     en: 'Listen',
@@ -113,10 +132,14 @@ export const DEFAULT_STRINGS = {
     en: 'Type the word here',
     es: 'Escribe la palabra aquí',
   },
+  // O aviso aparece exatamente quando o campo abre, ou seja, quando falta o
+  // MICROFONE. "A fala não está disponível" mentia na configuração mais comum
+  // em desktop, em que a voz TTS existe e funciona e quem falta é o
+  // reconhecimento. Mesmo eixo da instrução acima: entrada, não saída.
   fallbackNotice: {
-    pt: 'A fala não está disponível. Você pode escrever a palavra.',
-    en: 'Speech is not available. You can type the word.',
-    es: 'La voz no está disponible. Puedes escribir la palabra.',
+    pt: 'O microfone não está disponível. Você pode escrever a palavra.',
+    en: 'The microphone is not available. You can write the word.',
+    es: 'El micrófono no está disponible. Puedes escribir la palabra.',
   },
   listening: {
     pt: 'Estou ouvindo sua voz.',
@@ -561,10 +584,34 @@ export function createListen({
     return Boolean(englishVoice(speech));
   }
 
+  // A instrução precisa descrever a ação que EXISTE na tela, e quem decide o
+  // que a criança pode fazer é o CAMPO, não o áudio. `input.hidden` é falso
+  // só quando o módulo abriu a digitação (`recognizerUnavailable`), e nesse
+  // estado o botão Repetir entrega o texto em vez de abrir o microfone. Ter
+  // voz inglesa na máquina não devolve a fala: numa configuração comum (voz TTS
+  // instalada, sem SpeechRecognition) mandar falar seria mentira, e o aviso de
+  // fallback logo abaixo diria o contrário. Por isso o campo vem primeiro:
+  // campo aberto manda escrever, com ou sem áudio; campo fechado com áudio
+  // manda ouvir; campo fechado sem áudio manda falar pelo microfone.
+  function resolveInstruction() {
+    if (input.hidden) return audio.hidden ? text('instructionsSpeak') : text('instructions');
+    return text('instructionsType');
+  }
+
+  // Não reescreve o DOM quando o texto já é o certo: updateAudioButton roda a
+  // cada voiceschanged e setFallback roda nos dois caminhos de abertura. O
+  // elemento já existe quando estas funções rodam; só o texto muda.
+  function updateInstruction() {
+    const next = resolveInstruction();
+    if (instructions.textContent === next) return;
+    instructions.textContent = next;
+  }
+
   function updateAudioButton() {
     const available = voiceAvailable();
     audio.hidden = !available;
     audio.disabled = !available || destroyed || completed;
+    updateInstruction();
   }
 
   function speak() {
@@ -591,6 +638,9 @@ export function createListen({
     input.hidden = !visible;
     fallbackNotice.hidden = !visible;
     if (visible) repeat.disabled = destroyed || completed;
+    // Abrir ou fechar o campo muda a ação descrita pela instrução, então ela
+    // acompanha a digitação tanto quanto acompanha a voz.
+    updateInstruction();
   }
 
   function isCurrentSession(session) {
@@ -667,7 +717,10 @@ export function createListen({
       result.passed ? 'success' : 'reveal',
       { word: target.word, gloss: glossText, heard: bestHeard },
     );
-    root.classList.add('rpg-listen-celebrating');
+    // O cartão verde de `.rpg-listen-celebrating` é o sinal de aprovação da
+    // rodada. Sem esta condição ele entrava também na rodada perdida e a criança
+    // recebia a animação de festa logo depois de errar três vezes.
+    if (result.passed) root.classList.add('rpg-listen-celebrating');
     try {
       if (typeof onDone === 'function') onDone(result);
     } catch {
