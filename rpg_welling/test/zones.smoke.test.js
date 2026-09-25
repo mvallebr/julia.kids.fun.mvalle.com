@@ -287,14 +287,17 @@ test('woods executa o caminho assíncrono de composição da foto', () => {
 });
 
 // ── árvores do pack x áreas de jogo da escola ────────────────────────────────
-// Bug medido em produção (debug().scene()): o pack de árvores tem as 6
-// primitivas fora da origem (bbox local x −2.41..2.59, z −2.64..−1.13) e o
-// instancing depositava árvores individuais a até ~5·escala do ponto da
-// instância — inclusive no retângulo do campo, em cima da âncora `field`
-// (0, −32.5). O conserto é duplo: compensação de centro por instância
-// (SCHOOL_TREE_INSTANCE_OPTIONS.center) + fileiras afastadas. Este teste é
-// estático: computa o pior AABB de cada instância (mesma matemática que a
-// produção usa, via schoolTreeFootprintBounds) contra as áreas proibidas.
+// Rodada 3 do bug medido em produção (debug().scene()): o pack de árvores tem
+// as 6 primitivas com a GEOMETRIA fora do PIVÔ (bbox local x −2.41..2.59,
+// z −2.64..−1.13; pivô ≈ origem — medido por derivação: pivô = centro
+// geométrico + (−0.09, +1.89)). Centralizar a geometria deixava o PÉ da
+// árvore 4,25–5,94m fora do ponto declarado: a fila sul (z −40/−40.4)
+// renderizava em z −34.1..−35.8, no meio do campo, e as laterais (x ±14) em
+// x −10.3/+17.7 — a oeste DENTRO da sebe. O conserto centraliza os PIVÔS
+// (SCHOOL_TREE_INSTANCE_OPTIONS.mode 'pivot') e escolhe rotY por fileira para
+// a geometria pender PARA FORA. Este teste é estático: computa o AABB do
+// conjunto {pivô} ∪ {geometria} de cada instância (mesma matemática da
+// produção, via schoolTreeFootprintBounds) contra as áreas proibidas.
 const SCHOOL_FORBIDDEN_AREAS = [
   {
     // campo: pitch 22×8 em z −32.5 → x −11..11, z −36.5..−28.5; gols em z
@@ -344,11 +347,14 @@ test('escola publica o layout determinístico das 21 árvores do pack', () => {
 });
 
 test('nenhuma árvore do pack invade campo, quadra MUGA ou horta', () => {
-  // A compensação de centro é o coração do conserto: sem ela o centro do
-  // pack se afasta do ponto da instância por R(rotY)·S·centro e o teste
-  // abaixo volta a falhar (foi exatamente o estado antigo).
+  // O conserto tem dois interruptores: compensação ligada E modo pivô. O
+  // modo 'geometry' (estado ao ar na rodada 2) desloca o pé por
+  // R(rotY)·S·(pivô − centro geométrico) e o teste abaixo volta a falhar —
+  // exatamente nas 6 árvores da fila sul que a QA mediu em z −34.1..−35.8.
   assert.equal(world.SCHOOL_TREE_INSTANCE_OPTIONS?.center, true,
     'SCHOOL_TREE_INSTANCE_OPTIONS.center deve estar ligado (compensação do pack)');
+  assert.equal(world.SCHOOL_TREE_INSTANCE_OPTIONS?.mode, 'pivot',
+    'SCHOOL_TREE_INSTANCE_OPTIONS.mode deve ser "pivot" (pé no ponto declarado)');
   const school = builtZones.get('school');
   const offenders = [];
   for (const tree of school.schoolTrees) {
@@ -356,30 +362,58 @@ test('nenhuma árvore do pack invade campo, quadra MUGA ou horta', () => {
     for (const area of SCHOOL_FORBIDDEN_AREAS) {
       if (boxesIntersect(box, area)) {
         offenders.push(
-          `${area.label}: (${tree.x}, ${tree.z}) escala ${tree.scale.toFixed(2)} espalha até `
-          + `x [${box.minX.toFixed(2)}, ${box.maxX.toFixed(2)}] z [${box.minZ.toFixed(2)}, ${box.maxZ.toFixed(2)}]`,
+          `${area.label}: (${tree.x}, ${tree.z}) rotY ${tree.rotY.toFixed(2)} escala ${tree.scale.toFixed(2)} `
+          + `ocupada até x [${box.minX.toFixed(2)}, ${box.maxX.toFixed(2)}] z [${box.minZ.toFixed(2)}, ${box.maxZ.toFixed(2)}]`,
         );
       }
     }
   }
   assert.deepEqual(offenders, [],
-    `árvores dentro de área proibida:\n${offenders.join('\n')}`);
+    `árvores (pé + geometria) dentro de área proibida:\n${offenders.join('\n')}`);
 });
 
-test('o modelo de espalhamento do teste reflete a matriz de produção', () => {
+test('a fila sul renderiza com o pé atrás da sebe e a copa mais atrás ainda', () => {
+  const south = builtZones.get('school').schoolTrees.filter((t) => t.z < -35);
+  assert.equal(south.length, 11, 'esperadas 11 árvores na fila sul');
+  for (const tree of south) {
+    assert.equal(tree.rotY, 0,
+      'fila sul exige rotY 0: com π o pendurico da geometria vira PARA O CAMPO');
+    assert.ok(tree.z <= -38.5,
+      `pé da árvore deve ficar em z ≤ −38.5 (foi ${tree.z})`);
+    // com rotY 0 a geometria ocupa z ∈ [z − 2.64·escala, z − 1.13·escala]:
+    // nunca se aproxima mais que 1.13·escala do pé (≥ 2.54m de folga da sebe)
+    assert.ok(tree.z - 1.13 * tree.scale <= -36.9,
+      `copa da árvore em (${tree.x}, ${tree.z}) invade a linha da sebe`);
+  }
+});
+
+test('o modelo do teste reproduz o que produção renderiza (pivô no ponto)', () => {
   // Guarda contra drift entre schoolTreeFootprintBounds e o instancing real:
-  // com rotY=0 e compensado, o AABB fica centrado no ponto e com as meias
-  // extensões do bbox medido; com rotY=π/2 sem compensação, o centro do pack
-  // se desloca pela rotação — a mesma conta de instantiateGlb/cloneGlbCopies.
-  const halfX = (world.TREE_PACK_BBOX.maxX - world.TREE_PACK_BBOX.minX) / 2;
-  const halfZ = (world.TREE_PACK_BBOX.maxZ - world.TREE_PACK_BBOX.minZ) / 2;
-  const centered = world.schoolTreeFootprintBounds({ x: 5, z: -7, rotY: 0, scale: 2 });
-  assert.ok(Math.abs((centered.minX + centered.maxX) / 2 - 5) < 1e-9, 'centro X deve cair no ponto');
-  assert.ok(Math.abs((centered.minZ + centered.maxZ) / 2 - -7) < 1e-9, 'centro Z deve cair no ponto');
-  assert.ok(Math.abs((centered.maxX - centered.minX) / 2 - halfX * 2) < 1e-9, 'meia-extensão X esperada');
-  assert.ok(Math.abs((centered.maxZ - centered.minZ) / 2 - halfZ * 2) < 1e-9, 'meia-extensão Z esperada');
-  const quarter = world.schoolTreeFootprintBounds({ x: 0, z: 0, rotY: Math.PI / 2, scale: 2 });
-  // independente do modo, o AABB não pode ser menor que o bbox girado
-  assert.ok(quarter.maxX - quarter.minX >= halfZ * 2 - 1e-9);
-  assert.ok(quarter.maxZ - quarter.minZ >= halfX * 2 - 1e-9);
+  // no modo pivô o pé fica EXATAMENTE no ponto declarado e a geometria pende
+  // pelos cantos do bbox congelado (assimétrico!), girado por rotY.
+  const bb = world.TREE_PACK_BBOX;
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  const flat = world.schoolTreeFootprintBounds({ x: 5, z: -7, rotY: 0, scale: 2 });
+  assert.ok(near(flat.minX, 5 + bb.minX * 2) && near(flat.maxX, 5 + bb.maxX * 2),
+    'AABB X com rotY 0 = bbox × escala em torno do pivô no ponto');
+  assert.ok(near(flat.minZ, -7 + bb.minZ * 2), 'copa pende para o −z local');
+  assert.ok(near(flat.maxZ, -7), 'o PÉ (pivô) é o limite norte do AABB');
+  const quarter = world.schoolTreeFootprintBounds({ x: 0, z: 0, rotY: Math.PI / 2, scale: 1 });
+  // rotY +90°: o −z local (geometria) vira −x no mundo; o PIVÔ (0,0) também
+  // entra no AABB e, aqui, é ele o limite leste/norte da ocupação
+  assert.ok(near(quarter.minX, bb.minZ) && near(quarter.maxX, 0),
+    'rotY 90° deita o pendurico no eixo x, com o pé como borda leste');
+  assert.ok(near(quarter.minZ, -bb.maxX) && near(quarter.maxZ, -bb.minX),
+    'rotY 90° troca a extensão x do pack para o eixo z');
+  // e no modo geometry o próprio modelo reproduz o bug medido pela QA:
+  // pé da fila sul (rotY 0) sai +1.885·escala para o campo
+  const dz = world.TREE_PACK_PIVOT.z - (bb.maxZ + bb.minZ) / 2;
+  const broken = world.schoolTreeFootprintBounds({ x: 0, z: -40, rotY: 0, scale: 3.15 });
+  if (world.SCHOOL_TREE_INSTANCE_OPTIONS.mode !== 'pivot') {
+    assert.ok(near(broken.maxZ, -40 + dz * 3.15),
+      'modo geometry deve deslocar o pé +1.885·escala (medido: z −34.1)');
+  } else {
+    assert.ok(near(broken.maxZ, -40),
+      'modo pivot mantém o pé no ponto declarado');
+  }
 });
