@@ -617,6 +617,32 @@ export const GLOSSES = {
     en: 'pitch = a field where a team plays',
     es: 'pitch = cancha de fútbol',
   },
+  // Futebol: palavras que o minigame de pênaltis ensina no campo dos fundos
+  goal: {
+    pt: 'goal = gol; também meta',
+    en: 'goal = a point scored in football; also a target',
+    es: 'goal = un punto marcado en fútbol; también meta',
+  },
+  kick: {
+    pt: 'kick = chutar',
+    en: 'kick = to hit the ball with your foot',
+    es: 'kick = patear el balón con el pie',
+  },
+  ball: {
+    pt: 'ball = bola',
+    en: 'ball = the round thing you play with',
+    es: 'ball = la pelota redonda',
+  },
+  save: {
+    pt: 'save = defesa (o goleiro segura a bola)',
+    en: 'save = when the goalkeeper stops the ball',
+    es: 'save = cuando el portero para el balón',
+  },
+  penalty: {
+    pt: 'penalty = pênalti',
+    en: 'penalty = a kick given after a foul',
+    es: 'penalty = un tiro tras una falta',
+  },
   path: {
     pt: 'path = caminho, trilha',
     en: 'path = a way to walk',

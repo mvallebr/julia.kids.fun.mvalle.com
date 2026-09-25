@@ -20,8 +20,10 @@ import { normalizeSettings, renderOptionsPanel } from './options.js';
 import { CHAPTER2, chapterProgress, nextQuest, nextStep, isQuestComplete } from './chapters.js';
 import { createMemoryGame } from './games/memory.js';
 import { createDictation, DICTATION_PHRASES, DICTATION_FLAGS } from './games/dictation.js';
+import { createPenalty } from './games/penalty.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
 import { buildNavGrid, findPathToNearest, canStand, nearestStandPoint } from './pathfind.js';
+import { cameraFit, cameraDistance, safeArmDistance } from './camera.js';
 
 // ── parâmetros da lançadora ───────────────────────────────────────────────────
 const params = new URLSearchParams(location.search);
@@ -72,9 +74,9 @@ const PROMPTS = {
   playground: { pt: '🛝 Olhar o parquinho', en: '🛝 Look at the playground', es: '🛝 Mirar el parque infantil' },
   umbrellaSpot: { pt: '☂️ Pegar o guarda-chuva roxo', en: '☂️ Pick up the purple umbrella', es: '☂️ Recoger el paraguas morado' },
   garden: { pt: '🥕 Visitar a horta', en: '🥕 Visit the garden', es: '🥕 Visitar la huerto' },
-  sports: { pt: '⚽ Jogar no campo de Welling FC', en: '⚽ Play on the Welling FC pitch', es: '⚽ Jugar en la cancha de Welling FC' },
+  sports: { pt: '🏀 Quiz do Welling FC', en: '🏀 Welling FC quiz', es: '🏀 Quiz del Welling FC' },
   clueTimetable: { pt: '🔍 Ler o tabela de jogos', en: '🔍 Read the games timetable', es: '🔍 Leer la tabla de juegos' },
-  field: { pt: '⚽ Olhar o campo grande', en: '⚽ Look at the big field', es: '⚽ Mirar el campo grande' },
+  field: { pt: '⚽ Chutar os pênaltis', en: '⚽ Kick the penalties', es: '⚽ Chutar los penaltis' },
   woodCafe: { pt: '☕ Café no alto da colina', en: '☕ Café on top of the hill', es: '☕ Café en la colina' },
   severndroog: { pt: '🏰 Visitar o castelo de Severe', en: '🏰 Visit Severndroog Castle', es: '🏰 Visitar el castillo de Severe' },
   pond: { pt: '🦆 Ver o lago e os patinhos', en: '🦆 See the pond and the ducks', es: '🦆 Ver el estanque y los patos' },
@@ -178,9 +180,19 @@ function buildScene(zoneName) {
   // oclusores da câmera: malhas reais da zona (paredes, telhados, móveis,
   // árvores instanciadas). Colliders 2D não conhecem telhado — cortar o braço
   // da câmera só por eles enfiava a câmera dentro do beiral.
+  // Só ESTRUTURA (parede, telhado, prédio) pode cortar o braço da câmera.
+  // Mobília, trave de gol, cerca e tudo que é InstancedMesh (vegetação,
+  // árvores, arbustos) saem: com eles no raycast a câmera travava a ~2 m no
+  // meio do campo de futebol e do jardim — e aí nenhum zoom surtia efeito,
+  // que era exatamente "no celular a câmera fica colada e não dá pra zoom".
   occluders = [];
   scene.traverse((node) => {
-    if (node.isMesh && node.visible) occluders.push(node);
+    if (!node.isMesh || !node.visible || node.isInstancedMesh) return;
+    if (node.geometry) {
+      if (!node.geometry.boundingSphere) node.geometry.computeBoundingSphere();
+      if ((node.geometry.boundingSphere?.radius ?? 0) < CAM_OCCLUDER_MIN_RADIUS) return;
+    }
+    occluders.push(node);
   });
   if (ZONE_NAMES[zoneName]) {
     setTimeout(() => toast(root, lang(ZONE_NAMES[zoneName], language), { duration: 2600 }), 600);
@@ -338,15 +350,25 @@ function closeTopModal() {
 }
 
 window.addEventListener('keydown', (event) => {
-  if (event.key === 'Enter' || event.key === ' ') advanceDialog?.();
+  // Espaço/Enter num <button> já ativam o botão: roubar o default deixava os
+  // botões de zoom (e qualquer outro) impossíveis de acionar pelo teclado, e
+  // chamar advanceDialog junto acionava as duas coisas de uma vez.
+  const onControl = event.target instanceof HTMLElement
+    && !!event.target.closest('button, a, input, select, textarea, [role="button"]');
+  if ((event.key === 'Enter' || event.key === ' ') && !onControl) advanceDialog?.();
   if (event.key === 'Escape') {
     if (closeTopModal()) return;
     if (quizSession) { closeQuiz(); return; }
     stopWalking(); // cancela a rota na hora
   }
-  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', ' '].includes(event.key)) event.preventDefault();
-  keys.add(event.key.toLowerCase());
-  if (event.key.toLowerCase() === 'e') tryInteract();
+  if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(event.key) && !onControl) event.preventDefault();
+  if (event.key === ' ' && !onControl) event.preventDefault();
+  if (event.key === '+' || event.key === '=') zoomBy(1 / 1.12);
+  if (event.key === '-' || event.key === '_') zoomBy(1.12);
+  // com um controle focado, as letras/setas pertencem AO CONTROLE: segurar
+  // "w" com o foco no botão de zoom fazia a menina andar sozinha
+  if (!onControl) keys.add(event.key.toLowerCase());
+  if (!onControl && event.key.toLowerCase() === 'e') tryInteract();
 });
 window.addEventListener('keyup', (event) => keys.delete(event.key.toLowerCase()));
 
@@ -445,6 +467,13 @@ const camPointers = new Map(); // pointerId → {x, y}
 let pinchDist = 0;
 function clampZoom(z) {
   return Math.max(CAM_ZOOM_MIN, Math.min(CAM_ZOOM_MAX, z));
+}
+// botões ＋/－ do HUD e teclas +/-: o zoom por pinça é frágil no celular
+// (dedo gordo, dois dedos que viram arraste) e dentro do prédio a câmera já
+// encosta no teto — sem um caminho explícito, "não dá pra dar zoom".
+function zoomBy(factor) {
+  camZoom = clampZoom(camZoom * factor);
+  sounds.tap();
 }
 window.addEventListener('wheel', (e) => {
   camZoom = clampZoom(camZoom * (1 + e.deltaY * 0.0009));
@@ -918,7 +947,7 @@ $('journalClose').addEventListener('click', toggleJournal);
 $('homeButton').addEventListener('click', () => { location.href = '../index.html'; });
 
 // ── Foco dos painéis modais ───────────────────────────────────────────────────
-// Só os cinco painéis estáticos são modais de verdade. O diálogo da coruja NÃO
+// Só os painéis estáticos são modais de verdade. O diálogo da coruja NÃO
 // entra aqui: ele é um overlay do jogo que o jogador atravessa com Enter, e
 // prendê-lo devolveria o foco e quebraria o avanço da conversa.
 function openModal(backdropId) {
@@ -1031,6 +1060,8 @@ document.addEventListener('click', (e) => {
   else if (id === 'optionsButton') openOptions();
   else if (id === 'optionsClose') closeOptions();
   else if (id === 'gameClose') closeGame();
+  else if (id === 'zoomIn') zoomBy(1 / 1.22); // ＋ = aproxima (menor distância)
+  else if (id === 'zoomOut') zoomBy(1.22);
   else if (e.target.id === 'restartBackdrop') closeRestart();
   else if (e.target.id === 'creditsBackdrop') closeCredits();
   else if (e.target.id === 'wordsBackdrop') closeWords();
@@ -1418,6 +1449,7 @@ function maybeChapter2Fragment() {
 // título dentro de #gameBody; fechar destrói o jogo (timers/listeners).
 let memoryGame = null;
 let dictationUi = null;
+let penaltyGame = null;
 
 function openGameModal() {
   $('gameBackdrop').classList.remove('hidden');
@@ -1429,6 +1461,7 @@ function closeGame() {
   closeModal('gameBackdrop');
   if (memoryGame) { memoryGame.destroy(); memoryGame = null; }
   if (dictationUi) { dictationUi.destroy(); dictationUi = null; }
+  if (penaltyGame) { penaltyGame.destroy(); penaltyGame = null; }
   $('gameBody').replaceChildren();
 }
 
@@ -1744,7 +1777,32 @@ async function interact(id) {
   // ── school e woods ampliados: Flavor + glosses das novas áreas ──────────────
   if (id === 'playground') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.playground }, { gloss: 'swing' }]); }
   if (id === 'garden') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.garden }, { gloss: 'greenhouse' }]); }
-  if (id === 'field') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.field }, { gloss: 'pitch' }]); }
+  // campo de futebol dos fundos: era só uma conversa da coruja — a menina
+  // chegava, pedia pra jogar e não tinha NADA pra jogar. Agora é o minigame
+  // de pênaltis (5 cobranças, 3 zonas, palavra de futebol a cada gol/defesa).
+  if (id === 'field') {
+    sounds.hoot();
+    await runConversation([{ who: 'owl', text: FLAVOR.field }, { gloss: 'pitch' }]);
+    if (dialogAborted) return;
+    closeGame();
+    openGameModal();
+    penaltyGame = createPenalty({
+      container: $('gameBody'),
+      lang: language,
+      onDone: ({ goals, words }) => {
+        state.flags.penaltyPlayed = true;
+        for (const word of words.slice(0, 3)) {
+          if (!state.words[word]) registerWordTracked(word, GLOSSES[word]);
+        }
+        saveState(localStorage, player, state);
+        sounds.magic();
+        confetti(root, 60 + goals * 12);
+        checkAchievements();
+        updateHUD();
+      },
+    });
+    return;
+  }
   if (id === 'woodCafe') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.cafe }, { gloss: 'meadow' }, { gloss: 'hill' }]); }
   if (id === 'severndroog') {
     // Capítulo 2: 1º a última frase do ditado; com os 4 fragmentos, o fim
@@ -1900,6 +1958,8 @@ let camYaw = 0;
 let camZoom = 1;
 let camPitch = 0.55; // rad; arraste vertical ajusta — baixo = vê os rostos
 const CAM_R = 11.2; // distância base da câmera (× camZoom)
+const CAM_FOV_BASE = 50; // FOV vertical normal (degrees)
+const CAM_FOV_CLIPPED = 42; // FOV apertado quando a parede manda no braço
 const CAM_PITCH_MIN = 0.22; // ~13°: quase atrás da jogadora
 const CAM_PITCH_MAX = 1.05; // ~60°: de cima ainda dá pra ver as personagens
 const CAM_ZOOM_MIN = 0.55;
@@ -1912,9 +1972,7 @@ const lookTarget = new THREE.Vector3();
 // colliders 2D não conhecem telhado/beiral, e cortar o braço só por eles
 // enfiava a câmera dentro do beiral. Com raycast, a câmera para NA PRIMEIRA
 // superfície de verdade entre a cabeça da jogadora e a posição desejada.
-const CAMERA_ARM_MARGIN = 0.4; // folga depois da superfície atingida (m)
-const CAMERA_ARM_MIN = 1.6; // nunca mais perto que isto da jogadora (m)
-const CAMERA_HIT_MIN = 1.4; // acertos mais perto que isto são móvel encostado
+const CAM_OCCLUDER_MIN_RADIUS = 1.6; // só malha grande (estrutura) corta a câmera
 let globeFocus = false; // diálogo do globo aberto → câmera faz close no planeta
 const cameraRay = new THREE.Raycaster();
 let occluders = [];
@@ -1924,18 +1982,62 @@ let cameraClipped = false; // o frame atual está com o braço cortado?
 function clipCameraArm(head, desired) {
   const dir = new THREE.Vector3().subVectors(desired, head);
   const len3 = dir.length();
-  if (len3 < 1e-4 || occluders.length === 0) return null;
+  if (len3 < 1e-4 || occluders.length === 0) {
+    cameraClipped = false; // sem raycast não há parede: o FOV volta ao normal
+    return { pos: null, blocked: false };
+  }
   cameraRay.set(head, dir.normalize()); // dir vira VETOR UNITÁRIO aqui
   cameraRay.far = len3;
   const hits = cameraRay.intersectObjects(occluders, false);
-  // móveis/malhas a <1,4 m da cabeça são "ela está encostada": ignorar, senão
-  // a distância mínima empurraria a câmera PARA DENTRO do móvel
-  const hit = hits.find((h) => h.distance >= CAMERA_HIT_MIN);
-  if (!hit) { lastCamHit = null; cameraClipped = false; return null; }
-  lastCamHit = { d: +hit.distance.toFixed(2), name: hit.object.name || '(sem nome)', geo: hit.object.geometry?.type };
+  // primeira superfície de verdade, mesmo colada na jogadora: ignorar os
+  // primeiros centímetros fazia o raycast "encontrar" a parede DE TRÁS e a
+  // câmera atravessar para o outro lado dela
+  const hit = hits[0];
+  lastCamHit = hit ?? null; // relatório formatado só em camHit(), sob demanda
+  if (!hit) { cameraClipped = false; return { pos: null, blocked: false }; }
   cameraClipped = true;
-  const dist = Math.max(hit.distance - CAMERA_ARM_MARGIN, CAMERA_ARM_MIN);
-  return new THREE.Vector3().copy(dir).multiplyScalar(dist).add(head);
+  // nunca ultrapassar a superfície: o clamp puro garante dist <= hit − folga
+  // mesmo com a parede colada na menina (o Math.max(0.4, front) antigo
+  // empurrava a câmera para o outro lado da parede quando o hit era < 0.8 m).
+  // Sem distância válida (cabeça já dentro da parede), blocked=true: quem
+  // chama congela a câmera no lugar em vez de inventar uma posição inválida.
+  const arm = safeArmDistance(hit.distance);
+  // Sem folga possível (cabeça já encostada/dentro da parede), a única posição
+  // que com certeza NÃO atravessa nada é a própria cabeça da jogadora. Congelar
+  // a câmera no lugar era pior: ela podia estar do outro lado de uma parede
+  // vinda de um giro anterior, e o lerp de saída atravessaria essa parede.
+  return { pos: arm.blocked ? head.clone() : new THREE.Vector3().copy(dir).multiplyScalar(arm.dist).add(head), blocked: arm.blocked };
+}
+
+// Relatório do que a câmera bateu, montado só quando o QA chama camHit():
+// formatar strings e arrays dentro do animate custava caro justamente no
+// caso indoor, que fica clipado por vários frames seguidos.
+function describeCamHit(hit) {
+  if (!hit) return null;
+  const object = hit.object;
+  if (object.geometry && !object.geometry.boundingSphere) object.geometry.computeBoundingSphere();
+  let instPos = null;
+  if (hit.instanceId != null && object.getMatrixAt) {
+    // getMatrixAt escreve no argumento e NÃO devolve a matriz (three.js):
+    // encadear o retorno quebrava o animate inteiro.
+    const matrix = new THREE.Matrix4();
+    object.getMatrixAt(hit.instanceId, matrix);
+    instPos = new THREE.Vector3().setFromMatrixPosition(matrix).toArray().map((n) => +n.toFixed(2));
+  }
+  return {
+    d: +hit.distance.toFixed(2),
+    name: object.name || '(sem nome)',
+    geo: object.geometry?.type,
+    mat: object.material?.type,
+    at: hit.point.toArray().map((n) => +n.toFixed(2)),
+    obj: object.getWorldPosition(new THREE.Vector3()).toArray().map((n) => +n.toFixed(2)),
+    scale: object.scale.toArray().map((n) => +n.toFixed(2)),
+    inst: hit.instanceId ?? null,
+    parent: object.parent?.name || '(sem pai)',
+    type: object.type,
+    bsphere: +(object.geometry?.boundingSphere?.radius ?? 0).toFixed(2),
+    instPos,
+  };
 }
 
 function animate() {
@@ -2088,8 +2190,11 @@ function animate() {
     }
 
     // câmera orbital esférica: yaw (arraste horizontal), pitch (arraste
-    // vertical — baixo = mais perto do chão, vê os rostos) e zoom (pinça/scroll)
-    const dist = CAM_R * camZoom;
+    // vertical — baixo = mais perto do chão, vê os rostos) e zoom (pinça/scroll,
+    // botões +/− do HUD). CAM_R é a distância base, multiplicada pelo zoom e
+    // pelo ajuste de enquadramento da tela estreita.
+    const fit = cameraFit(camera.aspect);
+    const dist = cameraDistance(CAM_R, fit, camZoom);
     const horiz = dist * Math.cos(camPitch);
     const off = new THREE.Vector3(
       Math.sin(camYaw) * horiz,
@@ -2098,18 +2203,33 @@ function animate() {
     );
     const desiredCam = new THREE.Vector3().copy(playerObj.position).add(off);
     const head = new THREE.Vector3(playerObj.position.x, 0.6, playerObj.position.z);
-    const clipped = clipCameraArm(head, desiredCam);
+    const arm = clipCameraArm(head, desiredCam);
     if (globeFocus && zone.globe) {
       // close no planeta enquanto a coruja fala de Malta
       const g = zone.globe.position;
       camera.position.lerp(new THREE.Vector3(g.x + 0.7, g.y + 0.26, g.z + 0.8), 1 - Math.exp(-dt * 3.5));
-    } else if (clipped) {
-      // parede/teto entre a jogadora e a câmera: encaixa NA HORA na frente
+    } else if (arm.blocked) {
+      // cabeça encostada na parede: a câmera encosta na menina (posição que
+      // existe) em vez de ficar presa num ponto antigo possivelmente além da
+      // parede. Sai de lá sozinha no frame em que a parede deixar de bater.
+      camera.position.copy(arm.pos);
+    } else if (arm.pos) {
+      // parede/telo entre a jogadora e a câmera: encaixa NA HORA na frente
       // (lerp atravessaria por vários frames)
-      camera.position.copy(clipped);
+      camera.position.copy(arm.pos);
     } else {
       cameraClipped = false;
       camera.position.lerp(desiredCam, 1 - Math.exp(-dt * 5));
+    }
+    // Zoom com o braço saturado (parede/teto colado): a DISTÂNCIA não muda
+    // porque a parede manda, então o zoom "não fazia nada" indoor. Aqui o
+    // mesmo zoom passa a apertar o FOV, que é livre mesmo com a câmera colada —
+    // sem isso os botões parecem quebrados dentro da escola.
+    const zoomTight = Math.min(1, Math.max(0, (CAM_ZOOM_MAX - camZoom) / (CAM_ZOOM_MAX - CAM_ZOOM_MIN)));
+    const wantedFov = cameraClipped ? CAM_FOV_BASE - (CAM_FOV_BASE - CAM_FOV_CLIPPED) * zoomTight : CAM_FOV_BASE;
+    if (Math.abs(camera.fov - wantedFov) > 0.01) {
+      camera.fov += (wantedFov - camera.fov) * (1 - Math.exp(-dt * 6));
+      camera.updateProjectionMatrix();
     }
     if (globeFocus && zone.globe) {
       const g = zone.globe.position;
@@ -2208,6 +2328,14 @@ function animate() {
     clickMarker.position.set(moveTarget.x, 0.05, moveTarget.z);
     clickMarker.scale.setScalar(reduceMotion ? 1 : 1 + 0.15 * Math.sin(t * 6));
   }
+  }
+
+  // os botões de zoom saem da frente de diálogo/modal (no celular o painel
+  // ocupa a tela toda e os botões ficariam por cima do texto)
+  const zoomUi = $('camZoom');
+  const zoomHidden = overlayCount > 0 || openModalStack.isOpen();
+  if (zoomUi && zoomUi.classList.contains('hidden') !== zoomHidden) {
+    zoomUi.classList.toggle('hidden', zoomHidden);
   }
 
   zone?.update?.(dt, t);
@@ -2325,6 +2453,7 @@ async function boot() {
   animate();
 
   if (!state.flags.introSeen && !warp) {
+    overlayCount += 1;
     await new Promise((resolve) => {
       storybook(root, STORY_PANELS.map((panel) => ({ ...panel, text: lang(panel.text, language) })), {
         next: uiText(language, 'next'),
@@ -2333,6 +2462,7 @@ async function boot() {
         onDone: resolve,
       });
     });
+    overlayCount = Math.max(0, overlayCount - 1);
     state.flags.introSeen = true;
     saveState(localStorage, player, state);
   }
@@ -2374,7 +2504,8 @@ window.__rpgWelling = {
     // A* no navegador e inundar a partir do spawn, sem instrumentar o jogo.
     colliderBoxes: () => zone?.colliders?.map((c) => [+c.minX.toFixed(2), +c.minZ.toFixed(2), +c.maxX.toFixed(2), +c.maxZ.toFixed(2)]),
     cameraPos: () => camera.position.toArray().map((n) => +n.toFixed(2)),
-    camHit: () => lastCamHit,
+    camHit: () => describeCamHit(lastCamHit),
+    camFov: () => +camera.fov.toFixed(2),
     occluders: () => occluders.length,
   }),
   interact: (id) => interact(id),
