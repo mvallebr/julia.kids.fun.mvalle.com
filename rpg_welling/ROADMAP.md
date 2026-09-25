@@ -62,7 +62,7 @@ qualquer item de conteúdo é uma roleta de regressão silenciosa.
 | # | Item | Tamanho | Status |
 |---|---|---|---|
 | 0.1 | Teste de fumaça de boot: as 5 zonas constroem sem lançar | M | **entregue** |
-| 0.2 | Cache do service worker versionado pelo hash do bundle | P | **parcial** — cache runtime com namespace `rpg-welling-v1` e promotion de JS íntegro; o `?v=` ainda é manual |
+| 0.2 | Cache do service worker versionado pelo hash do bundle | P | **entregue (o que dá para fazer sem build no deploy)** — `sw.js` + `sw-cache-name.js` com namespace por `?v=`, nome ativo persistido em cache de metadados, rotação na navegação HTML, limpeza só depois de provar HTML + bundle da MESMA versão, fallback para reservas antigas completas, manifesto e fontes num cache compartilhado persistente, isolamento total dos outros jogos (network-only) e política de MIME/escopo para tudo que entra no cache. O `?v=` continua **manual** por escolha: `index.html` estático no GitHub Pages não roda build, então derivar o hash do bundle no deploy exigiria mudar o pipeline — ver "Sobre 0.2" |
 | 0.3 | Quebrar `world.js` e `main.js` em módulos (destrava o paralelismo) | G | planejado |
 | 0.4 | CI: `npm ci && npm run build && npm test` + grep de CJK | P | **entregue** — `.github/workflows/ci.yml`, Node 20.19.4, e `git diff --exit-code -- lib/bundle.js` |
 
@@ -72,9 +72,21 @@ stub de DOM em `test/helpers/dom-stub.js` que **valida os argumentos** entregues
 em `highstreet`, o centro de cada saída fica dentro dos limites da zona de
 origem e fora dos colisores segundo o mesmo predicado de produção.
 
-Sobre 0.2: o service worker deixou de apagar cache de origem inteira e deixou de
-promover respostas parciais ou de tipo errado. O que falta é deriving o nome do
-cache do hash do bundle, para dispensar o bump manual do `?v=`.
+Sobre 0.2: o service worker parou de apagar cache de origem inteira e parou de
+promover respostas parciais, redirecionadas, de origem errada ou de tipo
+errado. O namespace agora é derivado do `?v=` do bundle e persistido em um
+cache de metadados, a rotação acontece na navegação HTML (não no `install`),
+e a limpeza só roda depois de provar uma reserva completa: HTML cujo corpo
+declara a mesma versão do namespace **e** o bundle correspondente, com resposta
+armazenada válida. Offline, o worker entrega sempre um par coerente — nunca
+HTML de uma versão com bundle de outra. Manifesto e fontes ficam num cache
+compartilhado que sobrevive à limpeza, e os outros jogos do site continuam
+network-only.
+
+O que **não** foi entregue: derivar a versão do hash do bundle sem intervenção
+humana. O `?v=` em `index.html` continua manual de propósito — derivá-lo no
+deploy exigiria um passo de build no GitHub Pages, que hoje serve arquivos
+estáticos já commitados. A regra de publication segue no README do RPG.
 
 ## 3. Fase 1 — Progressão e repetibilidade
 
@@ -97,7 +109,7 @@ Cada um é um arquivo novo, sem tocar nos outros.
 | 2.1 | Escutar e repetir (fala com pontuação por semelhança) | M | planejado |
 | 2.2 | Sequência / memória (4–6 itens) | M | **entregue** — `games/memory.js` na biblioteca da escola (âncora `memoryLibrary`), 4 rodadas 3→6 cartas, dica no 2º erro, erro repete a sequência |
 | 2.3 | Ditado de campo (3 frases escondidas no mundo) | M | **entregue** — `games/dictation.js` no correio (High Street), placa do Green Chain e torre Severndroog (woods); flags `dictation1/2/3`, 1 deslize de digitação perdoado, revelação gentil após 3 tentativas |
-| 2.4 | Vocabulário no cenário (tocar no objeto oferece 4 palavras) | M | planejado |
+| 2.4 | Vocabulário no cenário (tocar no objeto oferece 4 palavras) | M | **entregue** — `games/words.js`: 5 âncoras (`wordsSchool`, `wordsWoods`, `wordsHighStreet`, `wordsClassroom`, `wordsAcademy`), 4 palavras por lugar, revelação por toque, áudio por `speechSynthesis` (quando há voz) e "Guardar no diário" que grava **só** o que a criança revelou; o painel só anuncia sucesso quando houve gravação real (`saved > 0`), senão diz "Nada novo para guardar" |
 
 ## 5. Fase 3 — Payload, performance e acesso
 
@@ -168,7 +180,7 @@ Antes de qualquer commit:
 1. `npm run verify` passa — ele já roda o grep PCRE de CJK, o build e os testes
    (texto CJK já corrompeu arquivos três vezes).
 2. `npm run build` passa.
-3. `npm test` passa (baseline hoje: **141**, eram 39 antes das rodadas 1-2).
+3. `npm test` passa (baseline hoje: **255**, eram 39 antes das rodadas 1-2).
 4. Se tocou `world.js` ou qualquer builder: **teste de fumaça de boot** passa.
 5. Se tocou `index.html`: bump de `?v=` no `<script src="lib/bundle.js?v=…">`.
 6. Depois do push: conferir o `?v=` no ar e o **md5 do bundle live = local**.

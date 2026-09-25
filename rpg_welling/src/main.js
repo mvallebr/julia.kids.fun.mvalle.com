@@ -21,6 +21,7 @@ import { CHAPTER2, chapterProgress, nextQuest, nextStep, isQuestComplete } from 
 import { createMemoryGame } from './games/memory.js';
 import { createDictation, DICTATION_PHRASES, DICTATION_FLAGS } from './games/dictation.js';
 import { createPenalty } from './games/penalty.js';
+import { createWords, spotById } from './games/words.js';
 import { el, toast, confetti, storybook, fade } from './ui.js';
 import { buildNavGrid, findPathToNearest, canStand, nearestStandPoint } from './pathfind.js';
 import { cameraFit, cameraDistance, safeArmDistance } from './camera.js';
@@ -77,6 +78,11 @@ const PROMPTS = {
   sports: { pt: '🏀 Quiz do Welling FC', en: '🏀 Welling FC quiz', es: '🏀 Quiz del Welling FC' },
   clueTimetable: { pt: '🔍 Ler o tabela de jogos', en: '🔍 Read the games timetable', es: '🔍 Leer la tabla de juegos' },
   field: { pt: '⚽ Chutar os pênaltis', en: '⚽ Kick the penalties', es: '⚽ Chutar los penaltis' },
+  wordsSchool: { pt: '📚 Palavras do parquinho e da horta', en: '📚 Playground and garden words', es: '📚 Palabras del parque y del huerto' },
+  wordsWoods: { pt: '📚 Palavras da beira da mata', en: '📚 Words by the wood edge', es: '📚 Palabras del borde del bosque' },
+  wordsHighStreet: { pt: '📚 Palavras da High Street', en: '📚 High Street words', es: '📚 Palabras de High Street' },
+  wordsClassroom: { pt: '📚 Palavras da sala de aula', en: '📚 Classroom words', es: '📚 Palabras del salón de clases' },
+  wordsAcademy: { pt: '📚 Palavras da varanda da academia', en: '📚 Academy veranda words', es: '📚 Palabras del pórtico de la academia' },
   woodCafe: { pt: '☕ Café no alto da colina', en: '☕ Café on top of the hill', es: '☕ Café en la colina' },
   severndroog: { pt: '🏰 Visitar o castelo de Severe', en: '🏰 Visit Severndroog Castle', es: '🏰 Visitar el castillo de Severe' },
   pond: { pt: '🦆 Ver o lago e os patinhos', en: '🦆 See the pond and the ducks', es: '🦆 Ver el estanque y los patos' },
@@ -1450,6 +1456,17 @@ function maybeChapter2Fragment() {
 let memoryGame = null;
 let dictationUi = null;
 let penaltyGame = null;
+let wordsGame = null;
+
+// vocabulário do cenário: as âncoras do mundo (addInteract em world.js) têm o
+// id words<Zona>; o painel em si é o spot homônimo em games/words.js
+const WORDS_SPOT_BY_INTERACTION = Object.freeze({
+  wordsSchool: 'school',
+  wordsWoods: 'woods',
+  wordsHighStreet: 'highstreet',
+  wordsClassroom: 'classroom',
+  wordsAcademy: 'academy',
+});
 
 function openGameModal() {
   $('gameBackdrop').classList.remove('hidden');
@@ -1462,6 +1479,7 @@ function closeGame() {
   if (memoryGame) { memoryGame.destroy(); memoryGame = null; }
   if (dictationUi) { dictationUi.destroy(); dictationUi = null; }
   if (penaltyGame) { penaltyGame.destroy(); penaltyGame = null; }
+  if (wordsGame) { wordsGame.destroy(); wordsGame = null; }
   $('gameBody').replaceChildren();
 }
 
@@ -1777,6 +1795,45 @@ async function interact(id) {
   // ── school e woods ampliados: Flavor + glosses das novas áreas ──────────────
   if (id === 'playground') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.playground }, { gloss: 'swing' }]); }
   if (id === 'garden') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.garden }, { gloss: 'greenhouse' }]); }
+  // vocabulário do cenário: tocar no parquinho, na beira da mata, na rua, na
+  // mesa da sala ou na varanda da academia abre um painel com 4 palavras
+  // daquele lugar. A criança revela a tradução, ouve a palavra e guarda no
+  // diário só o que ela realmente tocou.
+  const wordsSpotId = WORDS_SPOT_BY_INTERACTION[id];
+  const wordsSpot = wordsSpotId ? spotById(wordsSpotId) : null;
+  if (wordsSpotId && wordsSpot) {
+    closeGame();
+    openGameModal();
+    wordsGame = createWords({
+      container: $('gameBody'),
+      lang: language,
+      spot: wordsSpot,
+      speech: globalThis.speechSynthesis,
+      onDone: ({ words }) => {
+        // Uma palavra sem glosa não entra no diário (registerWordTracked
+        // ignoraria) e não conta como descoberta: só o que foi mesmo salvo
+        // recebe som e confete. O número volta para o painel, que só anuncia
+        // "guardado" quando houve gravação de verdade.
+        let saved = 0;
+        for (const word of words) {
+          if (GLOSSES[word] && !state.words[word] && registerWordTracked(word, GLOSSES[word])) saved += 1;
+        }
+        saveState(localStorage, player, state);
+        if (saved > 0) {
+          // registerWordTracked já avança as conquistas; aqui é só a festa.
+          sounds.magic();
+          confetti(root, 30 + saved * 8);
+        }
+        updateHUD();
+        return saved;
+      },
+      onClose: closeGame,
+    });
+    // Spot ou container recusado: nada foi montado, então fecha o modal em vez
+    // de deixar um painel vazio na frente da cena.
+    if (!wordsGame) closeGame();
+    return;
+  }
   // campo de futebol dos fundos: era só uma conversa da coruja — a menina
   // chegava, pedia pra jogar e não tinha NADA pra jogar. Agora é o minigame
   // de pênaltis (5 cobranças, 3 zonas, palavra de futebol a cada gol/defesa).

@@ -454,6 +454,29 @@
     .rpg-dictation-button { min-height: 48px; min-width: 48px; padding: 10px 18px; font-size: 15px; }
     .rpg-dictation-button[hidden] { display: none; }
 
+    /* Vocabulário do cenário (parquinho, mata, High Street, sala, academia) */
+    .rpg-words-root { display: grid; gap: 10px; text-align: center; }
+    .rpg-words-title { margin: 0; font: 700 19px 'Fredoka', sans-serif; color: #ffd166; }
+    .rpg-words-instructions { margin: 0; font: 500 14px/1.45 'Fredoka', sans-serif; color: #b8d8ff; }
+    .rpg-words-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    /* o cartão é o <article>; o alvo grande de toque é o botão dentro dele */
+    .rpg-words-card { display: grid; gap: 4px; justify-items: stretch; }
+    .rpg-words-word { display: grid; gap: 2px; justify-items: center; width: 100%; min-height: 72px; padding: 10px 8px; border: 2px solid #4a5aa8; border-radius: 14px; background: #232d5e; color: #fff; font-family: 'Fredoka', sans-serif; cursor: pointer; }
+    .rpg-words-word:focus-visible { outline: 3px solid #ffd166; outline-offset: 2px; }
+    .rpg-words-emoji { font-size: 30px; line-height: 1.1; }
+    .rpg-words-english { font: 700 18px 'Fredoka', sans-serif; }
+    .rpg-words-translation { text-align: center; font: 500 13px/1.35 'Fredoka', sans-serif; color: #c9d4ff; }
+    .rpg-words-revealed .rpg-words-word { border-color: #ffd166; background: #2f3a72; }
+    .rpg-words-listen { min-height: 44px; min-width: 44px; padding: 6px 12px; font-size: 15px; }
+    .rpg-words-feedback { min-height: 42px; display: grid; gap: 2px; margin: 0; }
+    .rpg-words-feedback-word { font: 700 22px 'Fredoka', sans-serif; color: #fff; }
+    .rpg-words-feedback-translation { font: 600 15px 'Fredoka', sans-serif; color: #ffd166; }
+    .rpg-words-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+    .rpg-words-save, .rpg-words-close { min-height: 48px; padding: 10px 18px; font-size: 15px; }
+    @media (max-width: 420px) {
+      .rpg-words-list { grid-template-columns: minmax(0, 1fr); }
+    }
+
     /* Pênaltis do Welling FC (campo de futebol da escola) */
     .rpg-penalty-root { display: grid; gap: 8px; text-align: center; }
     .rpg-penalty-title { margin: 0; font: 700 19px 'Fredoka', sans-serif; color: #ffd166; }
@@ -654,6 +677,6 @@
     // offline + "adicionar à tela inicial": cache por runtime, sem pre-cache
     if ('serviceWorker' in navigator) navigator.serviceWorker.register('../sw.js').catch(() => {});
   </script>
-  <script src="lib/bundle.js?v=20260925a"></script>
+  <script src="lib/bundle.js?v=20260925b"></script>
 </body>
 </html>

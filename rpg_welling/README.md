@@ -105,18 +105,105 @@ npm run dev     # esbuild --watch
   não garante uma cópia offline para todo destino ou para toda consulta que
   ainda não foi visitada. O `sw.js` é registrado na raiz e seu escopo `/`
   controla também o launcher; esse risco é aceito porque o registro do RPG
-  já aponta para esse caminho. O JS é buscado da rede quando disponível,
-  então o `?v=` do HTML não precisa ser editado para a atualização do bundle;
-  o cache só é usado como reserva. O worker não valida releases: um deploy
-  ruim com resposta 200 pode ser promovido para o cache. A checagem de bundle
+  já aponta para esse caminho. O `?v=` ainda precisa ser mudado a cada deploy.
+  A rotação do namespace acontece na próxima navegação com rede bem-sucedida,
+  somente dentro de `/rpg_welling/`, quando um HTML completo, local e sem
+  redirect contém uma única versão do marcador esperado; ela não depende de
+  uma nova execução do `install`. Os outros jogos da origem usam o mesmo
+  formato `lib/bundle.js?v=`, mas não giram este namespace; eles são
+  deliberadamente network-only, sem leitura, escrita ou reserva offline pelo
+  worker do RPG. Isso não afeta o launcher nem o RPG em `/rpg_welling/`.
+  JavaScript e estáticos redirecionados para fora do RPG também são rejeitados
+  para gravação. O nome ativo fica
+  persistido em um cache de metadados e só é considerado provado quando o cache
+  correspondente existe, então sobrevive ao worker ser encerrado. A prova da
+  reserva verifica o HTML e a resposta armazenada do bundle principal: status
+  200, resposta `basic`, sem redirect, JavaScript esperado e query `?v=`
+  compatível com a versão do namespace. Uma chave de bundle sem uma resposta
+  armazenada válida não completa a reserva. A política de tipo é compartilhada
+  pelo helper puro: aceita apenas o tipo base e parâmetros como `charset`;
+  sufixos como `application/javascript+json` e `application/javascript-patch`
+  são rejeitados. A resposta de metadados é validada antes de ler o corpo:
+  precisa ser 200 `basic`, não redirecionada e `text/plain`; a leitura pela
+  chave exata do Request no Cache Storage garante o endpoint interno no
+  escopo. A leitura inicial de `cacheFirst()` também é
+  serializada com a rotação, evitando reabrir um cache removido durante uma
+  limpeza. A leitura inicial do `cacheFirst()` é fail-open para a rede quando
+  `caches.open()` ou `caches.match()` falham; isso inclui a primeira abertura
+  do cache ativo depois da resolução do estado, e falhas de escrita e limpeza
+  continuam fail-closed. A reconstrução também trata `caches.has()` como
+  prova não comprovada e segue para o próximo candidato, em vez de rejeitar a
+  resolução inteira. Navegações dentro do RPG aceitam `text/html` somente na
+  raiz, em caminhos `.html` e em caminhos sem extensão, como
+  `/rpg_welling/capitulo/1`. Uma navegação para `.js`, `.css`, `.glb`, `.png`,
+  `.webmanifest`, `.woff2` ou qualquer outro caminho tipado nunca aceita HTML,
+  não grava HTML na chave do recurso e não rotaciona o namespace. A política
+  por extensão continua valendo para requisições que não são navegação. A
+  validação dos metadados usa a chave exata do Request no Cache Storage, não
+  `response.url`, porque `new Response()` não possui URL e `Cache.put()` não
+  a preenche; uma resposta válida com URL vazia na chave sintética continua
+  válida, enquanto uma entrada em outra chave é ignorada. `fetch()` da raiz
+  `/rpg_welling` ou `/rpg_welling/` sem `mode: 'navigate'` não aceita nem
+  grava HTML. Qualquer resposta lida do cache, inclusive HTML, JavaScript,
+  estáticos e dependências compartilhadas, precisa ser 200 `basic`, sem
+  redirect, estar no escopo final e ter o MIME esperado do caminho. Uma
+  entrada inválida é tratada como ausente: não serve, não completa reserva e
+  não autoriza limpeza; se existir uma reserva antiga completa, ela é usada.
+  Se a abertura do ativo ou de um candidato intermediário falhar, somente
+  esse candidato é descartado e a busca continua nas reservas seguintes. Com
+  rede, HTML e JS são buscados primeiro na rede; sem rede, a última cópia
+  do mesmo caminho é usada. HTML servido do cache precisa declarar no corpo a
+  mesma versão do namespace ativo e fazer par com um bundle válido daquela
+  versão; um HTML divergente não é servido offline nem pode ser gravado por
+  uma requisição que não seja navegação. Se o caminho pedido não for o HTML
+  canônico da reserva, o worker procura uma reserva completa cuja versão
+  coincida com o corpo daquele HTML; sem uma reserva coerente, usa a resposta
+  de rede ou `Response.error()`. Assim HTML e JavaScript de versões diferentes
+  nunca são misturados.
+
+  Uma navegação offline nunca escolhe HTML de uma reserva incompleta: ela
+  recupera o HTML de uma reserva antiga completa e, em seguida, entrega o
+  bundle cuja query `?v=` é a mesma do HTML recuperado. HTML e JavaScript de
+  versões diferentes nunca são misturados. Em estado ambíguo, o worker pode
+  cair no cache fixo e servir uma cópia antiga em silêncio. A reconstrução só
+  promove um cache cuja resposta armazenada do bundle foi validada; múltiplas
+  versões no HTML também não são promovidas.
+
+  Os metadados persistidos são aceitos mesmo quando apontam para uma reserva
+  ainda incompleta, desde que o cache exista, tenha nome válido e contenha um
+  HTML local, sem redirect, cujo corpo seja coerente com o próprio namespace.
+  Isso permite que um bundle atrasado complete a reserva após reinício do
+  worker. Metadados que apontam para cache inexistente, nome inválido ou cache
+  sem HTML coerente usam a reconstrução segura. A limpeza só é autorizada
+  depois que a reserva fica completa, e o fallback offline é serializado na
+  mesma fila de rotação para não reabrir um cache recém-removido. Um bundle
+  atrasado pode responder ao chamador, mas não é gravado no ativo depois de
+  outra rotação e não autoriza a limpeza de reservas antigas.
+
+  A matriz de estáticos inclui JPEG e WASM com MIME esperado; respostas 206,
+  opacas ou redirecionadas não substituem uma cópia boa, inclusive nos recursos
+  compartilhados. O worker não valida releases: HTML de erro servido com status
+  200 e o marcador esperado ainda pode ser promovido. A checagem de bundle
   fresco no CI e o smoke test são as proteções contra esse incidente.
-- **Estáticos e atualização**: CSS, fontes, manifesto e imagens de painel não
-  são todos versionados ou content-hashed. Eles usam cache-first; portanto,
-  uma cópia já visitada pode ficar desatualizada para uma criança que retorna
-  até a próxima limpeza/evicção do cache. Para um asset não cacheado, uma
-  resposta HTTP de erro, parcial ou de tipo inesperado não substitui uma cópia
-  boa. O `sw.js` também não força a troca do worker em abas abertas: uma nova
-  versão espera as abas atuais fecharem antes de assumir a próxima navegação.
+- **Dependências compartilhadas do RPG**: `/manifest.webmanifest`,
+  `/julia_world/fonts/fonts.css`,
+  `/julia_world/fonts/fredoka-latin.woff2` e
+  `/julia_world/fonts/luckiest-guy-latin.woff2` são cache-first em um cache
+  persistente próprio, `julia-kids-runtime-rpg-welling-shared`. Esse cache
+  fica fora da rotação e é preservado por `qualCacheApagar()` e pelo activate;
+  ele não é apagado junto com as versões antigas do RPG. Os demais jogos e o
+  launcher continuam network-only.
+
+- **Estáticos e atualização**: CSS, fontes, manifesto, GLBs e imagens de painel
+  não são todos versionados ou content-hashed; eles usam cache-first, portanto
+  uma cópia já visitada pode ficar desatualizada até a próxima limpeza/evicção
+  do cache. Antes de gravar, o worker exige MIME esperado para HTML,
+  JavaScript, CSS, GLB, PNG, JPEG, manifesto, WOFF2, WASM, JSON e mapas de
+  origem, ignorando apenas
+  parâmetros como `charset`. HTTP 206, redirect, tipo inesperado e resposta não
+  basic não substituem uma cópia boa. O `sw.js` também não força a troca do
+  worker em abas abertas: uma nova versão espera as abas atuais fecharem
+  antes de assumir a próxima navegação.
 - **Save**: `localStorage`, slot com geração (`v1.g<N>`) — o restart
   incrementa a geração, então abas velhas não ressuscitam save apagado.
 

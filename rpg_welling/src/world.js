@@ -2194,6 +2194,7 @@ export function buildSchool(scene) {
   glowSprite(scene, zone, 0xff9de2, 1.0, 11.3, 0.7, 2.0, { opacity: 0.4, amp: 0.18, speed: 2.4 });
   addInteract('umbrellaSpot', 11.0, 2.0, 1.5);
   addInteract('playground', 9.4, -1.2, 2.0);
+  addInteract('wordsSchool', 10.6, 0.6, 1.5);
 
   // ── horta (oeste, meio): estufa de vidro + canteiros elevados ─────────────
   const soil = new THREE.Mesh(new THREE.PlaneGeometry(3.4, 8.4), mat(0x6b4a2e));
@@ -2681,6 +2682,7 @@ export function buildHighStreet(scene) {
   bakeryCounter.position.set(-2.2, 0.45, -5.9);
   scene.add(bakeryCounter);
   addInteract('orderBun', -2.2, -5.2, 1.6);
+  addInteract('wordsHighStreet', 1.8, -4.0, 1.4);
 
   // NPC padeiro (Business Man re-tintado de avental)
   if (zone.npcSpots.baker) {
@@ -2794,6 +2796,7 @@ export function buildAcademy(scene) {
 
   // página escondida junto à torre
   addInteract('clueScroll', 4.2, -8.6, 1.3);
+  addInteract('wordsAcademy', -4.0, -9.4, 1.4);
   glowSprite(scene, zone, 0xfff3b0, 0.8, 4.2, 1.0, -8.6, { opacity: 0.4, amp: 0.2, speed: 2.4 });
 
   zone.update = (dt, t) => {
@@ -2872,6 +2875,7 @@ export function buildClassroom(scene) {
   chalk.position.set(-0.3, 2.6, -8.45);
   scene.add(chalk);
   addInteract('blackboard', 0, -7.2, 2.0);
+  addInteract('wordsClassroom', -3.4, -5.0, 1.4);
 
   // mesa da professora + giz
   const teacherDesk = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.85, 0.9), mat(0x6b4a2a));
@@ -3330,6 +3334,7 @@ export function buildWoods(scene) {
   zone.pondCollider = { minX: -10.9, maxX: -2.1, minZ: 24.7, maxZ: 30.3 };
   zone.colliders.push(zone.pondCollider);
   addInteract('pond', -8.6, 26.2, 2.2);
+  addInteract('wordsWoods', -1.4, 27.5, 1.4);
 
   // ── Green Chain Walk / Capital Ring: postes de trilha ao longo do caminho ─
   signpost(scene, 3.6, 12);
