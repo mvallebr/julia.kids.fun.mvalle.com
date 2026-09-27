@@ -2659,12 +2659,20 @@ export function buildHighStreet(scene) {
 
   // calçada cobre TODA a rua (antes havia buracos sem chão nas laterais —
   // dava pra "cair pra fora do mundo" andando ao lado das lojas)
+  //
+  // Estendida em largura e profundidade, pela mesma razão da sala e da
+  // academia: a câmera abre ~10 m atrás do spawn ([0, 12,4] → z ~22,4) e a
+  // calçada acabava em z +17, então a faixa de baixo do quadro e as bordas
+  // laterais mostravam a cor da névoa por baixo. Agora cobre x ±11 e z −24 a
+  // +32. O repeat acompanha (7 × 20, ≈ os mesmos 3 × 2,8 m de laje).
+  const PAVE_W = 22;
+  const PAVE_D = 56;
   const pavementTexRaw = stoneTexture();
   pavementTexRaw.texture.wrapS = pavementTexRaw.texture.wrapT = THREE.RepeatWrapping;
-  pavementTexRaw.texture.repeat.set(5, 12);
-  const pavement = new THREE.Mesh(new THREE.PlaneGeometry(15, 34), pbrFrom(pavementTexRaw, [5, 12], 1.5, [0.7, 1.0]));
+  pavementTexRaw.texture.repeat.set(13, 20);
+  const pavement = new THREE.Mesh(new THREE.PlaneGeometry(PAVE_W, PAVE_D), pbrFrom(pavementTexRaw, [13, 20], 1.5, [0.7, 1.0]));
   pavement.rotation.x = -Math.PI / 2;
-  pavement.position.set(0, -0.01, 0);
+  pavement.position.set(0, -0.01, 4);
   pavement.receiveShadow = true;
   scene.add(pavement);
   // canteiros floridos — reposicionados para a calçada livre entre a pista e
@@ -2683,12 +2691,15 @@ export function buildHighStreet(scene) {
   }
 
   // pista de asfalto (mais escura que a calçada de pedra — contraste de via)
+  // mesma extensão da calçada, e pelo mesmo motivo: a pista acabava em z +18
+  // e a câmera ia para z ~22,4. Repeat 4 × 19 ≈ os mesmos 2,25 × 3 m.
+  const ROAD_D = 56;
   const roadTexRaw = stoneTexture();
   roadTexRaw.texture.wrapS = roadTexRaw.texture.wrapT = THREE.RepeatWrapping;
-  roadTexRaw.texture.repeat.set(4, 12);
-  const road = new THREE.Mesh(new THREE.PlaneGeometry(9, 36), pbrFrom(roadTexRaw, [4, 12], 1.5, [0.7, 1.0]));
+  roadTexRaw.texture.repeat.set(4, 19);
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(9, ROAD_D), pbrFrom(roadTexRaw, [4, 19], 1.5, [0.7, 1.0]));
   road.rotation.x = -Math.PI / 2;
-  road.position.set(0, 0, 0);
+  road.position.set(0, 0, 4);
   road.material.color.set(0x9a9aa8); // tinta asfalto sobre a textura de pedra
   road.receiveShadow = true;
   scene.add(road);
