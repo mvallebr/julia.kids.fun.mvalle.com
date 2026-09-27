@@ -2992,11 +2992,21 @@ export function buildAcademy(scene) {
   const addCollider = (x, z, hw, hd) => zone.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
 
   // pátio de pedra azulada
+  // Pátio de pedra azulada.
+  //
+  // Estendido 18 m à frente, como o piso da sala de aula: o pátio acabava em
+  // z +14 e a câmera, com o spawn em [0, 9,5], abre ~10 m para trás e ia para
+  // z ~19,5 — ou seja, 5,5 m além da pedra. O que aparecia embaixo da borda
+  // era o fundo 0x10132e da zona. O repeat acompanha a profundidade nova (4 ×
+  // 10 ≈ a mesma densidade de laje), senão a pedra estica.
+  const COURT_DEPTH = 46;
   const floorTexRaw = stoneTexture();
   floorTexRaw.texture.wrapS = floorTexRaw.texture.wrapT = THREE.RepeatWrapping;
-  floorTexRaw.texture.repeat.set(4, 6);
-  const courtyard = new THREE.Mesh(new THREE.PlaneGeometry(13, 28), pbrFrom(floorTexRaw, [4, 6], 1.5, [0.7, 1.0]));
+  floorTexRaw.texture.repeat.set(4, 10);
+  const courtyard = new THREE.Mesh(new THREE.PlaneGeometry(13, COURT_DEPTH), pbrFrom(floorTexRaw, [4, 10], 1.5, [0.7, 1.0]));
   courtyard.rotation.x = -Math.PI / 2;
+  // preserva a borda de trás original (z −14) e avança a de frente
+  courtyard.position.set(0, 0, -14 + COURT_DEPTH / 2);
   courtyard.receiveShadow = true;
   scene.add(courtyard);
 
