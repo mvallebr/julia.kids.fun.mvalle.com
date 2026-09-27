@@ -194,6 +194,9 @@ test('todo tutorial sem impressão não expõe botão de impressão', () => {
 
 test('região de tutorial cabe dentro da imagem', () => {
   for (const tutorial of TUTORIALS) {
+    // Tutorial com quadro proprio nao tem regiao: quem recorta o desenho e o
+    // quadro ja pronto, nao uma mascara em tempo de execucao.
+    if (tutorial.framePattern) continue;
     // regionsOf, e não tutorial.regions: quase todo tutorial novo deriva os
     // recortes da caixa do objeto, e o teste precisa ver os dois caminhos.
     const shapes = Object.values(regionsOf(tutorial)).flat();
@@ -235,6 +238,17 @@ test('craft rápido é o que cabe no tempo definido em um lugar só', () => {
 });
 
 // --- 5. caminhos de asset existem no disco ---
+
+test('todo quadro de passo existe no disco', () => {
+  for (const tutorial of TUTORIALS) {
+    if (!tutorial.framePattern) continue;
+    for (const step of tutorial.steps) {
+      if (!step.image) continue;
+      const path = join(APP_ROOT, tutorial.framePattern.replace('%s', step.image));
+      assert.ok(existsSync(path), `falta o quadro ${tutorial.id}.${step.image}`);
+    }
+  }
+});
 
 test('todo caminho de asset existe', () => {
   for (const tutorial of TUTORIALS) {

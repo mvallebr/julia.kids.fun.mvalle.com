@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  A Corujinha Pintada, desenhada como vetor e revelada passo a passo.
+
+  Por que desenhada e nao gerada: medido, nao estimado. Gerar sete quadros
+  devolvem sete corujas diferentes; com referencia de imagem (subject_reference),
+  que a API aceita e o MCP nao expoe, a corrente de sete passos deu 72%, 22%,
+  71%, 52%, 28% e 15% de desvio entre passos consecutivos. Derivar de UMA foto
+  resolve a coerencia mas nao a forma: a mascara de cor vira um trapezio no pe,
+  porque um pe e redondo e um poligono nao e.
+
+  Aqui a forma vem do desenho. Cada parte e um <g> com um id, e o script acende e
+  apaga grupos trocando preenchimento e contorno. Nao ha recorte, nao ha mascara,
+  nao ha forma que possa sair errada por causa do recorte.
+
+  A geometria: cabeca e corpo sao um so ovo, e as orelhas nascem DELE. As asas
+  tocam a borda do corpo. Os pes ficam logo abaixo da barriga. Medir com grade
+  sobre uma foto engana: a peca pode parecer no lugar certo e mesmo assim estar
+  torta.
+
+  viewBox 0 0 1200 900, 4:3 como todas as artes do app.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 900" width="1200" height="900">
+  <defs>
+    <linearGradient id="tableGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#e6cba1"/>
+      <stop offset="1" stop-color="#dcbd8f"/>
+    </linearGradient>
+  </defs>
+
+  <!-- mesa -->
+  <rect x="0" y="0" width="1200" height="900" fill="url(#tableGrad)"/>
+  <g stroke="#d3b184" stroke-width="3" opacity=".5">
+    <path d="M0 150 H1200 M0 300 H1200 M0 450 H1200 M0 600 H1200 M0 750 H1200"/>
+  </g>
+  <g stroke="#cda87a" stroke-width="2" opacity=".35">
+    <path d="M230 0 V900 M610 0 V900 M990 0 V900"/>
+  </g>
+
+  <!-- pes: dois discos arredondados logo abaixo da barriga -->
+  <g id="p-part-feet" data-part="feet">
+    <path d="M478 790 q-14 46 8 62 q26 18 52 0 q20 -16 20 -42 q0 -30 -26 -38 q-38 -12 -54 18 Z"
+          fill="var(--feet-fill, #f0a03c)" stroke="var(--feet-line, #c4771f)" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M646 790 q14 46 -8 62 q-26 18 -52 0 q-20 -16 -20 -42 q0 -30 26 -38 q38 -12 54 18 Z"
+          fill="var(--feet-fill, #f0a03c)" stroke="var(--feet-line, #c4771f)" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+
+  <!-- corpo: o ovo unico, do topo das orelhas ate a barriga -->
+  <g id="p-part-body" data-part="body">
+    <path d="M600 240 q186 0 238 158 q52 160 -12 278 q-62 116 -226 116 q-164 0 -226 -116 q-64 -118 -12 -278 q52 -158 238 -158 Z"
+          fill="var(--body-fill, #b8763f)" stroke="var(--body-line, #6b421c)" stroke-width="9" stroke-linejoin="round"/>
+  </g>
+
+  <!-- asas: leques a FRENTE do corpo, encostados na borda com folga -->
+  <g id="p-part-wings" data-part="wings">
+    <path d="M374 468 q-96 34 -108 128 q-10 88 48 128 q-8 -84 8 -152 q12 -60 4 -104 Z"
+          fill="var(--wing-fill, #8a5228)" stroke="var(--wing-line, #5f3a19)" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M826 468 q96 34 108 128 q10 88 -48 128 q8 -84 -8 -152 q-12 -60 -4 -104 Z"
+          fill="var(--wing-fill, #8a5228)" stroke="var(--wing-line, #5f3a19)" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+
+  <!-- orelhas: nascem do topo do ovo, uma de cada lado -->
+  <g id="p-part-ears" data-part="ears">
+    <path d="M446 268 q-26 -96 24 -112 q54 -16 68 46 q8 32 0 62 Z"
+          fill="var(--ear-fill, #a4683a)" stroke="var(--ear-line, #7a4620)" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M754 268 q26 -96 -24 -112 q-54 -16 -68 46 q-8 32 0 62 Z"
+          fill="var(--ear-fill, #a4683a)" stroke="var(--ear-line, #7a4620)" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+
+  <!-- peito de creme: rosto e peito num so desenho, como a coruja tem -->
+  <g id="p-part-face" data-part="face">
+    <path d="M600 336 q114 0 152 74 q38 74 2 140 q-36 66 -154 66 q-118 0 -154 -66 q-36 -66 2 -140 q38 -74 152 -74 Z"
+          fill="var(--face-fill, #f7f1e3)" stroke="var(--face-line, #6f4319)" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+
+  <!-- olhos: dois circulos com pupila -->
+  <g id="p-part-eyes" data-part="eyes">
+    <circle cx="512" cy="444" r="58" fill="var(--eye-fill, #ffffff)" stroke="var(--eye-line, #3a2a18)" stroke-width="7"/>
+    <circle cx="688" cy="444" r="58" fill="var(--eye-fill, #ffffff)" stroke="var(--eye-line, #3a2a18)" stroke-width="7"/>
+    <circle cx="512" cy="444" r="28" fill="var(--pupil-fill, #2b1d10)" stroke="none"/>
+    <circle cx="688" cy="444" r="28" fill="var(--pupil-fill, #2b1d10)" stroke="none"/>
+  </g>
+
+  <!-- bico -->
+  <g id="p-part-beak" data-part="beak">
+    <path d="M570 536 L630 536 L600 608 Z"
+          fill="var(--beak-fill, #e8912f)" stroke="var(--beak-line, #b26a1a)" stroke-width="7" stroke-linejoin="round"/>
+  </g>
+
+  <!-- penas: o passo 6 desenha por cima -->
+  <g id="p-part-feathers" data-part="feathers"></g>
+</svg>

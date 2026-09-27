@@ -239,10 +239,23 @@ function veilElement(tutorial, step, maskId) {
   return svg;
 }
 
+function stepImage(tutorial, step) {
+  // Passo com imagem propria: e o quadro pronto, e o app so o mostra. E o caminho
+  // que da coerencia sem mascara — cada quadro e o mesmo desenho com as partes
+  // certainas acesas, entao a coruja nao muda de forma entre passos.
+  if (step.image) {
+    if (tutorial.framePattern) return tutorial.framePattern.replace('%s', step.image);
+    return step.image;
+  }
+  return tutorial.baseImage;
+}
+
 function stageFor(tutorial, step) {
   const stage = el('div', { class: 'stage' }, [
-    el('img', { class: 'art', src: assetUrl(tutorial.baseImage), alt: '', width: '1152', height: '864' }),
+    el('img', { class: 'art', src: assetUrl(stepImage(tutorial, step)), alt: '', width: '1200', height: '900' }),
   ]);
+
+  if (step.image) return stage;
 
   if (step.veil === 'full') {
     // Sem imagem de rascunho separada: a própria arte serve de contorno, apagada.

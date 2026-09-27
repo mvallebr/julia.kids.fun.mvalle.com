@@ -183,7 +183,10 @@ export function contentProblems(tutorials) {
         else if (!focus?.[step.region]) problems.push(`${where}: região "${step.region}" sem foco`);
       }
       if (step.printable && !tutorial.printable) problems.push(`${where}: botão de impressão sem molde`);
-      if (index === 0 && step.veil !== 'full' && step.veil !== 'active') {
+      if (step.image && !tutorial.framePattern) problems.push(`${where}: imagem sem framePattern`);
+      if (step.image && step.veil !== 'none') problems.push(`${where}: quadro próprio não pode ter véu`);
+      if (!step.image && step.veil === 'active' && !step.region) problems.push(`${where}: véu ativo sem região`);
+      if (index === 0 && !step.image && step.veil !== 'full' && step.veil !== 'active') {
         problems.push(`${where}: o primeiro passo mostra o objeto pronto antes de começar`);
       }
     }

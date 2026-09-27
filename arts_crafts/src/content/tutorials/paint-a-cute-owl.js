@@ -4,8 +4,12 @@
 //
 // O corpo NÃO é uma elipse só. Uma elipse engoliria os olhos, e aí o passo
 // "faça os olhos" viraria a mesma tela duas vezes. Por isso o corpo são faixas
-// que contornam o vão dos olhos, mais as duas asas e os pés. As coordenadas
-// foram medidas numa grade de 2% sobre a imagem, conferidas com sobreposição.
+// que contornam o vão dos olhos, mais as duas asas e os pés.
+//
+// As coordenadas foram medidas numa grade de 5% sobre o base.webp que é
+// SERVIDO — a imagem que a criança vê, e não um recorte ampliado. A primeira
+// medição foi feita sobre um recorte 2x e errou as orelhas em 7% para a
+// direita: o anel cortava a orelha ao meio. Medir na imagem final, sempre.
 
 export default [
   {
@@ -15,44 +19,23 @@ export default [
     difficulty: 1,
     estimatedMinutes: 25,
     requiresPrinting: true,
-    baseImage: 'assets/tutorials/paint-a-cute-owl/base.webp',
+    // A capa do card e o quadro pronto, o mesmo que a crianca ve no fim.
+    baseImage: 'assets/tutorials/paint-a-cute-owl/step-07-assinado.webp',
     printable: 'assets/tutorials/paint-a-cute-owl/owl-template.svg',
+    // Cada passo tem uma imagem PROPRIA. Sem mascara, sem regiao, sem
+    // recorte: o app so troca o arquivo. A sequencia e coerente porque sao
+    // o mesmo desenho com partes acesas em ordem.
+    framePattern: 'assets/tutorials/paint-a-cute-owl/step-%s.webp',
     materials: ['material.template', 'material.paint', 'material.brush', 'material.water', 'material.pen'],
     steps: [
-      { veil: 'full', printable: true },
-      { veil: 'full', swatches: true },
-      { veil: 'active', region: 'ears' },
-      { veil: 'active', region: 'body' },
-      { veil: 'active', region: 'eyes' },
-      { veil: 'active', region: 'body', pattern: 'feathers' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-contorno', printable: true },
+      { veil: 'none', image: '02-cores', swatches: true },
+      { veil: 'none', image: '03-orelhas' },
+      { veil: 'none', image: '04-corpo' },
+      { veil: 'none', image: '05-olhos' },
+      { veil: 'none', image: '06-penas' },
+      { veil: 'none', image: '07-assinado' },
     ],
-    regions: {
-      ears: [
-        { kind: 'polygon', points: [[0.404, 0.258], [0.502, 0.300], [0.396, 0.334], [0.472, 0.322]] },
-        { kind: 'polygon', points: [[0.626, 0.258], [0.542, 0.300], [0.634, 0.334], [0.558, 0.322]] },
-      ],
-      body: [
-        { kind: 'rect', x: 0.352, y: 0.263, w: 0.300, h: 0.066 },
-        { kind: 'rect', x: 0.352, y: 0.329, w: 0.030, h: 0.398 },
-        { kind: 'rect', x: 0.506, y: 0.329, w: 0.032, h: 0.398 },
-        { kind: 'rect', x: 0.620, y: 0.329, w: 0.032, h: 0.398 },
-        { kind: 'rect', x: 0.352, y: 0.479, w: 0.300, h: 0.248 },
-        { kind: 'ellipse', cx: 0.310, cy: 0.535, rx: 0.075, ry: 0.112 },
-        { kind: 'ellipse', cx: 0.700, cy: 0.545, rx: 0.075, ry: 0.112 },
-        { kind: 'rect', x: 0.416, y: 0.698, w: 0.164, h: 0.078 },
-      ],
-      eyes: [
-        { kind: 'ellipse', cx: 0.446, cy: 0.402, rx: 0.066, ry: 0.076 },
-        { kind: 'ellipse', cx: 0.560, cy: 0.396, rx: 0.064, ry: 0.075 },
-        { kind: 'polygon', points: [[0.476, 0.452], [0.522, 0.452], [0.499, 0.504]] },
-      ],
-    },
-    focus: {
-      ears: { kind: 'rect', x: 0.392, y: 0.250, w: 0.246, h: 0.090 },
-      body: { kind: 'rect', x: 0.345, y: 0.256, w: 0.318, h: 0.478 },
-      eyes: { kind: 'rect', x: 0.376, y: 0.318, w: 0.256, h: 0.154 },
-    },
     copy: {
       pt: {
         title: 'Corujinha Pintada',
