@@ -1,8 +1,7 @@
 # Roadmap — RPG Welling
 
-Status deste arquivo: **vivo**. Atualizado em 2026-09-27 depois da rodada 7
-"cache dos modelos, `?v=` automático e a dívida do 3.3 fechada" (live
-`?v=cf717787cb4d`, **408 testes**).
+Status deste arquivo: **vivo**. Atualizado em 2026-09-27 depois da rodada 8
+"a rua da Welling, a história e o lugar" (live `?v=cf717787cb4d`, **413 testes**).
 
 A rodada 4 nasceu do `tools/qa-visual.mjs` (4.6) e andar sobre ele. Tudo o que
 ela mediu virou item: o chão que não alcançava a câmera (4.7), o telhado que
@@ -168,6 +167,22 @@ personagem somam **64,6 MB (90%)** — `ivy-rigged.glb` 10,9 MB, `oakley-rigged.
 cada, `finch-rigged.glb` 8,6 MB, `page-rigged.glb` 7,5 MB. O maior item de
 props é `trees.glb` (1,9 MB). O 3.1 cortou o boot pela metade, mas o disco
 continua crescendo: cada rig novo entra com ~9 MB.
+
+## 5.1 Fase 5 — A rua, a história e o lugar
+
+Rodada aberta pelo pedido "mais imagens de Welling, mais texturas, mais fases,
+história mais divertida". Não é lista de defeito: é trabalho que o QA não
+acharia sozinho, porque nada aqui está quebrado — está apenas faltando.
+
+| # | Item | Tamanho | Status |
+|---|---|---|---|
+| 5.1 | Texturas de superfície na High Street | P | **entregue** — a calçada e a pista usavam a MESMA textura de pedra, com a pista pintada de cinza por cima, e as vitrines eram `mat(cor)` chapada. Agora há laje com junta (a junta é o que dá escala ao chão), asfalto com agregado e faixas de desgaste, e vidro em gradiente com reflexo diagonal. A paleta foi **medida numa captura da rua** antes de desenhar, para não destoar. Duas das três iterações da pista foram erro meu, e estão no commit: base escura com tinta por cima dava pista quase preta, e base clara sem tinta dava pista da mesma cor da calçada. O valor final é o meio do caminho, **sem tintagem** — a textura entrega a cor, não a sombra dela |
+| 5.2 | A faixa de foto real no horizonte da High Street | P | **ligado, aguardando o arquivo** — a mata já usava `photoBand()` com a foto do Oxleas Wood; a rua não usava nenhuma. A chamada está feita, apontando para `assets/welling-highstreet-backdrop.jpg`, com céu e névoa tirados da **própria zona** (horizon `#cfe3ee`, fog `#7ab8d8`) para a ponta da foto desbotar no mesmo céu que a cúpula pinta. Enquanto o arquivo não estiver lá a faixa fica no placeholder procedural, que é como a função foi desenhada — então ligar antes de a foto existir é seguro. Foto do autor do jogo: sem licença de terceiro, sem atribuição, igual ao backdrop da mata |
+| 5.3 | Mobiliário e vida no calçamento | M | **entregue** — a rua já tinha o que é oficial (caixa de correio, cabine K6, postes, faixa de pedestres, pub, estação); faltava o que fica no calçamento, que é onde a menina passa o tempo. Bancos, lixeiras, floreiras com flor, balizadores de guia amarela e inglesa, suporte de bicicletas. Tudo em primitivas baratas, sem GLB novo, no mesmo registro de rua conservada |
+| 5.4 | Os pombos | P | **entregue** — o Welling FC se chama "The Pigeons" e a High Street é a casa deles. Um bando no calçamento e um no parapeito, com a inclinação de cabeça de pica-pau que faz pombos parecerem pombos, e uma animação de cabecear sem sair do lugar. É o detalhe mais local do jogo inteiro e sai por seis primitivas |
+| 5.5 | Ramo de NARRATIVA no motor de diálogo | M | **entregue** — `askChoice` é pergunta de palavra: uma opção certa, uma errada, e errar devolve a pergunta. Bom para vocabulário, ruim para história, porque numa escolha de história não existe errar e quem escolhe "chato" não pode levar sermão. O nó `branch` tem todas as opções válidas e cada uma devolve as próprias falas: a diferença é de **caráter**, não de acerto. Dois ramos agora (intro do capítulo 3 e oferta do capítulo 4) |
+| 5.6 | Capítulo 4 "O Passaporte para Malta" | G | **entregue** — fecha uma ponta que o jogo tinha aberto sem pagar a conta: o globo da biblioteca diz, desde o commit da Malta, que "um dia a gente visita Malta". A viagem acontece no que a menina **faz para partir** (passaporte, carta, carimbo, livro) e não no avião — mais justo, porque uma menina de 6 anos não vai a Malta jogando no tablet, mas pode planejar a viagem inteira. Quatro missões, nenhum minigame novo |
+| 5.7 | Quatro palavras de viagem + 21ª conquista | P | **entregue** — `send`, `island`, `ticket` e `fly` entraram no glossário porque o capítulo 4 precisa delas, e a conquista `chapter-four` fecha o ciclo. As palavras de viagem aproveitam as âncoras de vocabulário que a rodada 6 criou na High Street: o que ela aprende na história é o mesmo que pode descobrir andando |
 
 ## 5.1 Fase 4 — Visual e jogabilidade
 

@@ -131,6 +131,10 @@ O arquivo está no preload, mas `src/world.js` não o seleciona atualmente.
   projeto, sem atribuição externa registrada.
 - `oxleas-backdrop.jpg` — fotografia do próprio Oxleas Wood, tirada pelo autor
   do jogo e usada em `photoBand()` na mata. Sem licença de terceiros.
+- `welling-highstreet-backdrop.jpg` — fotografia da High Street de Welling,
+  tirada pelo autor do jogo e usada em `photoBand()` na rua. Sem licença de
+  terceiros. **Aguardando o arquivo**: enquanto ele não estiver em
+  `assets/`, a faixa usa o placeholder procedural e nada quebra.
 
 ## Resumo das licenças
 

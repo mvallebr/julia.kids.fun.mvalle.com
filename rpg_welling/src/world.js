@@ -2100,6 +2100,26 @@ export function buildHighStreet(scene) {
   scene.userData.zone = zone;
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
   skyDome(scene, zone, { top: '#3f86c9', horizon: '#cfe3ee', glow: '#ffe9c0', hills: 'city' });
+  // A faixa panorâmica da RUA, no mesmo mecanismo que a mata usa com a foto do
+  // Oxleas Wood. A imagem é uma foto da High Street de verdade, tirada pelo
+  // autor do jogo (ver assets/CREDITS.md): sem licença de terceiro e sem
+  // atribuição, igual ao backdrop da mata.
+  //
+  // ENQUANTO O ARQUIVO NÃO ESTIVER LÁ, o photoBand fica no PLACEHOLDER
+  // procedural — é assim que a função foi desenhada, e é por isso que dá para
+  // ligar isto antes de a foto existir. Para usar, basta soltar a imagem em
+  // assets/ com este nome; a faixa troca sozinha na próxima navegação.
+  photoBand(scene, zone, {
+    url: 'assets/welling-highstreet-backdrop.jpg',
+    // céu e névoa tirados da PRÓPRIA zona (horizon #cfe3ee, fog #7ab8d8), para
+    // a ponta da foto desbotar no mesmo céu que a cúpula pinta
+    sky: '207, 227, 238',
+    haze: '150, 152, 146',
+    radius: 118,
+    height: 46,
+    centerY: 9,
+    crop: [0.10, 0.86],
+  });
   skyGlow(scene, zone, 0xfff0c0, 55, 38, 40, 16);
 
   // calçada cobre TODA a rua (antes havia buracos sem chão nas laterais —
@@ -2263,6 +2283,161 @@ export function buildHighStreet(scene) {
       }
     }
   }
+
+  // ── mobiliário de calçamento e vida na rua (rodada 8) ─────────────────────
+  // A rua já tinha caixa de correio, cabine K6, postes e faixa de pedestres:
+  // tudo que é ofICIAL. O que faltava era o que fica no CALÇAMENTO — onde a
+  // menina realmente passa o tempo. Tudo aqui é barato (poucas primitivas,
+  // sem GLB) e no mesmo registro de rua inglesa conservada.
+  const bench = (x, z, ry) => {
+    for (let i = 0; i < 3; i += 1) {
+      const slat = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.06, 0.14), mat(0x6b4a2a));
+      slat.position.set(x, 0.46, z);
+      slat.rotation.y = ry;
+      slat.translateZ(-0.18 + i * 0.18);
+      slat.castShadow = true;
+      scene.add(slat);
+    }
+    for (const dx of [-0.72, 0.72]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.46, 0.5), mat(0x3f3a34));
+      leg.position.set(x + Math.cos(ry) * dx, 0.23, z + Math.sin(ry) * dx);
+      leg.rotation.y = ry;
+      leg.castShadow = true;
+      scene.add(leg);
+    }
+    addCollider(x, z, 0.85, 0.3);
+  };
+  bench(-5.4, 6.2, 0);
+  bench(5.6, -8.4, Math.PI);
+
+  // lixeira: corpo de madeira escura com tampa, a cor das ruaenglish
+  const bin = (x, z) => {
+    const body = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.22, 0.78, 10), mat(0x4a3f33));
+    body.position.set(x, 0.39, z);
+    body.castShadow = true;
+    scene.add(body);
+    const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.29, 0.29, 0.07, 10), mat(0x2f2a24));
+    lid.position.set(x, 0.81, z);
+    scene.add(lid);
+    addCollider(x, z, 0.3, 0.3);
+  };
+  bin(-5.1, 2.4);
+  bin(5.3, -4.2);
+  bin(2.9, 12.4);
+
+  // floreira de rua: caixa de madeira com terra e tres flores
+  const planter = (x, z) => {
+    const box = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.5, 0.86), mat(0x6b4a2a));
+    box.position.set(x, 0.25, z);
+    box.castShadow = true;
+    box.receiveShadow = true;
+    scene.add(box);
+    const soil = new THREE.Mesh(new THREE.BoxGeometry(0.72, 0.06, 0.72), mat(0x3a2e22));
+    soil.position.set(x, 0.5, z);
+    scene.add(soil);
+    for (let i = 0; i < 3; i += 1) {
+      const cor = [0xd8452f, 0xe8b53a, 0xd8452f][i];
+      const head = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), mat(cor));
+      head.position.set(x - 0.2 + i * 0.2, 0.63, z + (i % 2 ? 0.12 : -0.1));
+      head.castShadow = true;
+      scene.add(head);
+      const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.18, 5), mat(0x4a7a34));
+      stem.position.set(x - 0.2 + i * 0.2, 0.55, z + (i % 2 ? 0.12 : -0.1));
+      scene.add(stem);
+    }
+    addCollider(x, z, 0.45, 0.45);
+  };
+  planter(-4.2, 8.8);
+  planter(4.4, 3.4);
+  planter(-2.8, -12.2);
+  planter(3.6, -2.2);
+
+  // balizadores na guia:piped yellow-black, o classico inglez. Baixos de
+  // proposito — a menina passa entre eles e nao podem virar parede.
+  for (const [bx, bz] of [[-4.4, 14.2], [4.4, 14.2], [-4.4, 10.4], [4.4, 10.4], [-4.4, -14.2], [4.4, -14.2]]) {
+    const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.86, 8), mat(0x2b2b2b));
+    post.position.set(bx, 0.43, bz);
+    post.castShadow = true;
+    scene.add(post);
+    const cap = new THREE.Mesh(new THREE.SphereGeometry(0.1, 8, 6), mat(0xe8b53a));
+    cap.position.set(bx, 0.88, bz);
+    scene.add(cap);
+    addCollider(bx, bz, 0.12, 0.12);
+  }
+
+  // suporte de bicicletas com duas bicicletas
+  {
+    const rackX = 4.2, rackZ = 7.6;
+    const bar = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.06, 0.06), mat(0x6f6f74));
+    bar.position.set(rackX, 0.62, rackZ);
+    scene.add(bar);
+    for (const dx of [-1, 1]) {
+      const leg = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.62, 0.06), mat(0x6f6f74));
+      leg.position.set(rackX + dx, 0.31, rackZ);
+      scene.add(leg);
+    }
+    addCollider(rackX, rackZ, 1.1, 0.12);
+    for (const [dx, cor] of [[-0.5, 0x2b6ba8], [0.5, 0x8a2f2f]]) {
+      const frame = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.05, 0.05), mat(cor));
+      frame.position.set(rackX + dx, 0.5, rackZ);
+      frame.rotation.z = 0.06;
+      frame.castShadow = true;
+      scene.add(frame);
+      for (const wx of [-0.42, 0.42]) {
+        const wheel = new THREE.Mesh(new THREE.TorusGeometry(0.24, 0.035, 6, 14), mat(0x2b2b2b));
+        wheel.position.set(rackX + dx + wx, 0.26, rackZ);
+        scene.add(wheel);
+      }
+    }
+  }
+
+  // ── os pombos ─────────────────────────────────────────────────────────────
+  // O Welling FC se chama "The Pigeons" e a High Street é a casa deles. Um
+  // bando pequeno no calçamento, com a inclinacao de cabeca de pica-pau: e o
+  // detalhe mais local do jogo inteiro, e sai por poucas primitivas.
+  const pombos = [];
+  const pombo = (x, z, ry, cor, escala) => {
+    const g = new THREE.Group();
+    const corpo = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6), mat(cor));
+    corpo.scale.set(1, 0.9, 1.25);
+    corpo.position.y = 0.16;
+    corpo.castShadow = true;
+    g.add(corpo);
+    const cabeca = new THREE.Mesh(new THREE.SphereGeometry(0.065, 7, 5), mat(cor));
+    cabeca.position.set(0, 0.26, 0.1);
+    g.add(cabeca);
+    const bico = new THREE.Mesh(new THREE.ConeGeometry(0.022, 0.07, 5), mat(0xe8a33a));
+    bico.position.set(0, 0.25, 0.17);
+    bico.rotation.x = Math.PI / 2;
+    g.add(bico);
+    // a inclinacao que faz pombos parecerem pombos
+    g.rotation.x = 0.34;
+    g.position.set(x, 0, z);
+    g.rotation.y = ry;
+    g.scale.setScalar(escala);
+    scene.add(g);
+    pombos.push({ obj: g, base: g.rotation.x, fase: Math.random() * Math.PI * 2, passo: 2.4 + Math.random() * 1.4 });
+    return g;
+  };
+  pombo(-3.4, 13.1, 0.7, 0x8a8f96, 1.0);
+  pombo(-2.85, 12.55, 1.9, 0x6f757d, 0.92);
+  pombo(-4.05, 12.75, 2.6, 0xa8adb4, 1.05);
+  pombo(4.9, 5.3, 1.2, 0x7f858c, 0.95);
+  pombo(5.4, 6.0, 3.4, 0x989ea5, 0.88);
+  // um no parapeito, que e onde eles ficam olhando a rua passar
+  {
+    const ledge = pombo(3.15, 2.05, 0.35, 0x8a8f96, 1.1);
+    ledge.position.y = 0.62;
+  }
+  // e o bando anda devagar: pica-pau da cabeça, sem sair do lugar
+  // `t` chega por parametro: este closure vive fora de zone.update, entao nao
+  // ve o `t` de la — e o teste de fumaça pegou o ReferenceError na hora de
+  // rodar o primeiro frame da zona.
+  zone.pigeons = (t) => {
+    for (const p of pombos) {
+      p.obj.rotation.x = p.base + Math.sin(t * p.passo + p.fase) * 0.11;
+    }
+  };
 
   // ── mobiliário de rua real ──
   // caixa de correio real (Royal Mail) em frente ao Post Office
@@ -2431,6 +2606,7 @@ export function buildHighStreet(scene) {
   zone.update = (dt, t) => {
     updatePulses(zone, t);
     for (const cloud of zone.clouds) cloud.position.x += dt * 0.35;
+    zone.pigeons?.(t); // o bando fica de cabeçinha, sem sair do lugar
   };
   stashZoneResources(scene); // roadmap 3.3: lembra os recursos p/ liberar na próxima troca
   return zone;
