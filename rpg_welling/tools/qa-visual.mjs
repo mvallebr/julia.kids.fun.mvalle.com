@@ -397,6 +397,102 @@ const SCREEN = `(() => {
  } catch (err) { return { error: String(err && err.message || err) }; }
 })()`;
 
+// "O que está NESTE pixel?" — raycast da câmera por um ponto em NDC e devolve
+// a malha mais próxima. O SCREEN diz quais malhas COBREM a faixa, mas não qual
+// está NA FRENTE dela; foi o que deixou o 4.2 em aberto (a silhueta mudou de
+// cor e a faixa preta continuou, ou seja, não era ela).
+//
+// O unproject é o método real do Vector3 do three, com um Vector3 emprestado de
+// algum objeto da cena, então continua sem depender de THREE global. O teste de
+// interseção é slabe contra a caixa envolvente no mundo — aproximado, mas
+// suficiente para dizer QUAL malha é.
+const PICK = `(() => {
+ try {
+  const R = window.__rpgWelling;
+  const scene = R.debug().scene();
+  const cam = R.debug().camera();
+  if (!scene || !cam) return { error: 'sem cena ou câmera' };
+  cam.updateMatrixWorld(true);
+  scene.updateMatrixWorld(true);
+  const probe = cam.position.clone();
+  const camPos = { x: cam.position.x, y: cam.position.y, z: cam.position.z };
+
+  // pontos em NDC: topo (0, 0.95), meio da faixa escura (0, 0.80), e embaixo
+  const POINTS = [[0, 0.95], [0, 0.80], [-0.5, 0.88], [0.5, 0.88], [0, -0.85]];
+  const boxes = [];
+  scene.traverse((o) => {
+    if (!o.isMesh || !o.visible) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    const bb = o.geometry.boundingBox;
+    if (!bb) return;
+    const el = o.matrixWorld.elements;
+    let mn = [Infinity, Infinity, Infinity], mx = [-Infinity, -Infinity, -Infinity];
+    for (let i = 0; i < 8; i++) {
+      const x = (i & 1) ? bb.max.x : bb.min.x;
+      const y = (i & 2) ? bb.max.y : bb.min.y;
+      const z = (i & 4) ? bb.max.z : bb.min.z;
+      const w = [
+        el[0] * x + el[4] * y + el[8] * z + el[12],
+        el[1] * x + el[5] * y + el[9] * z + el[13],
+        el[2] * x + el[6] * y + el[10] * z + el[14],
+      ];
+      for (let a = 0; a < 3; a++) { if (w[a] < mn[a]) mn[a] = w[a]; if (w[a] > mx[a]) mx[a] = w[a]; }
+    }
+    if (![...mn, ...mx].every(Number.isFinite)) return;
+    // A câmera fica DENTRO da cúpula do céu e de outros Involucros huge: eles
+    // dariam t = 0 em toda mira e esconderiam o que está de fato na frente.
+    // Malha que contém a câmera é cenário envolvente, não alvo.
+    const camInside = camPos.x >= mn[0] && camPos.x <= mx[0]
+      && camPos.y >= mn[1] && camPos.y <= mx[1]
+      && camPos.z >= mn[2] && camPos.z <= mx[2];
+    if (camInside) return;
+    const m0 = Array.isArray(o.material) ? o.material[0] : o.material;
+    boxes.push({ o, mn, mx, mat: m0 });
+  });
+
+  const out = {};
+  for (const [px, py] of POINTS) {
+    probe.set(px, py, 0.5).unproject(cam);
+    const dx = probe.x - camPos.x, dy = probe.y - camPos.y, dz = probe.z - camPos.z;
+    const len = Math.hypot(dx, dy, dz) || 1;
+    const d = [dx / len, dy / len, dz / len];
+    const org = camPos;
+    let best = null;
+    for (const { o, mn, mx, mat } of boxes) {
+      let t0 = 0, t1 = Infinity, hitAxis = true;
+      for (let a = 0; a < 3; a++) {
+        if (Math.abs(d[a]) < 1e-9) {
+          if (org[a] < mn[a] || org[a] > mx[a]) { hitAxis = false; break; }
+          continue;
+        }
+        let ta = (mn[a] - org[a]) / d[a];
+        let tb = (mx[a] - org[a]) / d[a];
+        if (ta > tb) { const tmp = ta; ta = tb; tb = tmp; }
+        if (ta > t0) t0 = ta;
+        if (tb < t1) t1 = tb;
+        if (t0 > t1) { hitAxis = false; break; }
+      }
+      if (!hitAxis || t1 < 0) continue;
+      const t = t0 > 0 ? t0 : 0;
+      if (!best || t < best.t) {
+        best = {
+          t: +t.toFixed(1),
+          mesh: o.name || o.type,
+          geo: o.geometry.type,
+          color: '#' + (mat?.color?.getHexString?.() ?? '??'),
+          hasMap: Boolean(mat?.map),
+          opacity: mat?.opacity ?? 1,
+          transparent: Boolean(mat?.transparent),
+          instanced: Boolean(o.isInstancedMesh),
+        };
+      }
+    }
+    out['ndc_' + px + '_' + py] = best || { nenhum: true };
+  }
+  return out;
+ } catch (err) { return { error: String(err && err.message || err) }; }
+})()`;
+
 // ── main ────────────────────────────────────────────────────────────────────
 mkdirSync(outDir, { recursive: true });
 const target = await cdpTarget();
@@ -430,8 +526,9 @@ for (const zone of zones) {
   const between = booted ? await s.eval(BETWEEN) : null;
   const ghosts = booted ? await s.eval(GHOSTS) : null;
   const screen = booted ? await s.eval(SCREEN) : null;
+  const pick = booted ? await s.eval(PICK) : null;
 
-  const entry = { zone, booted, url, png: file, diag, between, ghosts, screen, console: s.logs.slice(0, 10) };
+  const entry = { zone, booted, url, png: file, diag, between, ghosts, screen, pick, console: s.logs.slice(0, 10) };
   report.push(entry);
   if (!booted) failures += 1;
   process.stdout.write(`  ${booted ? '✓' : '✗'} ${zone.padEnd(11)} ${file}\n`);

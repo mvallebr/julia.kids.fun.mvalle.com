@@ -1539,7 +1539,7 @@ function lightShaft(parent, x, y, z, { radius = 1.5, height = 11, tilt = 0.2, op
 // ── cenários de fundo: céu, nuvens, colinas, silhuetas de cidade ────────────
 // Cúpula de céu pintada (gradiente vertical) + nuvens macias + silhuetas ao
 // fundo. Tudo bem além dos limites jogáveis: dá profundidade sem colisão.
-function skyDome(scene, zone, { top, horizon, glow = '#ffe6b0', stars = false, hills = 'green' } = {}) {
+function skyDome(scene, zone, { top, horizon, glow = '#ffe6b0', stars = false, hills = 'green', silhouette: silhouetteColor } = {}) {
   const tex = canvasTexture(32, 256, (ctx, w, h) => {
     // A UV da esfera vai de 1 no zênite a 0.5 no horizonte (e 0 na base), e o
     // topo do canvas é o zênite. Com as paradas em 0.78/0.92 o horizonte caía
@@ -1602,7 +1602,17 @@ function skyDome(scene, zone, { top, horizon, glow = '#ffe6b0', stars = false, h
     zone.clouds = clouds;
     return zone;
   }
-  const silhouette = new THREE.MeshBasicMaterial({ color: city ? 0x46586f : 0x3f6048, fog: false, depthWrite: false, transparent: true, opacity: 0.95 });
+  // silhueta no topo do quadro, numa zona CLARA e de dia, com a câmera alta do
+  // diorama enquadrando a linha, o mesmo cinza-azulado vira uma barra preta
+  // chapada (item 4.2 do roadmap, diagnosticado com o SCREEN do qa-visual). A
+  // correção menos invasiva é deixar a zona passar uma cor mais alta e mais
+  // próxima do horizonte dela, para a linha virar paisagem em vez de tarja —
+  // sem mexer no pitch padrão nem no tamanho do terreno, que são as outras
+  // duas saídas.
+  const silhouette = new THREE.MeshBasicMaterial({
+    color: silhouetteColor ?? (city ? 0x46586f : 0x3f6048),
+    fog: false, depthWrite: false, transparent: true, opacity: 0.95,
+  });
   const skyline = new THREE.Group();
   for (let i = 0; i < 26; i += 1) {
     const angle = (i / 26) * Math.PI * 2 + Math.random() * 0.1;
@@ -1794,7 +1804,16 @@ function signpost(parent, x, z, rotY = 0) {
 // portões continuam abertos e o interior não escurece.
 const FACADE_FRAME = 0xf2f0e6;
 const FACADE_GLASS = 0x86aec2;
-const FACADE_ROOF = 0x474c54;
+// Telhado em ardósia MÉDIA, não escura. Com 0x474c54 ele era a faixa mais
+// escura do quadro inteiro: a câmera de diorama fica a y ~6,2, acima do
+// telhado (y 4,3-4,5), e o corte de camada não roda nesse enquadramento
+// (pitch 0,51 contra o piso de 0,9), então a laje aparecia cheia — uma tarja
+// escura de largura total logo acima do interior, lida como falha de render
+// em vez de telhado (item 4.2 do roadmap). Diagnóstico com o PICK do
+// qa-visual, que raycasta um ponto NDC e devolve a malha da frente.
+// Uma ardósia clara continua lendo como telhado de dia e não compete com o
+// interior. Reversível: é um número.
+const FACADE_ROOF = 0x8f96a2;
 const UPPER_Y0 = 2.36;
 const UPPER_Y1 = 4.3;
 
@@ -1953,7 +1972,13 @@ export function buildSchool(scene) {
   };
   scene.userData.zone = zone;
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
-  skyDome(scene, zone, { top: '#4a8fd4', horizon: '#bfe3f2', glow: '#ffe9c0', hills: 'city' });
+  // A silhueta da escola é a única linha de prédios enquadrada NO TOPO do
+  // quadro pela câmera alta do diorama, numa zona de dia com horizonte claro
+  // (#bfe3f2). No azul-ardósia padrão ela vira uma tarja preta. Aqui vai um
+  // azul acinzentado bem mais alto, perto do horizonte: a linha continua
+  // lendo como prédios distantes em bruma. Reversível em uma linha — é só
+  // tirar o `silhouette` daqui e volta ao 0x46586f global.
+  skyDome(scene, zone, { top: '#4a8fd4', horizon: '#bfe3f2', glow: '#ffe9c0', hills: 'city', silhouette: 0x93b3c9 });
   skyGlow(scene, zone, 0xfff0c0, -40, 34, 60, 18);
 
   const plaster = pbrFrom(plasterTexture(), [3, 2]);
@@ -1961,12 +1986,18 @@ export function buildSchool(scene) {
 
   // gramado base: cobre TODOS os limites (inclusive os quintais laterais e o
   // campo) — antes havia buracos sem chão ao redor do corredor.
+  // O gramado cobre o campo e o pátio inteiro. Estendido 16 m à frente pela
+  // mesma razão das outras zonas: a câmera abre ~10 m atrás do spawn ([0, 0,6]
+  // → z ~10,6) e o gramado acabava em z +4,5, então a faixa de baixo do quadro
+  // via a cor da névoa por baixo. A borda de TRÁS fica onde estava (z −37,5);
+  // o repeat acompanha a profundidade nova (8 × 17 ≈ os mesmos 3,25 × 3,5 m).
+  const LAWN_DEPTH = 58;
   const lawnTexRaw = grassTexture();
   lawnTexRaw.texture.wrapS = lawnTexRaw.texture.wrapT = THREE.RepeatWrapping;
-  lawnTexRaw.texture.repeat.set(8, 12);
-  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(26, 42), pbrFrom(lawnTexRaw, [8, 12], 1.3, [0.75, 1.0]));
+  lawnTexRaw.texture.repeat.set(8, 17);
+  const lawn = new THREE.Mesh(new THREE.PlaneGeometry(26, LAWN_DEPTH), pbrFrom(lawnTexRaw, [8, 17], 1.3, [0.75, 1.0]));
   lawn.rotation.x = -Math.PI / 2;
-  lawn.position.set(0, -0.01, -16.5);
+  lawn.position.set(0, -0.01, -37.5 + LAWN_DEPTH / 2);
   lawn.receiveShadow = true;
   scene.add(lawn);
   // piso de cimento do pátio da frente
