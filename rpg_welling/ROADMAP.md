@@ -93,10 +93,20 @@ HTML de uma versão com bundle de outra. Manifesto e fontes ficam num cache
 compartilhado que sobrevive à limpeza, e os outros jogos do site continuam
 network-only.
 
-O que **não** foi entregue: derivar a versão do hash do bundle sem intervenção
-humana. O `?v=` em `index.html` continua manual de propósito — derivá-lo no
-deploy exigiria um passo de build no GitHub Pages, que hoje serve arquivos
-estáticos já commitados. A regra de publication segue no README do RPG.
+**Entregue em 2026-09-27 (rodada 7):** `.github/workflows/version.yml` deriva o `?v=` do **sha256 do bundle commitado** e reescreve o `index.html`, commitando quando muda. Idempotente: se o hash já está lá, não commita, e o commit que ele faz re-dispara o workflow, que então não faz nada.
+
+**Por que hash e não data:** o `?v=` vira o nome do cache do service worker. Uma
+data mudaria todo dia mesmo sem o bundle mudar, e cada rotação recarrega HTML e
+JavaScript. O hash só muda quando o artefato muda.
+
+O hash é do `lib/bundle.js` **commitado**, não de um build local: é esse arquivo
+que o Pages entrega, e versionar um build que ninguém está servindo invalidaria
+o cache de nada. O workflow roda `git diff --exit-code -- lib/bundle.js` no fim,
+para o `?v=` nunca apontar para um hash que o repositório não contém.
+
+Consequência para quem desenvolve: **não suba mais o `?v=` na mão** — o CI faz
+isso no push para a `main`. Localmente o valor não é publicado, então mude à
+vontade para testar.
 
 ## 3. Fase 1 — Progressão e repetibilidade
 
@@ -264,7 +274,9 @@ Antes de qualquer commit:
    tela** da zona passa. O teste de boot não cobre isso — o `world.js` pode
    construir as 5 zonas sem lançar e ainda assim a imagem estar errada. Foi
    exatamente assim que 4.1 a 4.4 apareceram.
-6. Se tocou `index.html`: bump de `?v=` no `<script src="lib/bundle.js?v=…">`.
+6. Se tocou `index.html`: **não** bump de `?v=` na mão — desde a rodada 7 o
+   workflow `Version` deriva do hash do bundle no push para a `main`.
+   Localmente, para testar, o valor não é publicado: mude à vontade.
    **E se tocou QUALQUER coisa em `src/`, o bump é obrigatório, não opcional.**
    Não é superstição: em 2026-09-27 o service worker serviu um bundle velho
    pro navegador mesmo depois de o arquivo no disco já estar novo — o

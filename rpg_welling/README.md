@@ -105,7 +105,13 @@ npm run dev     # esbuild --watch
   não garante uma cópia offline para todo destino ou para toda consulta que
   ainda não foi visitada. O `sw.js` é registrado na raiz e seu escopo `/`
   controla também o launcher; esse risco é aceito porque o registro do RPG
-  já aponta para esse caminho. O `?v=` ainda precisa ser mudado a cada deploy.
+  já aponta para esse caminho. O `?v=` **é derivado do sha256 do bundle pelo
+  workflow `Version`**, no push para a `main` — desde 2026-09-27 ninguém
+  precisa mais mudá-lo à mão, e é por isso que a versão é um hash e não uma
+  data: uma data viraria todo dia mesmo sem o bundle mudar, e cada rotação
+  recarrega HTML e JavaScript. Os `.glb` (72 MB de arte que não muda com o
+  código) foram para o cache compartilhado, que sobrevive à rotação, então um
+  deploy não rebaixa mais nenhum modelo.
   A rotação do namespace acontece na próxima navegação com rede bem-sucedida,
   somente dentro de `/rpg_welling/`, quando um HTML completo, local e sem
   redirect contém uma única versão do marcador esperado; ela não depende de

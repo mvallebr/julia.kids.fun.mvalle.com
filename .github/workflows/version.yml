@@ -1,0 +1,77 @@
+name: Version
+
+# Deriva o `?v=` do index.html a partir do CONTEÚDO do bundle, para que ninguém
+# mais tenha que lembrar de subir a mão (roadmap 0.2, que era manual por escolha
+# desde a rodada 2).
+#
+# Por que hash e não data: o `?v=` vira o nome do cache do service worker
+# (julia-kids-runtime-rpg-welling-<versão>). Uma data mudaria todo dia mesmo sem
+# o bundle mudar, e cada rotação recarrega HTML e JavaScript. O hash só muda
+# quando o bundle muda, que é exatamente quando o cache precisa virar.
+#
+# A versão antiga (20260928b) tinha a mesma função manual; o que faltava era o
+# passo. Este workflow é idempotente: se o hash já estiver no index.html, ele
+# não faz nada e não commita.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.19.4'
+          cache: npm
+          cache-dependency-path: rpg_welling/package-lock.json
+
+      - name: Install dependencies
+        working-directory: rpg_welling
+        run: npm ci
+
+      # O hash é do ARTEFATO SERVIDO, não do fonte: é o lib/bundle.js
+      # commitado que o GitHub Pages entrega. Um build que divergisse do
+      # commitado invalidaria o cache de um arquivo que ninguém está servindo.
+      - name: Derive a versão do bundle commitado
+        id: versao
+        working-directory: rpg_welling
+        run: |
+          HASH=$(sha256sum lib/bundle.js | cut -c1-12)
+          ATUAL=$(grep -o 'bundle\.js?v=[A-Za-z0-9._-]*' index.html | head -1 | sed 's/.*v=//')
+          echo "hash=$HASH" >> "$GITHUB_OUTPUT"
+          echo "atual=$ATUAL" >> "$GITHUB_OUTPUT"
+          echo "derivado: $HASH  |  no index.html: ${ATUAL:-<vazio>}"
+          if [ "$HASH" = "$ATUAL" ]; then echo "mudar=false" >> "$GITHUB_OUTPUT";
+          else echo "mudar=true" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Reescreve o ?v= do index.html
+        if: steps.versao.outputs.mudar == 'true'
+        working-directory: rpg_welling
+        run: |
+          sed -i -E "s|(bundle\.js\?v=)[A-Za-z0-9._-]+|\1${HASH}|g" index.html
+          grep -o 'bundle\.js?v=[A-Za-z0-9._-]*' index.html
+
+      # O commit re-dispara este workflow e o CI. Na segunda rodada o hash já
+      # bate e nada acontece — é o que mantém o loop estável.
+      - name: Commita a versão
+        if: steps.versao.outputs.mudar == 'true'
+        working-directory: rpg_welling
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add index.html
+          git commit -m "chore(rpg): ?v=${HASH} derivado do bundle (workflow Version)"
+          git push origin HEAD:main
+
+      - name: Confere que o bundle continua batendo
+        working-directory: rpg_welling
+        run: git diff --exit-code -- lib/bundle.js

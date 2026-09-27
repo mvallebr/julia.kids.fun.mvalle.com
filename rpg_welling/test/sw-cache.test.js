@@ -498,3 +498,24 @@ test('a limpeza apaga versões antigas deste worker, mas preserva outros apps', 
     'julia-kids-runtime-rpg-welling-v1',
   ]);
 });
+
+test('a versão pode ser um hash de conteúdo, e o cache deriva dela', () => {
+  // Desde 2026-09-27 o `?v=` é derivado do sha256 do bundle pelo workflow
+  // Version, em vez de uma data digitada à mão. A data não servia: mudava
+  // todo dia mesmo sem o bundle mudar, e cada rotação recarrega HTML e JS.
+  // A regex do sw-cache-name aceita [A-Za-z0-9._-]+, então um hex de 12 casas
+  // entra; este teste trava o contrato para o dia em que alguém estreitar a
+  // regex e quebrar o deploy silenciosamente.
+  const hash = 'cf717787cb4d';
+  const html = `<script defer src="lib/bundle.js?v=${hash}"></script>`;
+  assert.deepEqual(deriveCacheName(html), {
+    version: hash,
+    cacheName: `${APP_CACHE_PREFIX}${hash}`,
+  });
+  // a versão é o que separa duas reservas: mesmo HTML, bundles diferentes
+  const outro = 'a1b2c3d4e5f6';
+  assert.notEqual(
+    deriveCacheName(html).cacheName,
+    deriveCacheName(html.replace(hash, outro)).cacheName,
+  );
+});
