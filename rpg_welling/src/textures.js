@@ -237,6 +237,91 @@ export function brickTexture() {
   });
 }
 
+// ── High Street: superfícies que eram uma cor só (rodada 8) ───────────────────
+// A calçada e a pista usavam a mesma textura de pedra pintada com uma cor por
+// cima, e as vitrines eram `mat(cor)` chapada. De longe a rua lia como blocos
+// de cor chapada. Estas três devolvem ESTRUTURA sem sair do registro: base
+// chapada + granulado + variação por peça, o mesmo truque do tijolo e da
+// pedra. A paleta é a da rua já medida em captura (areia quente #a18c62,
+// asfalto quente escuro #51422d, sombra navy) — a textura é mais clara que o
+// resultado na tela porque a luz da zona é quente e sombreada.
+
+// Calçada: lajes retangulares com junta e tons variados por laje. A junta é o
+// que dá escala — sem ela o chão não tem com que o olho medir a distância.
+export function pavementTexture() {
+  return canvasWithRaw(512, 512, (ctx) => {
+    ctx.fillStyle = '#a89066'; // a junta, na mesma familia da laje — contraste alto
+    // aqui vira azulejo de banheiro, e a calçada precisa ler como calçada
+    ctx.fillRect(0, 0, 512, 512);
+    const sw = 128, sh = 64; // 4 colunas x 8 fileiras
+    for (let row = 0; row < 8; row += 1) {
+      const offset = (row % 2) * sw / 2;
+      for (let col = -1; col < 5; col += 1) {
+        const tone = 178 + Math.random() * 30;
+        ctx.fillStyle = `rgb(${tone | 0}, ${tone * 0.88 | 0}, ${tone * 0.66 | 0})`;
+        ctx.fillRect(col * sw + offset + 4, row * sh + 4, sw - 8, sh - 8);
+      }
+    }
+    // granulado fino por cima, para as lajes não ficarem injetadas
+    for (let i = 0; i < 2600; i += 1) {
+      ctx.fillStyle = Math.random() > 0.5 ? 'rgba(90, 76, 52, .13)' : 'rgba(228, 214, 184, .13)';
+      ctx.fillRect(Math.random() * 512, Math.random() * 512, 2, 2);
+    }
+  });
+}
+
+// Asfalto: agregado escuro e quente, com faixas de desgaste mais claras no
+// meio da faixa de rolamento — é o que dá a sensação de rua usada.
+export function asphaltTexture() {
+  return canvasWithRaw(512, 512, (ctx) => {
+    // A base é o valor final, não um ponto de partida tingido: a primeira
+    // versão usou #4c463c COM uma tinta 0x9a9aa8 por cima e a pista saiu quase
+    // preta; a segunda usou #7a7264 sem tinta e a pista ficou da mesma cor da
+    // calçada, perdendo o contraste que faz uma rua ler como rua.
+    // #5f5748 é o meio do caminho: asfalto quente, claramente mais escuro que a
+    // laje, sem virar buraco.
+    ctx.fillStyle = '#5f5748';
+    ctx.fillRect(0, 0, 512, 512);
+    // desgaste: duas faixas verticais mais claras (as rodas)
+    for (const x of [96, 320]) {
+      const wear = ctx.createLinearGradient(x, 0, x + 96, 0);
+      wear.addColorStop(0, 'rgba(120, 112, 98, 0)');
+      wear.addColorStop(0.5, 'rgba(120, 112, 98, .16)');
+      wear.addColorStop(1, 'rgba(120, 112, 98, 0)');
+      ctx.fillStyle = wear;
+      ctx.fillRect(x, 0, 96, 512);
+    }
+    for (let i = 0; i < 5200; i += 1) {
+      const tone = 70 + Math.random() * 100;
+      ctx.fillStyle = `rgba(${tone | 0}, ${(tone * 0.95) | 0}, ${(tone * 0.86) | 0}, .3)`;
+      ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 2, 1 + Math.random() * 2);
+    }
+  });
+}
+
+// Vidro de vitrine: navy escuro com um reflexo diagonal. A vitrine da High
+// Street é o que a menina olha, então é o vidro que mais merece atenção — e
+// chapado ele lia como retângulo branco colado na parede.
+export function glassPaneTexture() {
+  return canvasWithRaw(256, 256, (ctx) => {
+    const g = ctx.createLinearGradient(0, 0, 0, 256);
+    g.addColorStop(0, '#3d6a86');
+    g.addColorStop(0.55, '#22465e');
+    g.addColorStop(1, '#152c3e');
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 256, 256);
+    // reflexo: duas bandas diagonais claras, a segunda mais fraca
+    for (const [x0, alpha, width] of [[-60, 0.3, 42], [70, 0.16, 26]]) {
+      ctx.save();
+      ctx.translate(x0, 0);
+      ctx.rotate(0.42);
+      ctx.fillStyle = `rgba(226, 240, 248, ${alpha})`;
+      ctx.fillRect(0, -80, width, 420);
+      ctx.restore();
+    }
+  });
+}
+
 export function plasterTexture() {
   return canvasWithRaw(1024, 1024, (ctx) => {
     ctx.fillStyle = '#efe3c8';

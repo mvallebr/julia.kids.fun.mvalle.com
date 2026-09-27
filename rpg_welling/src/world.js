@@ -33,7 +33,10 @@ import {
   stoneTexture,
   tilesTexture,
   tuftTexture,
-  wall
+  wall,
+  pavementTexture,
+  asphaltTexture,
+  glassPaneTexture
 } from './textures.js';
 
 // céu, fundo e feixes de luz (roadmap 0.3, fatia 2)
@@ -1273,8 +1276,11 @@ function buildFacadeWindows(scene, windows) {
     push(frames, thinX ? fixed + 0.13 * sign : along, y, thinX ? along : fixed + 0.13 * sign,
       thinX ? 0.12 : 0.07, height, thinX ? 0.07 : 0.12);
   }
-  const make = (list, color) => {
-    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), mat(color), list.length);
+  // `material` é opcional: sem ele a malha usa a cor chapada (as molduras).
+  // As VITRINES passam o vidro texturizado, que tem gradiente e reflexo — era o
+  // retângulo branco que denunciava a fachada como bloco de cor.
+  const make = (list, color, material = null) => {
+    const mesh = new THREE.InstancedMesh(new THREE.BoxGeometry(1, 1, 1), material || mat(color), list.length);
     list.forEach((matrix, i) => mesh.setMatrixAt(i, matrix));
     mesh.instanceMatrix.needsUpdate = true;
     mesh.castShadow = false;
@@ -1282,7 +1288,13 @@ function buildFacadeWindows(scene, windows) {
     scene.add(mesh);
   };
   make(frames, FACADE_FRAME);
-  make(panes, FACADE_GLASS);
+  // o vidro é uma InstancedMesh só, então a textura precisa repetir por
+  // INSTÂNCIA e não por coordenada de mundo — senão todas as vitrines
+  // mostrariam o mesmo trecho do reflexo.
+  const glassTexRaw = glassPaneTexture();
+  glassTexRaw.texture.colorSpace = THREE.SRGBColorSpace;
+  const glassMat = new THREE.MeshBasicMaterial({ map: glassTexRaw.texture, color: 0xffffff });
+  make(panes, FACADE_GLASS, glassMat);
 }
 
 // Placa com o nome oficial. O letreiro físico não está confirmado em fonte,
@@ -2100,7 +2112,10 @@ export function buildHighStreet(scene) {
   // +32. O repeat acompanha (7 × 20, ≈ os mesmos 3 × 2,8 m de laje).
   const PAVE_W = 22;
   const PAVE_D = 56;
-  const pavementTexRaw = stoneTexture();
+  // Textura de LAJES, não a pedra genérica: a junta é o que dá escala, e sem
+  // ela a calçada lia como um lençol de cor. A paleta é a mesma da rua
+  // (areia quente), então continua do mesmo registro visual.
+  const pavementTexRaw = pavementTexture();
   pavementTexRaw.texture.wrapS = pavementTexRaw.texture.wrapT = THREE.RepeatWrapping;
   pavementTexRaw.texture.repeat.set(13, 20);
   const pavement = new THREE.Mesh(new THREE.PlaneGeometry(PAVE_W, PAVE_D), pbrFrom(pavementTexRaw, [13, 20], 1.5, [0.7, 1.0]));
@@ -2127,13 +2142,17 @@ export function buildHighStreet(scene) {
   // mesma extensão da calçada, e pelo mesmo motivo: a pista acabava em z +18
   // e a câmera ia para z ~22,4. Repeat 4 × 19 ≈ os mesmos 2,25 × 3 m.
   const ROAD_D = 56;
-  const roadTexRaw = stoneTexture();
+  // Asfalto com agregado e faixas de desgaste, no lugar da pedra pintada de
+  // cinza por cima — que produzia uma pista com cara de calçada.
+  const roadTexRaw = asphaltTexture();
   roadTexRaw.texture.wrapS = roadTexRaw.texture.wrapT = THREE.RepeatWrapping;
   roadTexRaw.texture.repeat.set(4, 19);
   const road = new THREE.Mesh(new THREE.PlaneGeometry(9, ROAD_D), pbrFrom(roadTexRaw, [4, 19], 1.5, [0.7, 1.0]));
   road.rotation.x = -Math.PI / 2;
   road.position.set(0, 0, 4);
-  road.material.color.set(0x9a9aa8); // tinta asfalto sobre a textura de pedra
+  // Sem tinta por cima: antes a pista era pedra tingida de cinza por cima, e
+  // essa cor escurecia a textura em 40%. Agora a própria textura do asfalto
+  // entrega a cor, e tingir de novo só afundava a pista até quase-preta.
   road.receiveShadow = true;
   scene.add(road);
 
