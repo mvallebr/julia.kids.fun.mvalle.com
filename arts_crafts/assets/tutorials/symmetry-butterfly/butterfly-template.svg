@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 595 842" width="210mm" height="297mm" role="img" aria-label="Symmetry butterfly template">
+  <title>Symmetry butterfly template</title>
+  <desc>Black line art of a butterfly with a dashed centre line down the middle. The child folds the paper on the line and paints one half. No text.</desc>
+  <rect x="0" y="0" width="595" height="842" fill="#ffffff"/>
+
+  <!-- linha de dobra: é por ela que o papel dobra -->
+  <line x1="297" y1="150" x2="297" y2="700" stroke="#1b1b1b" stroke-width="3" stroke-dasharray="12 9"/>
+  <g fill="#ffffff" stroke="#1b1b1b" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- asa superior, fecha na linha de dobra -->
+    <path d="M297 250 C250 205 175 190 135 220 C100 247 108 300 150 322 C185 341 245 325 297 292 Z"/>
+    <!-- asa inferior -->
+    <path d="M297 330 C248 350 190 360 160 392 C135 420 158 462 200 468 C240 474 272 440 297 405 Z"/>
+    <!-- corpo -->
+    <ellipse cx="297" cy="330" rx="14" ry="96"/>
+    <!-- cabeça e antenas -->
+    <circle cx="297" cy="222" r="19"/>
+    <path d="M284 208 C258 186 240 180 226 184"/>
+    <path d="M310 208 C336 186 354 180 368 184"/>
+  </g>
+  <!-- marcas de simetria: os pontos que se espelham ao pintar -->
+  <g fill="#1b1b1b">
+    <circle cx="205" cy="248" r="9"/>
+    <circle cx="163" cy="272" r="6"/>
+    <circle cx="232" cy="300" r="7"/>
+    <circle cx="206" cy="372" r="6"/>
+    <circle cx="247" cy="404" r="5"/>
+  </g>
+</svg>

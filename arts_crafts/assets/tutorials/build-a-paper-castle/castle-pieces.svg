@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 595 842" width="210mm" height="297mm" role="img" aria-label="Paper castle pieces template">
+  <title>Paper castle pieces template</title>
+  <desc>Black line art of six castle pieces to cut out: two towers with fold tabs, two walls, an arched gate and a base. Dashed lines are fold lines. No text.</desc>
+  <rect x="0" y="0" width="595" height="842" fill="#ffffff"/>
+
+  <!-- abas de dobra: tracejadas -->
+  <g fill="none" stroke="#8a8a8a" stroke-width="2" stroke-dasharray="8 7">
+    <rect x="60" y="70" width="40" height="210"/>
+    <rect x="400" y="70" width="40" height="210"/>
+    <rect x="60" y="350" width="40" height="160"/>
+    <rect x="400" y="350" width="40" height="160"/>
+  </g>
+
+  <g fill="#ffffff" stroke="#1b1b1b" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- torre alta esquerda -->
+    <path d="M100 70 L172 70 L172 280 L100 280 Z"/>
+    <path d="M100 96 L136 42 L172 96 Z"/>
+    <!-- torre alta direita -->
+    <path d="M440 70 L512 70 L512 280 L440 280 Z"/>
+    <path d="M440 96 L476 42 L512 96 Z"/>
+    <!-- janela e bandeirola das torres -->
+    <path d="M124 150 q12 -22 24 0 v40 h-24 Z"/>
+    <path d="M464 150 q12 -22 24 0 v40 h-24 Z"/>
+
+    <!-- muro esquerdo -->
+    <path d="M100 350 L172 350 L172 510 L100 510 Z"/>
+    <!-- ameias do muro -->
+    <path d="M100 372 v-22 h24 v22 h24 v-22 h24 v22"/>
+    <!-- muro direito -->
+    <path d="M440 350 L512 350 L512 510 L440 510 Z"/>
+    <path d="M440 372 v-22 h24 v22 h24 v-22 h24 v22"/>
+
+    <!-- portao -->
+    <path d="M250 560 h95 v-70 q0 -48 -47 -48 q-48 0 -48 48 Z"/>
+
+    <!-- base -->
+    <path d="M180 620 h235 v56 h-235 Z"/>
+
+    <!-- portao do castelo em miniatura, para desenhar no muro -->
+    <path d="M128 440 q12 -26 24 0 v70 h-24 Z"/>
+  </g>
+</svg>

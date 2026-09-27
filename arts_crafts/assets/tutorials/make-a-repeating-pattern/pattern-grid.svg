@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 595 842" width="210mm" height="297mm" role="img" aria-label="Repeating pattern grid">
+  <title>Repeating pattern grid</title>
+  <desc>A sheet of squared paper for copying a repeating tile pattern. Light grid lines, one tile outlined. No text.</desc>
+  <rect x="0" y="0" width="595" height="842" fill="#ffffff"/>
+
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <path d="M24 0 H0 V24" fill="none" stroke="#cfcfcf" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect x="47" y="90" width="500" height="620" fill="url(#grid)"/>
+  <rect x="47" y="90" width="500" height="620" fill="none" stroke="#9a9a9a" stroke-width="2"/>
+
+  <!-- o ladrilho: uma casa de 5 casas, que e o que se repete -->
+  <rect x="47" y="90" width="120" height="120" fill="none" stroke="#1b1b1b" stroke-width="3"/>
+  <g fill="none" stroke="#1b1b1b" stroke-width="2.5" stroke-linecap="round">
+    <path d="M71 186 L107 152 L143 186"/>
+    <path d="M71 186 v-26 h72 v26"/>
+    <path d="M99 186 v-16 h16 v16"/>
+  </g>
+
+  <!-- duas copias ja feitas, para a crianca ver o padrao repetindo -->
+  <g fill="none" stroke="#b4b4b4" stroke-width="2" stroke-linecap="round">
+    <path d="M215 186 L251 152 L287 186"/>
+    <path d="M215 186 v-26 h72 v26"/>
+    <path d="M243 186 v-16 h16 v16"/>
+    <path d="M359 186 L395 152 L431 186"/>
+    <path d="M359 186 v-26 h72 v26"/>
+    <path d="M387 186 v-16 h16 v16"/>
+  </g>
+</svg>

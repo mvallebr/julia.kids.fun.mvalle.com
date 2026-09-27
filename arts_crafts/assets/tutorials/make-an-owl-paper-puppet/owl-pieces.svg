@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 595 842" width="210mm" height="297mm" role="img" aria-label="Owl paper puppet pieces template">
+  <title>Owl paper puppet pieces template</title>
+  <desc>Black line art of the pieces to cut out for a paper owl puppet: one body, two eyes, one beak, two wings, two ear tufts and two feet. No text.</desc>
+  <rect x="0" y="0" width="595" height="842" fill="#ffffff"/>
+
+  <g fill="#ffffff" stroke="#1b1b1b" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- corpo, com o vinco da aba no alto -->
+    <path d="M297 90 C410 90 470 200 470 330 C470 470 400 560 297 560 C194 560 124 470 124 330 C124 200 184 90 297 90 Z"/>
+    <path d="M230 92 h134" stroke="#8a8a8a" stroke-width="2" stroke-dasharray="8 7"/>
+
+    <!-- olhos -->
+    <circle cx="222" cy="300" r="74"/>
+    <circle cx="372" cy="300" r="74"/>
+
+    <!-- bico -->
+    <path d="M297 386 L341 372 L297 440 Z"/>
+
+    <!-- asas -->
+    <path d="M124 300 C74 320 56 400 82 470 C104 428 118 356 124 300 Z"/>
+    <path d="M470 300 C520 320 538 400 512 470 C490 428 476 356 470 300 Z"/>
+
+    <!--ilhas de orelha -->
+    <path d="M180 130 L214 52 L246 128 Z"/>
+    <path d="M414 130 L380 52 L348 128 Z"/>
+
+    <!-- pes -->
+    <path d="M246 552 v40 M266 552 v40 M286 552 v40"/>
+    <path d="M310 552 v40 M330 552 v40 M350 552 v40"/>
+  </g>
+
+  <!-- marcas de penas, para decorar antes de colar -->
+  <g fill="none" stroke="#8a8a8a" stroke-width="2">
+    <path d="M160 420 q26 -22 52 0"/>
+    <path d="M170 456 q26 -22 52 0"/>
+    <path d="M382 420 q26 -22 52 0"/>
+    <path d="M372 456 q26 -22 52 0"/>
+    <path d="M250 500 q47 -26 94 0"/>
+  </g>
+</svg>

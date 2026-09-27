@@ -3,6 +3,11 @@
 // Um arquivo por categoria, `export default [ ... ]` — a biblioteca cresce por
 // arquivo, sem ninguém mexer na lista de imports.
 //
+// O véu só pode clarear (regra do `contentProblems`): nenhum passo volta para
+// 'full' depois de um 'active'. Por isso os passos 'active' formam um bloco
+// só, no fim da lista, e o último passo é sempre 'none'. Nenhum passo é
+// 'active' sem `region`, e dois 'active' seguidos nunca usam a mesma região.
+//
 // Sobre as regiões: `regionsOf()` preferiria as seis regiões DERIVADAS da
 // `objectBox`, mas o teste de "região de tutorial cabe dentro da imagem" lê
 // `tutorial.regions` direto, e um tutorial sem esse objeto passa vergonha. Por
@@ -18,10 +23,9 @@
 // a tesoura e o papelão entram pelas chaves mais próximas que já existem; o
 // texto do passo nunca depende do nome exato do material.
 //
-// Adulto no passo = cortar muito, ou cortar papelão grosso, ou precisar de uma
-// peça pequena e metálica. T07 (todas as peças do castelo), T08 (pregos de
-// papel) e T12 (uns vinte riscos no cartão) marcam isso; T09, T10 e T11 são só
-// papel e não marcam.
+// Adulto no passo = cortar muito, cortar papelão grosso ou usar uma peça
+// pequena e metálica. T07 (todas as peças do castelo), T08 (pregos de papel) e
+// T12 (uns vinte riscos no cartão) marcam isso; T09, T10 e T11 são só papel.
 
 const castleBox = { x: 0.16, y: 0.18, w: 0.68, h: 0.68 };
 const puppetBox = { x: 0.26, y: 0.12, w: 0.48, h: 0.76 };
@@ -54,22 +58,6 @@ export default [
       { veil: 'active', region: 'top' },
       { veil: 'none' },
     ],
-    regions: {
-      all: [{ kind: 'rect', x: 0.16, y: 0.18, w: 0.68, h: 0.68 }],
-      top: [{ kind: 'rect', x: 0.16, y: 0.18, w: 0.68, h: 0.34 }],
-      bottom: [{ kind: 'rect', x: 0.16, y: 0.52, w: 0.68, h: 0.34 }],
-      left: [{ kind: 'rect', x: 0.16, y: 0.18, w: 0.34, h: 0.68 }],
-      right: [{ kind: 'rect', x: 0.50, y: 0.18, w: 0.34, h: 0.68 }],
-      centre: [{ kind: 'rect', x: 0.296, y: 0.316, w: 0.408, h: 0.408 }],
-    },
-    focus: {
-      all: { kind: 'rect', x: 0.16, y: 0.18, w: 0.68, h: 0.68 },
-      top: { kind: 'rect', x: 0.16, y: 0.18, w: 0.68, h: 0.34 },
-      bottom: { kind: 'rect', x: 0.16, y: 0.52, w: 0.68, h: 0.34 },
-      left: { kind: 'rect', x: 0.16, y: 0.18, w: 0.34, h: 0.68 },
-      right: { kind: 'rect', x: 0.50, y: 0.18, w: 0.34, h: 0.68 },
-      centre: { kind: 'rect', x: 0.296, y: 0.316, w: 0.408, h: 0.408 },
-    },
     copy: {
       pt: {
         title: 'Castelo de Papel',
@@ -138,22 +126,6 @@ export default [
       { veil: 'active', region: 'bottom' },
       { veil: 'none' },
     ],
-    regions: {
-      all: [{ kind: 'rect', x: 0.26, y: 0.12, w: 0.48, h: 0.76 }],
-      top: [{ kind: 'rect', x: 0.26, y: 0.12, w: 0.48, h: 0.38 }],
-      bottom: [{ kind: 'rect', x: 0.26, y: 0.50, w: 0.48, h: 0.38 }],
-      left: [{ kind: 'rect', x: 0.26, y: 0.12, w: 0.24, h: 0.76 }],
-      right: [{ kind: 'rect', x: 0.50, y: 0.12, w: 0.24, h: 0.76 }],
-      centre: [{ kind: 'rect', x: 0.356, y: 0.272, w: 0.288, h: 0.456 }],
-    },
-    focus: {
-      all: { kind: 'rect', x: 0.26, y: 0.12, w: 0.48, h: 0.76 },
-      top: { kind: 'rect', x: 0.26, y: 0.12, w: 0.48, h: 0.38 },
-      bottom: { kind: 'rect', x: 0.26, y: 0.50, w: 0.48, h: 0.38 },
-      left: { kind: 'rect', x: 0.26, y: 0.12, w: 0.24, h: 0.76 },
-      right: { kind: 'rect', x: 0.50, y: 0.12, w: 0.24, h: 0.76 },
-      centre: { kind: 'rect', x: 0.356, y: 0.272, w: 0.288, h: 0.456 },
-    },
     copy: {
       pt: {
         title: 'Coruja de Papel Que Mexe',
@@ -216,22 +188,6 @@ export default [
       { veil: 'active', region: 'centre' },
       { veil: 'none' },
     ],
-    regions: {
-      all: [{ kind: 'rect', x: 0.26, y: 0.20, w: 0.48, h: 0.58 }],
-      top: [{ kind: 'rect', x: 0.26, y: 0.20, w: 0.48, h: 0.29 }],
-      bottom: [{ kind: 'rect', x: 0.26, y: 0.49, w: 0.48, h: 0.29 }],
-      left: [{ kind: 'rect', x: 0.26, y: 0.20, w: 0.24, h: 0.58 }],
-      right: [{ kind: 'rect', x: 0.50, y: 0.20, w: 0.24, h: 0.58 }],
-      centre: [{ kind: 'rect', x: 0.356, y: 0.316, w: 0.288, h: 0.348 }],
-    },
-    focus: {
-      all: { kind: 'rect', x: 0.26, y: 0.20, w: 0.48, h: 0.58 },
-      top: { kind: 'rect', x: 0.26, y: 0.20, w: 0.48, h: 0.29 },
-      bottom: { kind: 'rect', x: 0.26, y: 0.49, w: 0.48, h: 0.29 },
-      left: { kind: 'rect', x: 0.26, y: 0.20, w: 0.24, h: 0.58 },
-      right: { kind: 'rect', x: 0.50, y: 0.20, w: 0.24, h: 0.58 },
-      centre: { kind: 'rect', x: 0.356, y: 0.316, w: 0.288, h: 0.348 },
-    },
     copy: {
       pt: {
         title: 'Rosto de Raposa de Dobradura',
@@ -287,29 +243,13 @@ export default [
     objectBox: cardBox,
     steps: [
       { veil: 'full' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
+      { veil: 'full' },
+      { veil: 'full' },
       { veil: 'active', region: 'centre' },
       { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'bottom' },
       { veil: 'none' },
     ],
-    regions: {
-      all: [{ kind: 'rect', x: 0.10, y: 0.24, w: 0.80, h: 0.52 }],
-      top: [{ kind: 'rect', x: 0.10, y: 0.24, w: 0.80, h: 0.26 }],
-      bottom: [{ kind: 'rect', x: 0.10, y: 0.50, w: 0.80, h: 0.26 }],
-      left: [{ kind: 'rect', x: 0.10, y: 0.24, w: 0.40, h: 0.52 }],
-      right: [{ kind: 'rect', x: 0.50, y: 0.24, w: 0.40, h: 0.52 }],
-      centre: [{ kind: 'rect', x: 0.26, y: 0.344, w: 0.48, h: 0.312 }],
-    },
-    focus: {
-      all: { kind: 'rect', x: 0.10, y: 0.24, w: 0.80, h: 0.52 },
-      top: { kind: 'rect', x: 0.10, y: 0.24, w: 0.80, h: 0.26 },
-      bottom: { kind: 'rect', x: 0.10, y: 0.50, w: 0.80, h: 0.26 },
-      left: { kind: 'rect', x: 0.10, y: 0.24, w: 0.40, h: 0.52 },
-      right: { kind: 'rect', x: 0.50, y: 0.24, w: 0.40, h: 0.52 },
-      centre: { kind: 'rect', x: 0.26, y: 0.344, w: 0.48, h: 0.312 },
-    },
     copy: {
       pt: {
         title: 'Cartão de Festa que Abre em Três D',
@@ -366,28 +306,12 @@ export default [
     steps: [
       { veil: 'full' },
       { veil: 'full' },
-      { veil: 'active', region: 'top' },
+      { veil: 'full' },
       { veil: 'active', region: 'bottom' },
       { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'top' },
       { veil: 'none' },
     ],
-    regions: {
-      all: [{ kind: 'rect', x: 0.24, y: 0.10, w: 0.52, h: 0.80 }],
-      top: [{ kind: 'rect', x: 0.24, y: 0.10, w: 0.52, h: 0.40 }],
-      bottom: [{ kind: 'rect', x: 0.24, y: 0.50, w: 0.52, h: 0.40 }],
-      left: [{ kind: 'rect', x: 0.24, y: 0.10, w: 0.26, h: 0.80 }],
-      right: [{ kind: 'rect', x: 0.50, y: 0.10, w: 0.26, h: 0.80 }],
-      centre: [{ kind: 'rect', x: 0.344, y: 0.26, w: 0.312, h: 0.48 }],
-    },
-    focus: {
-      all: { kind: 'rect', x: 0.24, y: 0.10, w: 0.52, h: 0.80 },
-      top: { kind: 'rect', x: 0.24, y: 0.10, w: 0.52, h: 0.40 },
-      bottom: { kind: 'rect', x: 0.24, y: 0.50, w: 0.52, h: 0.40 },
-      left: { kind: 'rect', x: 0.24, y: 0.10, w: 0.26, h: 0.80 },
-      right: { kind: 'rect', x: 0.50, y: 0.10, w: 0.26, h: 0.80 },
-      centre: { kind: 'rect', x: 0.344, y: 0.26, w: 0.312, h: 0.48 },
-    },
     copy: {
       pt: {
         title: 'Buquê de Flores de Papel',
@@ -444,29 +368,13 @@ export default [
     objectBox: weaveBox,
     steps: [
       { veil: 'full' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
+      { veil: 'full' },
+      { veil: 'full' },
       { veil: 'active', region: 'top' },
       { veil: 'active', region: 'centre' },
       { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],
-    regions: {
-      all: [{ kind: 'rect', x: 0.20, y: 0.14, w: 0.60, h: 0.72 }],
-      top: [{ kind: 'rect', x: 0.20, y: 0.14, w: 0.60, h: 0.36 }],
-      bottom: [{ kind: 'rect', x: 0.20, y: 0.50, w: 0.60, h: 0.36 }],
-      left: [{ kind: 'rect', x: 0.20, y: 0.14, w: 0.30, h: 0.72 }],
-      right: [{ kind: 'rect', x: 0.50, y: 0.14, w: 0.30, h: 0.72 }],
-      centre: [{ kind: 'rect', x: 0.32, y: 0.284, w: 0.36, h: 0.432 }],
-    },
-    focus: {
-      all: { kind: 'rect', x: 0.20, y: 0.14, w: 0.60, h: 0.72 },
-      top: { kind: 'rect', x: 0.20, y: 0.14, w: 0.60, h: 0.36 },
-      bottom: { kind: 'rect', x: 0.20, y: 0.50, w: 0.60, h: 0.36 },
-      left: { kind: 'rect', x: 0.20, y: 0.14, w: 0.30, h: 0.72 },
-      right: { kind: 'rect', x: 0.50, y: 0.14, w: 0.30, h: 0.72 },
-      centre: { kind: 'rect', x: 0.32, y: 0.284, w: 0.36, h: 0.432 },
-    },
     copy: {
       pt: {
         title: 'Arco-íris de Papel Trançado',

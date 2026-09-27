@@ -4,12 +4,15 @@
 // imagem 4:3 a largura normalizada é 3/4 da altura) — se a caixa for
 // retangular, o véu 'active' recorta um quadrado em vez de uma faixa de anel.
 //
-// Nenhum passo aqui é 'active' numa região que não seja do disco: o spin art
-// é radial, não tem "lado esquerdo" nem "lado direito" que signifique
-// alguma coisa. As regiões usadas são 'centre' (a cor que entra pelo meio) e
-// 'all' (o giro que abre tudo). Os passos que são pausa — secar, comparar —
-// ficam em 'full', que é a leitura certa: enquanto a criança espera, o
-// desenho ainda não é o objeto final.
+// O véu só pode clarear: nada volta a esconder depois de mostrar, porque a
+// criança não pode ver o objeto sumir da tela. Com sete passos e o último
+// sempre 'none', sobra um formato só: três 'full' no começo, três 'active' no
+// fim e o 'none' fechando. Os três primeiros passos são os de montar
+// (papel, cores, tinta no prato) — o disco ainda não é desenho nenhum, e o
+// fantasma do contorno é a imagem certa para eles.
+//
+// Nenhuma região aqui é 'left' ou 'right': spin art é radial, não tem lado
+// esquerdo. O que entra pelo meio é 'centre', o que o giro abre é 'all'.
 
 export default [
   {
@@ -25,7 +28,7 @@ export default [
     steps: [
       { veil: 'full' },
       { veil: 'full', swatches: true },
-      { veil: 'active', region: 'centre' },
+      { veil: 'full' },
       { veil: 'active', region: 'all' },
       { veil: 'active', region: 'centre' },
       { veil: 'active', region: 'all' },
@@ -85,11 +88,11 @@ export default [
     materials: ['material.spinner', 'material.cardboard', 'material.paper', 'material.paint'],
     steps: [
       { veil: 'full' },
+      { veil: 'full' },
+      { veil: 'full' },
+      { veil: 'active', region: 'all' },
       { veil: 'active', region: 'centre' },
       { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
       { veil: 'none' },
     ],
     copy: {
@@ -150,10 +153,10 @@ export default [
     steps: [
       { veil: 'full' },
       { veil: 'full' },
+      { veil: 'full' },
       { veil: 'active', region: 'centre' },
       { veil: 'active', region: 'all' },
       { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],
     copy: {
@@ -213,10 +216,10 @@ export default [
     steps: [
       { veil: 'full', swatches: true },
       { veil: 'full' },
+      { veil: 'full' },
+      { veil: 'active', region: 'all' },
       { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
       { veil: 'active', region: 'bottom' },
-      { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],
     copy: {

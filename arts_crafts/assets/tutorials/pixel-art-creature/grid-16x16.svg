@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 595 842" width="210mm" height="297mm" role="img" aria-label="16 by 16 pixel grid">
+  <title>16 by 16 pixel grid</title>
+  <desc>A 16 by 16 square grid for drawing a pixel creature, with the centre marked. No text.</desc>
+  <rect x="0" y="0" width="595" height="842" fill="#ffffff"/>
+
+  <defs>
+    <pattern id="px" width="31" height="31" patternUnits="userSpaceOnUse">
+      <path d="M31 0 H0 V31" fill="none" stroke="#c2c2c2" stroke-width="1"/>
+    </pattern>
+  </defs>
+  <rect x="47" y="150" width="496" height="496" fill="url(#px)"/>
+  <rect x="47" y="150" width="496" height="496" fill="none" stroke="#8f8f8f" stroke-width="2"/>
+
+  <!-- eixos a cada 4 casas, para contar sem errar -->
+  <g fill="none" stroke="#9a9a9a" stroke-width="2">
+    <path d="M171 150 V646 M295 150 V646 M419 150 V646"/>
+    <path d="M47 274 H543 M47 398 H543 M47 522 H543"/>
+  </g>
+  <!-- ponto de partida, no canto de cima a esquerda -->
+  <circle cx="47" cy="150" r="6" fill="#1b1b1b"/>
+  <!-- moldura grossa a cada 8 casas, para o olho nao se perder no emaranhado -->
+  <g fill="none" stroke="#6f6f6f" stroke-width="2.5">
+    <rect x="47" y="150" width="248" height="248"/>
+    <rect x="295" y="150" width="248" height="248"/>
+    <rect x="47" y="398" width="248" height="248"/>
+    <rect x="295" y="398" width="248" height="248"/>
+  </g>
+</svg>

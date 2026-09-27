@@ -7,6 +7,10 @@
 // "duas esferas viraram os botões". Ensinar a modelar é mostrar a sequência de
 // decisões, não a mão de ninguém.
 //
+// O véu só clareia, então os três primeiros passos (uma esfera, duplicar,
+// mudar de tamanho) ainda não formam boneco nenhum: eles mostram o contorno
+// fantasma. O boneco de verdade aparece a partir do empilhamento.
+//
 // Os materiais são só o caderno de rascunho: o modelo em si é feito na tela.
 
 export default [
@@ -22,10 +26,10 @@ export default [
     steps: [
       { veil: 'full' },
       { veil: 'full' },
-      { veil: 'active', region: 'centre' },
+      { veil: 'full' },
       { veil: 'active', region: 'all' },
       { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'centre' },
       { veil: 'none' },
     ],
     copy: {
@@ -81,11 +85,11 @@ export default [
     materials: ['material.paper', 'material.pencils'],
     steps: [
       { veil: 'full' },
-      { veil: 'active', region: 'top' },
+      { veil: 'full' },
+      { veil: 'full' },
+      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'bottom' },
       { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],
     copy: {
@@ -143,10 +147,10 @@ export default [
     materials: ['material.paper', 'material.pencils'],
     steps: [
       { veil: 'full' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'bottom' },
+      { veil: 'full' },
+      { veil: 'full' },
       { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'bottom' },
       { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],

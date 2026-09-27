@@ -6,6 +6,11 @@
 // A diferença com o resto da biblioteca: aqui a região não é "parte do
 // objeto", é "parte do desenho dentro do objeto". O símbolo fica no 'centre',
 // o nome no 'bottom', a borda dá a volta toda e usa 'all'.
+//
+// O véu só clareia, nunca escurece de novo. Com sete passos e o último sempre
+// 'none', os três primeiros ficam no fantasma do contorno (escolher forma,
+// escolher cor, montar o desenho ainda em branco) e os três últimos abrem a
+// cor em três recortes diferentes.
 
 export default [
   {
@@ -22,10 +27,10 @@ export default [
     steps: [
       { veil: 'full', printable: true },
       { veil: 'full' },
-      { veil: 'active', region: 'centre' },
+      { veil: 'full' },
       { veil: 'active', region: 'bottom' },
       { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'centre' },
       { veil: 'none' },
     ],
     copy: {
@@ -87,10 +92,10 @@ export default [
     steps: [
       { veil: 'full' },
       { veil: 'full', printable: true },
-      { veil: 'active', region: 'top' },
+      { veil: 'full' },
       { veil: 'active', region: 'bottom' },
       { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'centre' },
       { veil: 'none' },
     ],
     copy: {
@@ -151,11 +156,11 @@ export default [
     materials: ['material.paper', 'material.pencils', 'material.crayons'],
     steps: [
       { veil: 'full', printable: true },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'top' },
+      { veil: 'full' },
+      { veil: 'full' },
       { veil: 'active', region: 'bottom' },
       { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'centre' },
       { veil: 'none' },
     ],
     copy: {

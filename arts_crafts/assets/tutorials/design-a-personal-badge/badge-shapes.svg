@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 595 842" width="210mm" height="297mm" role="img" aria-label="Badge shapes template">
+  <title>Badge shapes template</title>
+  <desc>Black line art of six badge shapes to choose from, each with a decorative border. No text and no letters, only shapes.</desc>
+  <rect x="0" y="0" width="595" height="842" fill="#ffffff"/>
+
+  <g fill="#ffffff" stroke="#1b1b1b" stroke-width="5" stroke-linejoin="round">
+    <!-- redondo com borda de bolinhas -->
+    <circle cx="150" cy="150" r="90"/>
+    <circle cx="150" cy="150" r="74" stroke-width="2" stroke-dasharray="3 9"/>
+    <!-- escudo -->
+    <path d="M380 60 h150 v96 q0 84 -75 116 q-75 -32 -75 -116 Z"/>
+    <path d="M400 82 h110 v74 q0 66 -55 92 q-55 -26 -55 -92 Z" stroke-width="2" stroke-dasharray="3 9"/>
+    <!-- estrela -->
+    <path d="M150 268 L178 322 L238 330 L195 372 L208 432 L150 404 L92 432 L105 372 L62 330 L122 322 Z"/>
+    <!-- losango -->
+    <path d="M452 262 L536 336 L452 410 L368 336 Z"/>
+    <!-- hexágono -->
+    <path d="M150 470 L212 506 L212 578 L150 614 L88 578 L88 506 Z"/>
+    <!-- quadrado com cantos cortados -->
+    <path d="M380 486 h132 l14 14 v104 l-14 14 h-132 l-14 -14 v-104 Z"/>
+    <!-- moldura de etiqueta com furo de presilha -->
+    <path d="M380 660 h150 q10 0 10 10 v104 q0 10 -10 10 h-150 q-10 0 -10 -10 v-104 q0 -10 10 -10 Z"/>
+    <circle cx="396" cy="676" r="10" stroke-width="3"/>
+  </g>
+</svg>

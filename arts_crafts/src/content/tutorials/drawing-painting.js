@@ -6,11 +6,12 @@
 // 'centre' para o meio, 'left' para um lado, 'all' quando o ato mexe na arte
 // inteira (soltar as estrelas, abrir o papel e ver a cópia espelhada).
 //
-// O ritmo do véu é o mesmo nos cinco: o passo 1 é 'full' (só o contorno
-// fantasma, porque a arte ainda não existe), os atos que trabalham numa parte
-// concreta ficam com o furo 'active', e o último passo é sempre 'none'. No
-// máximo três 'active' por tutorial, e dois seguidos nunca na mesma região — é o
-// que impede a tela de repetir duas vezes seguidas.
+// O ritmo do véu é o mesmo nos cinco e segue a regra de que o véu só pode
+// clarear: os três primeiros passos são 'full' (só o contorno fantasma, porque
+// a arte ainda não existe), os três seguintes são 'active' com três regiões
+// DIFERENTES (a parte que o ato daquela hora mexe), e o último é sempre 'none'.
+// Três 'active' e nunca duas vezes a mesma região seguidas: é o que impede a
+// tela de repetir duas vezes seguidas.
 //
 // Os `objectBox` abaixo são ESTIMATIVAS a olho. A arte final recalcula a caixa
 // por pixel e troca estes cinco números: o formato e o fato de o objeto caber
@@ -29,11 +30,11 @@ export default [
     materials: ['material.paper', 'material.paint', 'material.brush', 'material.water', 'material.pen'],
     steps: [
       { veil: 'full' },
-      { veil: 'active', region: 'top', swatches: true },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
+      { veil: 'full', swatches: true },
+      { veil: 'full' },
       { veil: 'active', region: 'all' },
       { veil: 'active', region: 'centre' },
+      { veil: 'active', region: 'top' },
       { veil: 'none' },
     ],
     copy: {
@@ -92,8 +93,8 @@ export default [
     steps: [
       { veil: 'full', printable: true },
       { veil: 'full' },
-      { veil: 'active', region: 'left', swatches: true },
-      { veil: 'active', region: 'all' },
+      { veil: 'full', swatches: true },
+      { veil: 'active', region: 'left' },
       { veil: 'active', region: 'all' },
       { veil: 'active', region: 'centre' },
       { veil: 'none' },
@@ -153,7 +154,7 @@ export default [
     steps: [
       { veil: 'full' },
       { veil: 'full' },
-      { veil: 'active', region: 'top' },
+      { veil: 'full' },
       { veil: 'active', region: 'all' },
       { veil: 'active', region: 'bottom' },
       { veil: 'active', region: 'all' },
@@ -213,10 +214,10 @@ export default [
     materials: ['material.paint', 'material.paper', 'material.pen'],
     steps: [
       { veil: 'full' },
-      { veil: 'active', region: 'bottom', swatches: true },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'all' },
+      { veil: 'full', swatches: true },
+      { veil: 'full' },
       { veil: 'active', region: 'centre' },
+      { veil: 'active', region: 'top' },
       { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],
@@ -274,11 +275,11 @@ export default [
     materials: ['material.paper', 'material.pencils', 'material.crayons'],
     steps: [
       { veil: 'full' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'all' },
+      { veil: 'full' },
+      { veil: 'full' },
       { veil: 'active', region: 'bottom' },
       { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'top' },
       { veil: 'none' },
     ],
     copy: {
