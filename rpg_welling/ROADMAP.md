@@ -1,14 +1,16 @@
 # Roadmap — RPG Welling
 
-Status deste arquivo: **vivo**. Atualizado em 2026-09-27 depois da rodada 5
-"muro da escola, glosas órfãs ancoradas e texturas extraídas" (live
-`?v=20260927j`, **379 testes**).
+Status deste arquivo: **vivo**. Atualizado em 2026-09-27 depois da rodada 6
+"muro, glosas órfãs, modularização, recompensas roláveis e opções" (live
+`?v=20260927m`, **386 testes**).
 
 A rodada 4 nasceu do `tools/qa-visual.mjs` (4.6) e andar sobre ele. Tudo o que
 ela mediu virou item: o chão que não alcançava a câmera (4.7), o telhado que
 tarpava a tela (4.2) e a mata escura (4.4). A rodada 5 fechou o que restava
 dela (4.5), resolveu o 1.2 de verdade — as 45 glosas que o diário prometia e
-o mundo não entregava — e deu a primeira fatia do 0.3.
+o mundo não entregava — e deu a primeira fatia do 0.3. A rodada 6 deu a
+segunda fatia do 0.3 (céu fora do world.js), o 1.1 rolável de verdade e o
+3.5 com som e idioma no painel.
 
 Este é o plano de evolução do jogo da Julia. Ele existe para que qualquer sessão
 futura saiba o que já foi feito, o que está em andamento e o que é próximo —
