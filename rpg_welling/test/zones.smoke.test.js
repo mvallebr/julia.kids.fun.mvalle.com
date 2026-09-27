@@ -67,7 +67,10 @@ const EXPECTED_COLLIDERS = {
     bounds: [
       { minX: -5.4, maxX: 5.4, minZ: -1.3, maxZ: 1.3 },
       { minX: -1.7, maxX: 1.7, minZ: -19.5, maxZ: -18.5 },
-      { minX: 9.45, maxX: 11.55, minZ: 17.7, maxZ: 19.3 },
+      // o café: 13 x 7, e não mais a cabana de 4,2 x 3,2. Mudou porque mudou —
+      // a foto mostra um prédio baixo e longo com telhado de duas águas, e a
+      // caixa pequena com telhado de cone lia como tenda.
+      { minX: 4, maxX: 17, minZ: 15, maxZ: 22 },
       { minX: -11.8, maxX: -9.2, minZ: 0.7, maxZ: 3.3 },
       { minX: -10.9, maxX: -2.1, minZ: 24.7, maxZ: 30.3 },
     ],

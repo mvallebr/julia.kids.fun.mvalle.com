@@ -68,6 +68,12 @@ const reduceMotion = shouldReduceMotion();
 let renderer, scene, camera, clock, composer;
 let zone = null;
 let playerObj = null, owlObj = null, companionObj = null, companionOwl = null;
+
+// Altura do terreno em (x, z). Só a zona da mata tem relevo — escola, sala,
+// academia e rua são planas de propósito, e é por isso que `heightAt` é
+// OPCIONAL: onde a zona não define, a menina continua em y = 0 como sempre e
+// nenhuma das outras zonas precisa saber que isso existe.
+const chaoEm = (x, z) => (typeof zone?.heightAt === 'function' ? zone.heightAt(x, z) : 0);
 const npcs = {};
 let ring = null;
 let clickMarker = null; // anel verde do destino do toque (click-to-move)
@@ -215,7 +221,11 @@ function buildScene(zoneName) {
   const savedPosition = state.zone === zoneName && Array.isArray(state.position) ? state.position : null;
   playerObj = makeKid(state.character || 'ivy');
   blobShadow(playerObj);
-  playerObj.position.set(savedPosition?.[0] ?? zone.spawn[0], 0, savedPosition?.[1] ?? zone.spawn[1]);
+  playerObj.position.set(
+    savedPosition?.[0] ?? zone.spawn[0],
+    chaoEm(savedPosition?.[0] ?? zone.spawn[0], savedPosition?.[1] ?? zone.spawn[1]),
+    savedPosition?.[1] ?? zone.spawn[1],
+  );
   scene.add(playerObj);
   armExitsAt(playerObj.position.x, playerObj.position.z);
 
@@ -226,7 +236,9 @@ function buildScene(zoneName) {
   const otherCharacter = state.character === 'ivy' ? 'oakley' : 'ivy';
   companionObj = makeKid(otherCharacter);
   blobShadow(companionObj);
-  companionObj.position.set(playerObj.position.x - 0.9, 0, playerObj.position.z + 0.4);
+  // o acompanhante nasce no MESMO chão, não em y = 0: na colina ele ficaria
+  // dentro da grama enquanto a menina anda por cima
+  companionObj.position.set(playerObj.position.x - 0.9, chaoEm(playerObj.position.x - 0.9, playerObj.position.z + 0.4), playerObj.position.z + 0.4);
   scene.add(companionObj);
   companionOwl = makeOwl(otherCharacter === 'oakley' ? 1 : 0);
   companionObj.add(companionOwl);
@@ -264,8 +276,11 @@ function buildScene(zoneName) {
   scene.add(clickMarker);
   stopWalking(); // troca de zona: destino antigo não faz sentido
 
-  camera.position.set(playerObj.position.x, 7.5, playerObj.position.z + 8.5);
-  camera.lookAt(playerObj.position.x, 0.6, playerObj.position.z);
+  // a câmera nasce na altura do chão da menina, não em 7,5 cravados: na
+  // crista do café, y fixo a deixava quase colada nela e o lookAt apontava
+  // para dentro do morro
+  camera.position.set(playerObj.position.x, playerObj.position.y + 7.5, playerObj.position.z + 8.5);
+  camera.lookAt(playerObj.position.x, playerObj.position.y + 0.6, playerObj.position.z);
 
   // restaura na mata o que a história já abriu (riacho atravessado, portão aberto)
   if (zoneName === 'woods') {
@@ -1367,7 +1382,7 @@ async function gotoZone(zoneName, spawnOverride = null) {
     sounds.door();
     buildScene(zoneName);
     if (spawnOverride && playerObj) {
-      playerObj.position.set(spawnOverride[0], 0, spawnOverride[1]);
+      playerObj.position.set(spawnOverride[0], chaoEm(spawnOverride[0], spawnOverride[1]), spawnOverride[1]);
       armExitsAt(spawnOverride[0], spawnOverride[1]);
     }
     state.zone = zoneName;
@@ -2422,7 +2437,9 @@ function animate() {
         walked = Math.hypot(nx - playerObj.position.x, nz - playerObj.position.z);
       }
     }
-    playerObj.position.set(nx, 0, nz);
+    // o y vem do terreno: é a única linha que decide em que altura a menina
+    // está, e sem ela a colina do café vira um morro que ela atravessa
+    playerObj.position.set(nx, chaoEm(nx, nz), nz);
 
     if (moveTarget) {
       if (walked < 0.001) {
@@ -2472,7 +2489,9 @@ function animate() {
     const owlAngle = reduceMotion ? 0.6 : t * 1.5;
     owlObj.position.set(
       playerObj.position.x + Math.cos(owlAngle) * 0.85,
-      1.85 + (reduceMotion ? 0 : Math.sin(t * 2.2) * 0.1),
+      // a coruja éfila da MENINA, então a órbita é em relação à cabeça dela:
+      // com relevo, 1,85 cravado a deixava dentro do morro na subida
+      playerObj.position.y + 1.85 + (reduceMotion ? 0 : Math.sin(t * 2.2) * 0.1),
       playerObj.position.z + Math.sin(owlAngle) * 0.85
     );
     owlObj.rotation.y = -owlAngle + Math.PI / 2;
@@ -2485,9 +2504,14 @@ function animate() {
       const companionRunning = distanceToPlayer > 3;
       const step = Math.min(distanceToPlayer - 0.95, (companionRunning ? 7 : 4.6) * dt);
       companionObj.position.addScaledVector(direction, step);
+      // o y é reamostrado do terreno DEPOIS do passo: a distância de
+      // acompanhamento é 3D, então sem isso o irmão subia a colina "por cima"
+      // e ficava boiando atrás dela
+      companionObj.position.y = chaoEm(companionObj.position.x, companionObj.position.z);
       companionObj.rotation.y = Math.atan2(direction.x, direction.z);
       companionObj.userData.animate?.(t, reduceMotion ? 0 : (companionRunning ? 2 : 1));
     } else {
+      companionObj.position.y = chaoEm(companionObj.position.x, companionObj.position.z);
       companionObj.userData.animate?.(t, 0);
     }
     companionOwl.userData.animate?.(t, reduceMotion ? 0 : (distanceToPlayer > 2));
@@ -2510,7 +2534,7 @@ function animate() {
       Math.cos(camYaw) * horiz
     );
     const desiredCam = new THREE.Vector3().copy(playerObj.position).add(off);
-    const head = new THREE.Vector3(playerObj.position.x, 0.6, playerObj.position.z);
+    const head = new THREE.Vector3(playerObj.position.x, playerObj.position.y + 0.6, playerObj.position.z);
     // corte de camada (diorama de cima): pitch de brincar (0.55) NÃO corta
     // teto nenhum — sem raio-x surpresa em ângulo baixo; só quando a criança
     // inclina para baixo de verdade (~52°) ou afasta além de ~20 m é que a
@@ -2544,7 +2568,7 @@ function animate() {
       const g = zone.globe.position;
       lookTarget.set(g.x, g.y + 0.04, g.z);
     } else {
-      lookTarget.set(playerObj.position.x, 0.6, playerObj.position.z);
+      lookTarget.set(playerObj.position.x, playerObj.position.y + 0.6, playerObj.position.z);
     }
     camera.lookAt(lookTarget);
 
