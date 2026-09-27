@@ -12,10 +12,13 @@ import {
   chapterById,
   chapterFlags,
   chapterProgress,
+  getChapterSeed,
   isQuestComplete,
   nextQuest,
   nextStep,
   questProgress,
+  rollChapterSeed,
+  setChapterSeed,
 } from '../src/chapters.js';
 import { GLOSSES, NPCS } from '../src/content.js';
 import { ZONES } from '../src/state.js';
@@ -261,4 +264,90 @@ test('CHAPTERS expõe o capítulo para o runner genérico e chapterById acha', (
   assert.ok(CHAPTERS.includes(CHAPTER2));
   assert.equal(chapterById('chapter2'), CHAPTER2);
   assert.equal(chapterById('chapter1'), null, 'o cap. 1 vive no main.js, não aqui');
+});
+
+// ── roadmap 1.1: recompensas roláveis ────────────────────────────────────────
+// A base por tabela já era usada desde a rodada 2. O que faltava era a
+// rolagem de verdade, e o contrato dela tem TRÊS partes: dá palavra nova
+// quando a semente muda, dá a MESMA quando a semente não muda, e nunca
+// inventa palavra fora do GLOSSES.
+
+test('a mesma semente devolve exatamente a mesma recompensa', () => {
+  setChapterSeed(12345);
+  const antes = JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words));
+  setChapterSeed(12345);
+  const depois = JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words));
+  assert.equal(antes, depois, 'a recompensa não pode mudar entre recargas nem entre abas');
+});
+
+test('sementes diferentes dão recompensas diferentes (o que faz o capítulo valer a repetição)', () => {
+  setChapterSeed(1);
+  const um = JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words));
+  setChapterSeed(2);
+  const dois = JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words));
+  setChapterSeed(3);
+  const tres = JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words));
+  const distintos = new Set([um, dois, tres]).size;
+  assert.equal(distintos, 3, 'três sementes têm de dar três recopensas diferentes');
+});
+
+test('cada fragmento sorteia 3 palavras do seu próprio pool, sem repetir dentro dele', () => {
+  setChapterSeed(777);
+  for (const quest of CHAPTER2.quests) {
+    const words = quest.reward.words;
+    assert.equal(words.length, 3, `${quest.id} paga 3 palavras`);
+    assert.equal(new Set(words).size, 3, `${quest.id} não repete palavra`);
+    for (const word of words) {
+      assert.ok(Object.hasOwn(GLOSSES, word), `${quest.id}: "${word}" precisa existir em GLOSSES`);
+      for (const language of ['pt', 'en', 'es']) {
+        assert.ok(GLOSSES[word][language]?.trim(), `${quest.id}/${word}.${language} não pode vir vazio`);
+      }
+    }
+  }
+});
+
+test('os 4 fragmentos não saem com a mesma sequência', () => {
+  // Sem o hash por fragmento, os quatro sorteiam do mesmo PRNG com a mesma
+  // semente e saem idênticos — o primeiro fragmento repetiria os outros.
+  setChapterSeed(4242);
+  const sequencias = CHAPTER2.quests.map((q) => q.reward.words.join('|'));
+  assert.equal(new Set(sequencias).size, 4, 'cada fragmento tem a sua sequência');
+});
+
+test('a rolagem é estável ao longo de muitas leituras seguidas', () => {
+  // main.js lê CHAPTER2.quests em vários lugares (HUD, menu de oferta, fim de
+  // capítulo). Se cada leitura sorteasse de novo, a menina veria uma palavra
+  // na HUD e outra no diálogo.
+  setChapterSeed(31337);
+  const primeira = JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words));
+  for (let i = 0; i < 25; i += 1) {
+    assert.equal(JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words)), primeira, `leitura ${i} mudou`);
+  }
+});
+
+test('rollChapterSeed devolve semente nova e é o que o boot usa na primeira vez', () => {
+  const uma = rollChapterSeed();
+  const outra = rollChapterSeed();
+  assert.ok(Number.isInteger(uma) && uma >= 0);
+  assert.ok(Number.isInteger(outra) && outra >= 0);
+  assert.equal(getChapterSeed(), outra, 'a semente ativa passa a ser a última sorteada');
+});
+
+test('setChapterSeed ignora semente invalida em vez de quebrar o capitulo', () => {
+  // try/catch explicito em vez de assert.doesNotThrow: o segundo argumento
+  // dessa funcao muda de significado conforme o tipo (validador, RegExp ou
+  // mensagem), e um teste sobre "isto nao lanca" nao deveria depender dessa
+  // ambiguidade para ser legivel.
+  const invalidas = [undefined, null, NaN, 'abc', {}, [], -1, 1.5];
+  for (const valor of invalidas) {
+    let lancou = null;
+    try {
+      setChapterSeed(valor);
+    } catch (erro) {
+      lancou = erro;
+    }
+    assert.equal(lancou, null, `semente ${String(valor)} nao pode lancar`);
+  }
+  setChapterSeed(0);
+  assert.equal(getChapterSeed(), 0, 'semente valida continua valendo depois das invalidas');
 });

@@ -77,97 +77,14 @@ export const CHAPTER2 = {
   // Quatro missões, uma por desafio, uma por fragmento de estrela. A ordem do
   // array é só a sugerida; as quests são independentes e podem ser feitas em
   // qualquer ordem — o progresso vem das flags, nunca da sequência.
-  quests: [
-    {
-      id: 'ch2q1Board',
-      title: { pt: 'A Lousa da Lenda', en: 'The Legend on the Blackboard', es: 'La Leyenda en la Pizarra' },
-      giver: 'willow',
-      zone: 'classroom',
-      offer: [
-        { who: 'willow', text: {
-          pt: 'A lousa acordou com palavras novas hoje! Meu giz dourado passou por aqui à noite — façam a lição e o primeiro fragmento é de vocês.',
-          en: 'The blackboard woke up with new words today! My golden chalk passed by at night — do the lesson and the first fragment is yours.',
-          es: '¡La pizarra amaneció con palabras nuevas hoy! Mi giz dorado pasó por aquí en la noche — hagan la lección y el primer fragmento es de ustedes.',
-        } },
-        { gloss: 'practice' },
-      ],
-      steps: [
-        { id: 'ch2q1s1', type: 'talk', zone: 'classroom', npcId: 'willow', flag: 'ch2Q1Legend',
-          hint: { pt: 'Fale com a Prof. Willow na sala de aula.', en: 'Talk to Prof. Willow in the classroom.', es: 'Habla con la Prof. Willow en el salón de clases.' } },
-        { id: 'ch2q1s2', type: 'solve', zone: 'classroom', target: 'blackboard', flag: 'ch2Q1Board',
-          hint: { pt: 'Toque na lousa e complete a lição até o fim.', en: 'Tap the blackboard and finish the lesson.', es: 'Toca la pizarra y termina la lección.' } },
-      ],
-      // Palavras todas de GLOSSES (content.js); 'star' e 'castle' já são do
-      // tema e 'chapter' celebra o capítulo. challenge vira entrada de
-      // state.challenges via markChallenge (main.js) — 1 por fragmento.
-      reward: { words: ['star', 'castle', 'chapter'], challenge: 'ch2Star1' },
-    },
-    {
-      id: 'ch2q2Memory',
-      title: { pt: 'O Segredo da Biblioteca', en: 'The Library Secret', es: 'El Secreto de la Biblioteca' },
-      giver: 'page',
-      zone: 'school',
-      offer: [
-        { who: 'page', text: {
-          pt: 'Uma estrela? Que delícia! Este livro de historinhas tem páginas que brilham… um jogo da memória, meus queridos — as cartas lembram o céu daquela noite.',
-          en: 'A star? How lovely! This storybook has pages that glow… a memory game, my dears — the cards remember the sky of that night.',
-          es: '¿Una estrella? ¡Qué encanto! Este cuentito tiene páginas que brillan… un juego de memoria, queridos — las cartas recuerdan el cielo de aquella noche.',
-        } },
-        { gloss: 'story' },
-      ],
-      steps: [
-        { id: 'ch2q2s1', type: 'talk', zone: 'school', npcId: 'page', flag: 'ch2Q2Page',
-          hint: { pt: 'Fale com a Sra. Page na biblioteca da escola.', en: 'Talk to Ms Page in the school library.', es: 'Habla con la Sra. Page en la biblioteca de la escuela.' } },
-        { id: 'ch2q2s2', type: 'play', zone: 'school', target: 'memoryLibrary', flag: 'memoryDone',
-          hint: { pt: 'Jogue a Memória da Biblioteca e repita as sequências.', en: 'Play Library Memory and repeat the sequences.', es: 'Juega a la Memoria de la Biblioteca y repite las secuencias.' } },
-      ],
-      reward: { words: ['quiet', 'borrow', 'story'], challenge: 'ch2Star2' },
-    },
-    {
-      id: 'ch2q3Letter',
-      title: { pt: 'A Carta sem Endereço', en: 'The Letter with No Address', es: 'La Carta sin Dirección' },
-      giver: 'baker',
-      zone: 'highstreet',
-      offer: [
-        { who: 'baker', text: {
-          pt: 'Fragmentos de estrela? Pois o correio recebeu uma carta sem endereço, com um selo dourado. Papel assim não se joga fora — leiam em inglês!',
-          en: 'Star fragments? Well, the post box received a letter with no address and a golden stamp. Paper like that is never thrown away — read it in English!',
-          es: '¿Fragmentos de estrella? Pues el buzón recibió una carta sin dirección y con sello dorado. ¡Papel así no se bota — léanlo en inglés!',
-        } },
-        { gloss: 'letter' },
-      ],
-      steps: [
-        { id: 'ch2q3s1', type: 'talk', zone: 'highstreet', npcId: 'baker', flag: 'ch2Q3Baker',
-          hint: { pt: 'Fale com o Sr. Crumb na padaria da High Street.', en: 'Talk to Mr Crumb at the High Street bakery.', es: 'Habla con el Sr. Crumb en la panadería de la High Street.' } },
-        { id: 'ch2q3s2', type: 'play', zone: 'highstreet', target: 'postOffice', flag: 'dictation2',
-          hint: { pt: 'Escreva em inglês a carta do selo dourado, no correio.', en: 'Write the golden-stamp letter in English at the post box.', es: 'Escribe en inglés la carta del sello dorado, en el buzón.' } },
-      ],
-      reward: { words: ['letter', 'answer', 'bakery'], challenge: 'ch2Star3' },
-    },
-    {
-      id: 'ch2q4Duel',
-      title: { pt: 'O Duelo da Estrela', en: 'The Star Duel', es: 'El Duelo de la Estrella' },
-      giver: 'raven',
-      zone: 'academy',
-      offer: [
-        { who: 'raven', text: {
-          pt: 'A estrela caiu e vocês querem os fragmentos? Só bruxos de diário cheio! Vençam meu duelo de feitiços — e a mata contará o resto.',
-          en: 'The star fell and you want its fragments? Only wizards with a full journal! Win my spell duel — and the woods will tell you the rest.',
-          es: '¿La estrella cayó y quieren sus fragmentos? ¡Solo brujos de diario lleno! ¡Ganen mi duelo de hechizos — y el bosque les contará el resto!',
-        } },
-        { gloss: 'spell' },
-      ],
-      steps: [
-        { id: 'ch2q4s1', type: 'talk', zone: 'academy', npcId: 'raven', flag: 'ch2Q4Raven',
-          hint: { pt: 'Desafie a Prof. Raven na Academia Owlburt.', en: 'Challenge Prof. Raven at Owlburt Academy.', es: 'Desafía a la Prof. Raven en la Academia Owlburt.' } },
-        { id: 'ch2q4s2', type: 'solve', zone: 'academy', target: 'duel', flag: 'duelWon',
-          hint: { pt: 'Vença o duelo de feitiços: 3 palavras no diário, 2 acertos.', en: 'Win the spell duel: 3 words in the journal, 2 right answers.', es: 'Gana el duelo de hechizos: 3 palabras en el diario, 2 aciertos.' } },
-        { id: 'ch2q4s3', type: 'play', zone: 'woods', target: 'greenChain', flag: 'dictation1',
-          hint: { pt: 'Na placa do Green Chain, na mata, escreva a frase em inglês.', en: 'At the Green Chain sign in the woods, write the sentence in English.', es: 'En el cartel del Green Chain, en el bosque, escribe la frase en inglés.' } },
-      ],
-      reward: { words: ['spell', 'brave', 'magic'], challenge: 'ch2Star4' },
-    },
-  ],
+  // Recompensas roláveis (roadmap 1.1, o "rolável" de verdade).
+  // O comentário longo fica em QUESTS, no fim do arquivo.
+  get quests() {
+    return QUESTS.map((quest) => ({
+      ...quest,
+      reward: { ...quest.reward, words: rollReward(quest.reward.challenge) },
+    }));
+  },
 
   // Fim do capítulo: com as 4 missões fechadas, voltar à torre dispara o
   // último ditado (dictation3 — a frase do "castelo" em games/dictation.js)
@@ -261,3 +178,186 @@ export const CHAPTERS = [CHAPTER2];
 export function chapterById(id) {
   return CHAPTERS.find((chapter) => chapter.id === id) || null;
 }
+
+
+// ── recompensas roláveis (roadmap 1.1) ───────────────────────────────────────
+// A base do capítulo já era TABELA desde a rodada 2: os OBJETIVOS são fixos
+// porque estão amarrados a conteúdo que existe no mundo — não dá para sortear
+// "fale com a Sra. Page" num passo onde a Sra. Page não está.
+//
+// O que dá, e é o que importa para quem joga mais de uma vez, é a RECOMPENSA:
+// cada fragmento de estrela premia 3 palavras, e antes eram sempre as mesmas
+// 12. Refazer o capítulo entregava conteúdo idêntico.
+//
+// A escolha é por POOL temático, não sorteio sobre o glossário inteiro:
+// misturar "dragon" com "socks" numa recompensa de biblioteca estraga o sentido
+// do que a menina está aprendendo ali. As palavras originais de cada fragmento
+// estão no seu pool, então se a semente der a lista antiga o jogo se comporta
+// exatamente como antes.
+//
+// Determinístico de propósito: a semente mora no save, então a recompensa não
+// muda entre recargas nem entre abas. Math.random() aqui daria palavra
+// diferente a cada abertura do menu, e a menina ia achar que o jogo esqueceu
+// o que premiou.
+const REWARD_POOLS = Object.freeze({
+  // Todo palavra aqui é validada contra GLOSSES pelo chapters.test.js — foi ele
+  // que pegou a primeira versão, que tinha 'shelf', 'post', 'stamp', 'duel' e
+  // companhia: palavras que eu supus existirem e não existiam. O vocabulário
+  // disponível é o que é, e o pool se molda a ele.
+  ch2Star1: Object.freeze(['star', 'castle', 'chapter', 'tower', 'ancient', 'peculiar', 'spell', 'wand', 'dragon', 'magic']),
+  ch2Star2: Object.freeze(['quiet', 'borrow', 'story', 'letter', 'library', 'secret', 'book', 'read', 'bookmark', 'paper']),
+  ch2Star3: Object.freeze(['letter', 'answer', 'bakery', 'bread', 'market', 'shop', 'bus', 'train', 'park', 'letter']),
+  ch2Star4: Object.freeze(['spell', 'brave', 'magic', 'wizard', 'hero', 'warm', 'kind', 'grateful', 'excited', 'happy']),
+});
+
+let chapterSeed = 0;
+
+// mulberry32: PRNG de 32 bits, 5 linhas em vez de uma dependência. Mesma
+// semente, mesma sequência — que é o contrato inteiro aqui.
+function seededRandom(seed) {
+  let a = seed >>> 0;
+  return function next() {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = Math.imul(a ^ (a >>> 15), 1 | a);
+    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+// hash estável de string para inteiro, para derivar uma semente por fragmento a
+// partir da semente da partida. Sem isso os 4 fragmentos sairiam iguais.
+function hashOf(text) {
+  let h = 2166136261;
+  for (let i = 0; i < text.length; i += 1) {
+    h ^= text.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
+}
+
+function rollReward(challengeId, count = 3) {
+  const pool = REWARD_POOLS[challengeId];
+  if (!pool) return [];
+  if (pool.length <= count) return pool.slice();
+  const rand = seededRandom(hashOf(`${chapterSeed}:${challengeId}`));
+  // Fisher-Yates parcial: embaralha e corta. Sort com rand() puro dá
+  // embaralhamento torto, então nem chega a ser uniforme.
+  const bag = pool.slice();
+  for (let i = 0; i < count; i += 1) {
+    const j = i + Math.floor(rand() * (bag.length - i));
+    const tmp = bag[i]; bag[i] = bag[j]; bag[j] = tmp;
+  }
+  return bag.slice(0, count);
+}
+
+// Semente da partida. main.js chama uma vez no boot com o valor do save, ou
+// sorteia um novo quando é a primeira vez.
+export function setChapterSeed(seed) {
+  chapterSeed = Number.isFinite(seed) ? seed >>> 0 : 0;
+}
+
+export function getChapterSeed() {
+  return chapterSeed;
+}
+
+// Sorteia semente nova para "recomeçar o capítulo". Separado de propósito:
+// quem chama está escolhendo refazer e precisa do valor de volta, não de um
+// efeito colateral.
+export function rollChapterSeed() {
+  chapterSeed = (Math.floor(Math.random() * 0xffffffff)) >>> 0;
+  return chapterSeed;
+}
+
+// A lista fixa de missões, com a RECOMPENSA original preservada. É a fonte;
+// o getter de CHAPTER2.quests entrega a versão rolada.
+const QUESTS = [
+      {
+        id: 'ch2q1Board',
+        title: { pt: 'A Lousa da Lenda', en: 'The Legend on the Blackboard', es: 'La Leyenda en la Pizarra' },
+        giver: 'willow',
+        zone: 'classroom',
+        offer: [
+          { who: 'willow', text: {
+            pt: 'A lousa acordou com palavras novas hoje! Meu giz dourado passou por aqui à noite — façam a lição e o primeiro fragmento é de vocês.',
+            en: 'The blackboard woke up with new words today! My golden chalk passed by at night — do the lesson and the first fragment is yours.',
+            es: '¡La pizarra amaneció con palabras nuevas hoy! Mi giz dorado pasó por aquí en la noche — hagan la lección y el primer fragmento es de ustedes.',
+          } },
+          { gloss: 'practice' },
+        ],
+        steps: [
+          { id: 'ch2q1s1', type: 'talk', zone: 'classroom', npcId: 'willow', flag: 'ch2Q1Legend',
+            hint: { pt: 'Fale com a Prof. Willow na sala de aula.', en: 'Talk to Prof. Willow in the classroom.', es: 'Habla con la Prof. Willow en el salón de clases.' } },
+          { id: 'ch2q1s2', type: 'solve', zone: 'classroom', target: 'blackboard', flag: 'ch2Q1Board',
+            hint: { pt: 'Toque na lousa e complete a lição até o fim.', en: 'Tap the blackboard and finish the lesson.', es: 'Toca la pizarra y termina la lección.' } },
+        ],
+        // Palavras todas de GLOSSES (content.js); 'star' e 'castle' já são do
+        // tema e 'chapter' celebra o capítulo. challenge vira entrada de
+        // state.challenges via markChallenge (main.js) — 1 por fragmento.
+        reward: { words: ['star', 'castle', 'chapter'], challenge: 'ch2Star1' },
+      },
+      {
+        id: 'ch2q2Memory',
+        title: { pt: 'O Segredo da Biblioteca', en: 'The Library Secret', es: 'El Secreto de la Biblioteca' },
+        giver: 'page',
+        zone: 'school',
+        offer: [
+          { who: 'page', text: {
+            pt: 'Uma estrela? Que delícia! Este livro de historinhas tem páginas que brilham… um jogo da memória, meus queridos — as cartas lembram o céu daquela noite.',
+            en: 'A star? How lovely! This storybook has pages that glow… a memory game, my dears — the cards remember the sky of that night.',
+            es: '¿Una estrella? ¡Qué encanto! Este cuentito tiene páginas que brillan… un juego de memoria, queridos — las cartas recuerdan el cielo de aquella noche.',
+          } },
+          { gloss: 'story' },
+        ],
+        steps: [
+          { id: 'ch2q2s1', type: 'talk', zone: 'school', npcId: 'page', flag: 'ch2Q2Page',
+            hint: { pt: 'Fale com a Sra. Page na biblioteca da escola.', en: 'Talk to Ms Page in the school library.', es: 'Habla con la Sra. Page en la biblioteca de la escuela.' } },
+          { id: 'ch2q2s2', type: 'play', zone: 'school', target: 'memoryLibrary', flag: 'memoryDone',
+            hint: { pt: 'Jogue a Memória da Biblioteca e repita as sequências.', en: 'Play Library Memory and repeat the sequences.', es: 'Juega a la Memoria de la Biblioteca y repite las secuencias.' } },
+        ],
+        reward: { words: ['quiet', 'borrow', 'story'], challenge: 'ch2Star2' },
+      },
+      {
+        id: 'ch2q3Letter',
+        title: { pt: 'A Carta sem Endereço', en: 'The Letter with No Address', es: 'La Carta sin Dirección' },
+        giver: 'baker',
+        zone: 'highstreet',
+        offer: [
+          { who: 'baker', text: {
+            pt: 'Fragmentos de estrela? Pois o correio recebeu uma carta sem endereço, com um selo dourado. Papel assim não se joga fora — leiam em inglês!',
+            en: 'Star fragments? Well, the post box received a letter with no address and a golden stamp. Paper like that is never thrown away — read it in English!',
+            es: '¿Fragmentos de estrella? Pues el buzón recibió una carta sin dirección y con sello dorado. ¡Papel así no se bota — léanlo en inglés!',
+          } },
+          { gloss: 'letter' },
+        ],
+        steps: [
+          { id: 'ch2q3s1', type: 'talk', zone: 'highstreet', npcId: 'baker', flag: 'ch2Q3Baker',
+            hint: { pt: 'Fale com o Sr. Crumb na padaria da High Street.', en: 'Talk to Mr Crumb at the High Street bakery.', es: 'Habla con el Sr. Crumb en la panadería de la High Street.' } },
+          { id: 'ch2q3s2', type: 'play', zone: 'highstreet', target: 'postOffice', flag: 'dictation2',
+            hint: { pt: 'Escreva em inglês a carta do selo dourado, no correio.', en: 'Write the golden-stamp letter in English at the post box.', es: 'Escribe en inglés la carta del sello dorado, en el buzón.' } },
+        ],
+        reward: { words: ['letter', 'answer', 'bakery'], challenge: 'ch2Star3' },
+      },
+      {
+        id: 'ch2q4Duel',
+        title: { pt: 'O Duelo da Estrela', en: 'The Star Duel', es: 'El Duelo de la Estrella' },
+        giver: 'raven',
+        zone: 'academy',
+        offer: [
+          { who: 'raven', text: {
+            pt: 'A estrela caiu e vocês querem os fragmentos? Só bruxos de diário cheio! Vençam meu duelo de feitiços — e a mata contará o resto.',
+            en: 'The star fell and you want its fragments? Only wizards with a full journal! Win my spell duel — and the woods will tell you the rest.',
+            es: '¿La estrella cayó y quieren sus fragmentos? ¡Solo brujos de diario lleno! ¡Ganen mi duelo de hechizos — y el bosque les contará el resto!',
+          } },
+          { gloss: 'spell' },
+        ],
+        steps: [
+          { id: 'ch2q4s1', type: 'talk', zone: 'academy', npcId: 'raven', flag: 'ch2Q4Raven',
+            hint: { pt: 'Desafie a Prof. Raven na Academia Owlburt.', en: 'Challenge Prof. Raven at Owlburt Academy.', es: 'Desafía a la Prof. Raven en la Academia Owlburt.' } },
+          { id: 'ch2q4s2', type: 'solve', zone: 'academy', target: 'duel', flag: 'duelWon',
+            hint: { pt: 'Vença o duelo de feitiços: 3 palavras no diário, 2 acertos.', en: 'Win the spell duel: 3 words in the journal, 2 right answers.', es: 'Gana el duelo de hechizos: 3 palabras en el diario, 2 aciertos.' } },
+          { id: 'ch2q4s3', type: 'play', zone: 'woods', target: 'greenChain', flag: 'dictation1',
+            hint: { pt: 'Na placa do Green Chain, na mata, escreva a frase em inglês.', en: 'At the Green Chain sign in the woods, write the sentence in English.', es: 'En el cartel del Green Chain, en el bosque, escribe la frase en inglés.' } },
+        ],
+        reward: { words: ['spell', 'brave', 'magic'], challenge: 'ch2Star4' },
+      },
+];

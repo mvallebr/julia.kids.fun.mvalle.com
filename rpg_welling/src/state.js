@@ -52,6 +52,10 @@ export function emptyState() {
     duelWins: 0, // total de duelos vencidos (conta medalhas da Academia)
     achievements: [], // ids permanentes de conquistas já conquistadas
     settings: { textScale: 'normal', ambience: true }, // preferências da tela de opções
+    // semente da rolagem de recompensas do capítulo 2 (chapters.js, roadmap 1.1).
+    // Fica no save para a recompensa não mudar entre recargas nem entre abas:
+    // 0 = ainda não sorteada, e o boot sorteia e grava na primeira vez.
+    chapter2Seed: 0,
   };
 }
 
@@ -72,6 +76,9 @@ export function normalizeState(value = {}) {
       if (typeof key === 'string' && key.length <= 40) state.flags[key] = Boolean(flag);
     }
   }
+  // semente: inteiro sem sinal de 32 bits; qualquer outra coisa vira 0 (= sorteia)
+  state.chapter2Seed = Number.isInteger(source.chapter2Seed) && source.chapter2Seed >= 0
+    ? source.chapter2Seed >>> 0 : 0;
   state.clues = (Array.isArray(source.clues) ? source.clues : [])
     .filter((id) => typeof id === 'string' && id.length <= 40).slice(0, 50);
   // filtrar por ACHIEVEMENT_IDS já impõe o mesmo teto: o slice era redundante

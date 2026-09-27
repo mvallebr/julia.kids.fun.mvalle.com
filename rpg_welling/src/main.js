@@ -17,7 +17,7 @@ import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz, practice
 import { ACHIEVEMENTS, achievementById, evaluateAchievements } from './achievements.js';
 import { trapFocus, openModalStack, shouldReduceMotion } from './a11y.js';
 import { normalizeSettings, renderOptionsPanel } from './options.js';
-import { CHAPTER2, chapterProgress, nextQuest, nextStep, isQuestComplete } from './chapters.js';
+import { CHAPTER2, chapterProgress, nextQuest, nextStep, isQuestComplete, setChapterSeed, rollChapterSeed } from './chapters.js';
 import { createMemoryGame } from './games/memory.js';
 import { createDictation, DICTATION_PHRASES, DICTATION_FLAGS } from './games/dictation.js';
 import { createPenalty } from './games/penalty.js';
@@ -35,6 +35,15 @@ const player = (params.get('name') || 'Exploradora').trim().slice(0, 32);
 const warp = ['woods', 'school', 'highstreet', 'academy', 'classroom'].includes(params.get('zone')) ? params.get('zone') : null;
 
 let state = loadState(localStorage, player);
+// Semente da rolagem de recompensas do capítulo 2 (roadmap 1.1). A primeira
+// vez sorteia e já GRAVA, para a menina ver a mesma recompensa na próxima
+// sessão; daqui em diante o save manda. Math.random() aqui seria seguro
+// justamente por isso — só roda quando o save ainda não tem semente.
+if (!state.chapter2Seed) {
+  state = { ...state, chapter2Seed: rollChapterSeed() };
+  saveState(localStorage, player, state);
+}
+setChapterSeed(state.chapter2Seed);
 // idioma: escolha no HUD (persistida por jogadora) > param do launcher > pt
 const paramLanguage = ['pt', 'en', 'es'].includes(params.get('language')) ? params.get('language') : null;
 const language = ['pt', 'en', 'es'].includes(state.language) ? state.language : (paramLanguage || 'pt');
