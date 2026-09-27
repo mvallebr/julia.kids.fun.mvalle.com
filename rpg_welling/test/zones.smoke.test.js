@@ -40,10 +40,12 @@ const EXPECTED_COLLIDERS = {
       { minX: -12.8, maxX: -10.0, minZ: -9.5, maxZ: -4.0 },
       // terraço leste: bookshop, com o BECO da academia (5.9, -3) livre depois
       { minX: 10.0, maxX: 12.8, minZ: -14, maxZ: -3.6 },
-      // caixa de correio real da Royal Mail em frente ao Post Office
-      { minX: -3.62, maxX: -2.98, minZ: 0.98, maxZ: 1.62 },
+      // caixa de correio real da Royal Mail em frente ao Post Office. Ficava
+      // em x −3,3, no meio da pista e a quatro metros da própria caixa; a
+      // auditoria de alcance pegou, os testes só garantem que o valor existe.
+      { minX: -7.62, maxX: -6.98, minZ: 0.98, maxZ: 1.62 },
       // banco com a página escondida (clueBench) continua bloqueando
-      { minX: -3.2, maxX: -2.6, minZ: 4.15, maxZ: 5.85 },
+      { minX: -8.9, maxX: -8.3, minZ: 4.15, maxZ: 5.85 },
     ],
   },
   academy: {

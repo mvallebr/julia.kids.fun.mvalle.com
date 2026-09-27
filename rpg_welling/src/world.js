@@ -2095,7 +2095,7 @@ export function buildHighStreet(scene) {
     sun: { color: 0xffe2b0, intensity: 1.8, pos: [6, 15, 8] },
     background: 0x7ab8d8,
     fog: [0x7ab8d8, 40, 130],
-    npcSpots: { baker: [2.2, -6] },
+    npcSpots: { baker: [-8.6, -6.9] },
     // saídas: sul → woods, norte → school (mundo semi-aberto, anda-e-entra)
     exits: [
       { x: 0, z: 15.4, radius: 1.6, target: 'woods', spawn: [0, -14], flag: 'gateOpen' },
@@ -2594,10 +2594,13 @@ export function buildHighStreet(scene) {
       leg.castShadow = true;
       scene.add(leg);
     }
-    addCollider(x, z, 0.85, 0.3);
+    // o colisor gira junto com o banco: um retangulo fixo de 1,7 em X estava
+    // deitado atravessado quando o banco olhava para a rua
+    addCollider(x, z, Math.abs(Math.cos(ry)) * 0.85 + Math.abs(Math.sin(ry)) * 0.3,
+      Math.abs(Math.sin(ry)) * 0.85 + Math.abs(Math.cos(ry)) * 0.3);
   };
-  bench(-5.4, 6.2, 0);
-  bench(5.6, -8.4, Math.PI);
+  bench(-8.9, 6.2, Math.PI / 2);
+  bench(8.9, -8.4, Math.PI / 2);
 
   // lixeira: corpo de madeira escura com tampa, a cor das ruaenglish
   const bin = (x, z) => {
@@ -2610,9 +2613,9 @@ export function buildHighStreet(scene) {
     scene.add(lid);
     addCollider(x, z, 0.3, 0.3);
   };
-  bin(-5.1, 2.4);
-  bin(5.3, -4.2);
-  bin(2.9, 12.4);
+  bin(-8.3, 2.4);
+  bin(8.3, -4.2);
+  bin(8.4, 12.4);
 
   // floreira de rua: caixa de madeira com terra e tres flores
   const planter = (x, z) => {
@@ -2636,14 +2639,14 @@ export function buildHighStreet(scene) {
     }
     addCollider(x, z, 0.45, 0.45);
   };
-  planter(-4.2, 8.8);
-  planter(4.4, 3.4);
-  planter(-2.8, -12.2);
-  planter(3.6, -2.2);
+  planter(-8.3, 8.8);
+  planter(8.3, 3.4);
+  planter(-8.3, -12.2);
+  planter(8.3, -2.2);
 
   // balizadores na guia:piped yellow-black, o classico inglez. Baixos de
   // proposito — a menina passa entre eles e nao podem virar parede.
-  for (const [bx, bz] of [[-4.4, 14.2], [4.4, 14.2], [-4.4, 10.4], [4.4, 10.4], [-4.4, -14.2], [4.4, -14.2]]) {
+  for (const [bx, bz] of [[-7.4, 14.2], [7.4, 14.2], [-7.4, 10.4], [7.4, 10.4], [-7.4, -14.2], [7.4, -14.2]]) {
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.11, 0.86, 8), mat(0x2b2b2b));
     post.position.set(bx, 0.43, bz);
     post.castShadow = true;
@@ -2656,7 +2659,7 @@ export function buildHighStreet(scene) {
 
   // suporte de bicicletas com duas bicicletas
   {
-    const rackX = 4.2, rackZ = 7.6;
+    const rackX = 8.5, rackZ = 7.6;
     const bar = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.06, 0.06), mat(0x6f6f74));
     bar.position.set(rackX, 0.62, rackZ);
     scene.add(bar);
@@ -2741,7 +2744,10 @@ export function buildHighStreet(scene) {
     const slot = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.05, 0.05), mat(0x1a1a22));
     slot.position.set(-8.37, 0.92, 1.3);
     scene.add(slot);
-    addCollider(-3.3, 1.3, 0.32, 0.32);
+    // O colisor ficava em x = −3,3 e a caixa em x = −7,3: quatro metros de
+    // distância, com o colisor plantado no MEIO DA PISTA. Além de não bater em
+    // nada, ele empurrava quem tentasse contornar a caixa de correio.
+    addCollider(-7.3, 1.3, 0.32, 0.32);
   }
   // cabine telefônica vermelha (K6) em frente ao Costa
   {
@@ -2759,7 +2765,10 @@ export function buildHighStreet(scene) {
     const top = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.4, 0.86), mat(0xb3202a));
     top.position.set(7.4, 2.25, 7.1);
     scene.add(top);
-    addCollider(3.4, 7.1, 0.48, 0.48);
+    // a cabine K6 está em x = 7,4 (calçada) desde a remodelação; o colisor
+    // ficou em 3,4, no meio da pista — o mesmo desvio de 4 m da caixa de
+    // correio, e a mesma classe de bug: a malha muda de lugar, o colisor não
+    addCollider(7.4, 7.1, 0.48, 0.48);
   }
   // postes de mão do Welling Corner (HIGH ST / BELLEGROVE RD / STATION RD)
   {
@@ -2775,7 +2784,7 @@ export function buildHighStreet(scene) {
       arm.rotation.y = ry + Math.PI / 2;
       scene.add(arm);
     }
-    addCollider(-2.6, 9.8, 0.14, 0.14);
+    addCollider(-8.23, 9.8, 0.14, 0.14);
   }
   // placa de chegada quem vem da escola (saída sul)
   {
@@ -2789,7 +2798,7 @@ export function buildHighStreet(scene) {
       post.position.set(px, 0.55, -15.0);
       scene.add(post);
     }
-    addCollider(2.7, -15.0, 0.2, 0.15);
+    addCollider(8.26, -15.0, 0.2, 0.15);
   }
   // faixa de pedestres (zebra) + Belisha beacons no sul da rua
   {
@@ -2858,7 +2867,7 @@ export function buildHighStreet(scene) {
   }
 
   // bancos
-  for (const [bx, bz, ry] of [[-2.9, 5, Math.PI / 2], [2.9, -4, -Math.PI / 2]]) {
+  for (const [bx, bz, ry] of [[-8.6, 5, Math.PI / 2], [8.6, -4, -Math.PI / 2]]) {
     const bench = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 1.6), mat(0x6b4a2a));
     bench.position.set(bx, 0.21, bz);
     bench.rotation.y = ry;
@@ -2871,7 +2880,7 @@ export function buildHighStreet(scene) {
   const bakeryCounter = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.9, 0.7), mat(0x8a5a34));
   bakeryCounter.position.set(-2.2, 0.45, -5.9);
   scene.add(bakeryCounter);
-  addInteract('orderBun', -2.2, -5.2, 1.6);
+  addInteract('orderBun', -8.6, -5.4, 1.8);
   addInteract('wordsHighStreet', 8.6, -4.0, 1.4);
   // 11 ancoras novas de vocabulario (rodada 4, 1.2): as 45 glosas que existiam
   // no diario e nao tinham caminho. Todas perto da ancora antiga desta zona,
@@ -2882,14 +2891,19 @@ export function buildHighStreet(scene) {
   addInteract('crossing', -8.6, 7.4, 1.4);
 
   // ponto de conversa do padeiro
-  addInteract('baker', 2.2, -6, 1.7);
+  addInteract('baker', -8.6, -6.9, 1.9);
 
   // lojas da rua viram ponto de vocabulário (story / letter / tea)
-  addInteract('bookshop', 4.3, -5.6, 1.4);
-  addInteract('postOffice', -4.1, -0.4, 1.4);
-  addInteract('teaRoom', 4.1, -0.4, 1.4);
+  addInteract('bookshop', 8.6, -5.6, 1.6);
+  // Na calçada, em frente à porta do Post Office (fachada em x = −10, guia em
+  // x = −7). Estava em (−4,1), ou seja no meio da faixa de rolamento — e o
+  // ônibus vermelho parava em cima do ponto, com o colisor dele cobrindo a área
+  // toda: a conversa do Post Office ficava INALCANÇÁVEL. Achado pela auditoria
+  // de alcance, não pelos testes, que só checam que existe e é válido.
+  addInteract('postOffice', -8.6, -0.4, 1.6);
+  addInteract('teaRoom', 8.6, -0.4, 1.6);
   // página escondida no banco da esquerda
-  addInteract('clueBench', -2.9, 4.3, 1.2);
+  addInteract('clueBench', -8.4, 4.3, 1.5);
   glowSprite(scene, zone, 0xfff3b0, 0.8, -2.9, 1.0, 5, { opacity: 0.4, amp: 0.2, speed: 2.4 });
 
   zone.update = (dt, t) => {
@@ -2987,7 +3001,11 @@ export function buildAcademy(scene) {
   // página escondida junto à torre
   addInteract('clueScroll', 4.2, -8.6, 1.3);
   addInteract('wordsAcademy', -4.0, -9.4, 1.4);
-  addInteract('duelArena', -4.0, -11.0, 1.4);
+  // DENTRO do prédio da academia: a âncora estava em (−4, −11) e o bloco
+  // ocupa x −5..5, z −14..−10. A menina nunca conseguiu chegar, e a palavra
+  // "arena" ficava sem dono. Ancorada no pátio, ao lado do ringue de duelo que
+  // é o que ela nomeia. Bug antigo, encontrado pela auditoria de alcance.
+  addInteract('duelArena', 0, -5.4, 1.6);
   glowSprite(scene, zone, 0xfff3b0, 0.8, 4.2, 1.0, -8.6, { opacity: 0.4, amp: 0.2, speed: 2.4 });
 
   zone.update = (dt, t) => {
@@ -3613,23 +3631,32 @@ export function buildWoods(scene) {
     // fileiras de mesas, como na foto: CAPA é a cor do panda (verde-petróleo,
     // que é o que se vê na foto 3), e o guarda-sol entra a cada duas mesas
     const CAPA = 0x2f4238;
+    // Fileiras no SUL, na frente da porta. A primeira versão do terraço ficou
+    // no NORTE, que era o lado certo enquanto o prédio olhava para o norte; ao
+    // virar o prédio para o sul (que é de onde a menina chega) o terraço ficou
+    // nas costas da entrada. E, pior, as mesas cercaram o ponto de conversa do
+    // café: a menina não tinha nem um canto livre dentro do raio de 2,4 m e a
+    // conversa ficava inalcançável. Auditoria de alcance, achado em runtime.
     const fileiras = [
-      [-1.6, 14.6, 0x2f4238], [1.6, 14.6, 0x2f4238],
-      [-1.6, 12.6, 0x6b4a2a], [1.6, 12.6, 0x6b4a2a],
-      [-4.6, 13.6, 0x2f4238], [4.6, 13.6, 0x2f4238],
-      [-1.6, 10.6, 0x6b4a2a], [1.6, 10.6, 0x6b4a2a],
+      [-1.7, 24.6, 0x2f4238], [1.7, 24.6, 0x2f4238],
+      [-1.7, 26.6, 0x6b4a2a], [1.7, 26.6, 0x6b4a2a],
+      [-4.8, 25.6, 0x2f4238], [4.8, 25.6, 0x2f4238],
+      [-1.7, 28.6, 0x6b4a2a], [1.7, 28.6, 0x6b4a2a],
     ];
     for (const [ox, oz, tinta] of fileiras) piquenique(CA + ox, oz, tinta);
     for (const [gx, gz, cor] of [
-      [-3.1, 13.6, 0xc0392b], [3.1, 13.6, 0xdedad0],
-      [0, 11.6, 0x3a6ea8], [0, 15.4, 0xdedad0],
+      [-3.2, 25.6, 0xc0392b], [3.2, 25.6, 0xdedad0],
+      [0, 27.6, 0x3a6ea8], [0, 23.4, 0xdedad0],
     ]) guardaSol(CA + gx, gz, cor);
 
     // guarda-corpo na borda do terraço: é ele que avisa "aqui o chão acaba"
+    // A borda do terraço é a SUL, porque a cúpula é centrada no café e o chão cai
+    // para os dois lados: placing o guarda-corpo ao norte punha uma cerca no meio
+    // do gramado, longe de qualquer queda, e a borda de verdade ficava livre.
     for (const [ax, az, bx, bz] of [
-      [CA - 7, 9.6, CA + 7, 9.6],
-      [CA - 7, 9.6, CA - 7, 16.4],
-      [CA + 7, 9.6, CA + 7, 16.4],
+      [CA - 7, 30.4, CA + 7, 30.4],
+      [CA - 7, 22.6, CA - 7, 30.4],
+      [CA + 7, 22.6, CA + 7, 30.4],
     ]) {
       const meioX = (ax + bx) / 2, meioZ = (az + bz) / 2;
       const comp = Math.hypot(bx - ax, bz - az);
@@ -3653,7 +3680,8 @@ export function buildWoods(scene) {
       }
     }
   }
-  addInteract('woodCafe', CA - 1.9, 16.4, 2.4);
+  // no VAO entre as duas fileiras do meio, e não em cima de mesa nenhuma
+  addInteract('woodCafe', CA, 25.6, 2.6);
 
   // ── a campina do café (geografia real) ─────────────────────────────────────
   // Oxleas Wood Café não fica dentro da mata fechada: fica nas Oxleas Meadows,
@@ -3728,6 +3756,11 @@ export function buildWoods(scene) {
   // A escala vai para a GEOMETRIA, e não para o mesh: `deitarNoTerreno` deriva o
   // XZ de cada vértice dos próprios coordenadas locais, e com `mesh.scale` no
   // caminho o mundo saía deslocado e o lago aterrissava fora do lugar.
+  // COLISOR da água. Sem ele a menina atravessava o lago a pé e ficava dentro
+  // d'água — e agora isso é visível, porque a água está nivelada no fundo da
+  // cavidade e ela realmente afunda. A área é um pouco menor que o disco, para
+  // dar pra chegar na margem sem ficar em cima da lâmina.
+  addCollider(scene, LAKE_X, LAKE_Z, 7.2, 4.2);
   // disco CHATO de novo, agora no fundo da cavidade: é o que a água parada faz
   const pondWater = new THREE.Mesh(new THREE.CircleGeometry(3.4, 28).scale(1.25, 1, 0.8), glowMat(0x4f8fc8, 0.85));
   pondWater.rotation.x = -Math.PI / 2;
@@ -3755,7 +3788,10 @@ export function buildWoods(scene) {
     scene.add(duckBill);
   }
   const pondBench = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.42, 1.7), mat(0x6b4a2a));
-  pondBench.position.set(-10.2, heightAt(-10.2, 27.5) + 0.21, 27.5);
+  // o banco fica FORA da agua. A cavidade do lago mudou a altura do chão em
+  // volta dele, e na posição antiga (-10,2) ele ficava a 1 cm da lâmina d'água,
+  // com as pernas dentro. Agora está na margem, do lado de fora do disco.
+  pondBench.position.set(-11.6, heightAt(-11.6, 27.5) + 0.21, 27.5);
   pondBench.castShadow = true;
   scene.add(pondBench);
   addCollider(scene, -10.2, 27.5, 0.3, 0.9);

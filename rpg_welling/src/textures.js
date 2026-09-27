@@ -150,6 +150,13 @@ export function box(parent, w, h, d, color, x, y, z, { collider, rotY = 0, cast 
   return mesh;
 }
 
+// ATENÇÃO — esta é a pegadinha do arquivo: aqui `w` e `d` são o TAMANHO
+// inteiro e a função divide por dois. Três zonas (highstreet, classroom e
+// outra) definem um `addCollider` LOCAL whose parameters are named `hw, hd`
+// and are HALF-extents. As duas convenções convivem no mesmo arquivo e já
+// custaram dois bugs: o collider do café ficou com metade da largura do prédio,
+// e o valor do teste da caixa de correio saiu pela metade. Ao chamar, confira
+// qual dos dois está em escopo.
 export function addCollider(parent, x, z, w, d) {
   const list = parent.userData.zone?.colliders;
   if (list) list.push({ minX: x - w / 2, maxX: x + w / 2, minZ: z - d / 2, maxZ: z + d / 2 });
