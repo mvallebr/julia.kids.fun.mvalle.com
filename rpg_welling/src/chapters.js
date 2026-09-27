@@ -236,7 +236,7 @@ function hashOf(text) {
 }
 
 function rollReward(challengeId, count = 3) {
-  const pool = REWARD_POOLS[challengeId];
+  const pool = REWARD_POOLS[challengeId] || REWARD_POOLS_CH3[challengeId];
   if (!pool) return [];
   if (pool.length <= count) return pool.slice();
   const rand = seededRandom(hashOf(`${chapterSeed}:${challengeId}`));
@@ -361,3 +361,168 @@ const QUESTS = [
         reward: { words: ['spell', 'brave', 'magic'], challenge: 'ch2Star4' },
       },
 ];
+
+// ── Capítulo 3: "O Jardim Secreto" (roadmap 1.3) ─────────────────────────────
+// Mesmo esquema de tabela do capítulo 2, e de propósito: o runner em main.js é
+// genérico desde a rodada 2, então um capítulo novo é DADO, não motor.
+//
+// A oferta sai da Prof. Willow depois de `ch2Done`: a estrela voltou ao topo da
+// torre e desceu com o desenho de um jardim que ninguém sabia que existia
+// atrás da escola. Quatro missões, uma por lugar, e o prêmio muda de forma —
+// o capítulo 2 pagava fragmento de ESTRELA, este paga SEMENTE, porque o que a
+// menina faz aqui é plantar coisa.
+//
+// Alvos: todos já são interactables que existem no mundo (world.js). Nenhuma
+// geometria nova e nenhum minigame novo: `garden`, `teaRoom`, `outdoorGym` e
+// `globe` já conversavam com a coruja, aqui viram objetivo. Flags com prefixo
+// `ch3`; nenhuma herdada.
+//
+// Recompensa rolável como no capítulo 2 (roadmap 1.1), com pools de jardim.
+const QUESTS_CH3 = [
+  {
+    id: 'ch3q1Greenhouse',
+    title: { pt: 'A Porta da Horta', en: 'The Garden Door', es: 'La Puerta del Huerto' },
+    giver: 'finch',
+    zone: 'school',
+    offer: [
+      { who: 'finch', text: {
+        pt: 'Eu cuido da horta há trinta anos e nunca vi essa porta. Se ha um jardim ai, alguem tem que plantar a primeira semente.',
+        en: 'I have looked after the garden for thirty years and never seen that door. If there is a garden back there, somebody has to plant the first seed.',
+        es: 'Llevo treinta anos cuidando el huerto y nunca vi esa puerta. Si hay un jardin ahi, alguien tiene que plantar la primera semilla.',
+      } },
+      { gloss: 'seed' },
+    ],
+    steps: [
+      { id: 'ch3q1s1', type: 'talk', zone: 'school', npcId: 'finch', flag: 'ch3Q1Finch',
+        hint: { pt: 'Fale com o Sr. Finch na escola.', en: 'Talk to Mr Finch at school.', es: 'Habla con el Sr. Finch en la escuela.' } },
+      { id: 'ch3q1s2', type: 'play', zone: 'school', target: 'garden', flag: 'ch3Q1Garden',
+        hint: { pt: 'Abra a porta da horta e plante a primeira semente.', en: 'Open the garden door and plant the first seed.', es: 'Abre la puerta del huerto y planta la primera semilla.' } },
+    ],
+    reward: { words: ['garden', 'greenhouse', 'seed', 'flower'], challenge: 'ch3Seed1' },
+  },
+  {
+    id: 'ch3q2Rain',
+    title: { pt: 'Chuva na Janela', en: 'Rain on the Window', es: 'Lluvia en la Ventana' },
+    giver: 'baker',
+    zone: 'highstreet',
+    offer: [
+      { who: 'baker', text: {
+        pt: 'Choveu a noite toda e o meu cha ficou pronto sozinho. Dizem que quando chove assim, o jardim escondido aparece.',
+        en: 'It rained all night and my tea got itself ready. They say that when it rains like that, the secret garden shows up.',
+        es: 'Llovio toda la noche y mi te se preparo solo. Dicen que cuando llueve asi, aparece el jardin secreto.',
+      } },
+      { gloss: 'rain' },
+    ],
+    steps: [
+      { id: 'ch3q2s1', type: 'talk', zone: 'highstreet', npcId: 'baker', flag: 'ch3Q2Baker',
+        hint: { pt: 'Fale com o Sr. Crumb na padaria da High Street.', en: 'Talk to Mr Crumb at the High Street bakery.', es: 'Habla con el Sr. Crumb en la panaderia de High Street.' } },
+      { id: 'ch3q2s2', type: 'solve', zone: 'highstreet', target: 'teaRoom', flag: 'ch3Q2Tea',
+        hint: { pt: 'Prove o cha no tea room da High Street.', en: 'Taste the tea in the High Street tea room.', es: 'Prueba el te en el tea room de High Street.' } },
+    ],
+    reward: { words: ['rain', 'cloud', 'tea', 'pond'], challenge: 'ch3Seed2' },
+  },
+  {
+    id: 'ch3q3Roots',
+    title: { pt: 'As Raizes Antigas', en: 'The Old Roots', es: 'Las Raices Antiguas' },
+    giver: 'page',
+    zone: 'school',
+    offer: [
+      { who: 'page', text: {
+        pt: 'Trouxe um livro da biblioteca sobre o jardim de uma escola de verdade. As raizes do carvalho batem bem mais fundo do que a gente pensa.',
+        en: 'I brought a library book about a real school garden. The oak roots go much deeper than you would think.',
+        es: 'Traje un libro de la biblioteca sobre el jardin de una escuela de verdad. Las raices del roble llegan mucho mas hondo de lo que uno cree.',
+      } },
+      { gloss: 'roots' },
+    ],
+    steps: [
+      { id: 'ch3q3s1', type: 'talk', zone: 'school', npcId: 'page', flag: 'ch3Q3Page',
+        hint: { pt: 'Fale com a Sra. Page na biblioteca.', en: 'Talk to Ms Page in the library.', es: 'Habla con la Sra. Page en la biblioteca.' } },
+      { id: 'ch3q3s2', type: 'play', zone: 'woods', target: 'outdoorGym', flag: 'ch3Q3Gym',
+        hint: { pt: 'Suba nas barras da academia ao ar livre, na mata.', en: 'Climb the bars at the outdoor gym in the woods.', es: 'Sube a los bars del gimnasio al aire libre, en el bosque.' } },
+    ],
+    reward: { words: ['roots', 'tree', 'leaf', 'climb'], challenge: 'ch3Seed3' },
+  },
+  {
+    id: 'ch3q4Sun',
+    title: { pt: 'O Sol sobre o Jardim', en: 'The Sun over the Garden', es: 'El Sol sobre el Jardin' },
+    giver: 'willow',
+    zone: 'classroom',
+    offer: [
+      { who: 'willow', text: {
+        pt: 'O jardim so aparece para quem sabe para onde olhar. Vamos juntar tudo no globo da biblioteca e ver o sol passar.',
+        en: 'The garden only shows itself to whoever knows where to look. Let us put it all together on the library globe and watch the sun go by.',
+        es: 'El jardin solo se muestra a quien sabe donde mirar. Vamos a juntarlo todo en el globo de la biblioteca y ver pasar el sol.',
+      } },
+      { gloss: 'sun' },
+    ],
+    steps: [
+      { id: 'ch3q4s1', type: 'talk', zone: 'classroom', npcId: 'willow', flag: 'ch3Q4Willow',
+        hint: { pt: 'Fale com a Prof. Willow na sala de aula.', en: 'Talk to Prof. Willow in the classroom.', es: 'Habla con la Prof. Willow en el salon de clases.' } },
+      { id: 'ch3q4s2', type: 'play', zone: 'school', target: 'globe', flag: 'ch3Q4Globe',
+        hint: { pt: 'Gire o globo da biblioteca ate achar o jardim.', en: 'Turn the library globe until you find the garden.', es: 'Gira el globo de la biblioteca hasta encontrar el jardin.' } },
+    ],
+    reward: { words: ['sun', 'sunny', 'moon', 'star'], challenge: 'ch3Seed4' },
+  },
+];
+
+// Pools do capítulo 3 (jardim). Mesma regra do capítulo 2: tudo tem que existir
+// em GLOSSES, e o chapters.test.js confere palavra por palavra.
+const REWARD_POOLS_CH3 = Object.freeze({
+  ch3Seed1: Object.freeze(['garden', 'greenhouse', 'seed', 'flower', 'grass', 'sparkle', 'roots', 'leaf']),
+  ch3Seed2: Object.freeze(['rain', 'cloud', 'cloudy', 'tea', 'duck', 'pond', 'stream', 'grass']),
+  ch3Seed3: Object.freeze(['roots', 'tree', 'leaf', 'climb', 'hill', 'broom', 'green', 'grass']),
+  ch3Seed4: Object.freeze(['sun', 'sunny', 'moon', 'star', 'golden', 'sparkle', 'light', 'bright']),
+});
+
+export const CHAPTER3 = {
+  id: 'chapter3',
+  title: {
+    pt: 'O Jardim Secreto',
+    en: 'The Secret Garden',
+    es: 'El Jardin Secreto',
+  },
+  requiresFlag: 'ch2Done',
+  startFlag: 'ch3Started',
+  // o runner usa isto no texto do brinde, para nao repetir "fragmento de
+  // estrela" num capítulo em que o prêmio é uma semente
+  rewardNoun: { pt: 'semente', en: 'seed', es: 'semilla' },
+
+  intro: [
+    { who: 'willow', text: {
+      pt: 'A estrela voltou ao alto da torre e desceu com o desenho de um jardim. Atrás da horta da escola, por uma porta que ninguem abria. Vamos la?',
+      en: 'The star went back up the tower, and it came down carrying a drawing of a garden. Behind the school garden, through a door nobody ever opened. Shall we go?',
+      es: 'La estrella volvio a lo alto de la torre y bajo con el dibujo de un jardin. Detras de la huerto de la escuela, por una puerta que nadie abria. Vamos?',
+    } },
+    { gloss: 'secret' },
+  ],
+
+  get quests() {
+    return QUESTS_CH3.map((quest) => ({
+      ...quest,
+      reward: { ...quest.reward, words: rollReward(quest.reward.challenge) },
+    }));
+  },
+
+  // Fim do capitulo: com as 4 missoes fechadas, o jardim fica perto do lago da
+  // mata — semente brota perto de agua, e e la que a menina planta de verdade.
+  ending: {
+    zone: 'woods',
+    target: 'pond',
+    flag: 'ch3Done',
+    step: { id: 'ch3end1', type: 'play', zone: 'woods', target: 'pond', flag: 'ch3Planted',
+      hint: { pt: 'Va ao lago da Oxleas Wood e plante as sementes na margem.', en: 'Go to the pond in Oxleas Wood and plant the seeds by the water.', es: 'Ve al estanque de Oxleas Wood y planta las semillas en la orilla.' } },
+    lines: [
+      { who: 'owl', text: {
+        pt: 'Quatro sementes, quatro lugares e um jardim que nao estava no mapa. A Julia nao desenhou o jardim — e ela que o fez existir.',
+        en: 'Four seeds, four places, and a garden that was not on the map. Julia did not draw the garden — she is the one who made it exist.',
+        es: 'Cuatro semillas, cuatro lugares y un jardin que no estaba en el mapa. Julia no dibujo el jardin — ella es la que lo hizo existir.',
+      } },
+      { gloss: 'garden' },
+      { who: 'willow', text: {
+        pt: 'Volta la amanha. Semente e isso: a gente planta e a escolha e da planta.',
+        en: 'Come back tomorrow. That is what a seed is: you plant it and the choosing is up to the seed.',
+        es: 'Vuelve manana. Eso es una semilla: la plantas y elegir es de la semilla.',
+      } },
+    ],
+  },
+};

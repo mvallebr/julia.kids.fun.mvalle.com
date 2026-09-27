@@ -8,6 +8,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   CHAPTER2,
+  CHAPTER3,
   CHAPTERS,
   chapterById,
   chapterFlags,
@@ -350,4 +351,103 @@ test('setChapterSeed ignora semente invalida em vez de quebrar o capitulo', () =
   }
   setChapterSeed(0);
   assert.equal(getChapterSeed(), 0, 'semente valida continua valendo depois das invalidas');
+});
+
+// ── roadmap 1.3: Capítulo 3 "O Jardim Secreto" ───────────────────────────────
+// O capítulo 3 é DADO, não motor: o runner em main.js é genérico desde a
+// rodada 2. Estes testes verificam que a tabela nova respeita o contrato que o
+// runner consome — é o que impede um capítulo novo de quebrar em runtime sem
+// nenhum teste ter falhado.
+
+test('o capítulo 3 tem o esquema que o runner consome', () => {
+  assert.equal(CHAPTER3.id, 'chapter3');
+  assert.equal(CHAPTER3.requiresFlag, 'ch2Done');
+  assert.equal(CHAPTER3.startFlag, 'ch3Started');
+  assert.equal(CHAPTER3.ending.flag, 'ch3Done');
+  assert.ok(Array.isArray(CHAPTER3.intro) && CHAPTER3.intro.length > 0);
+  assert.ok(Array.isArray(CHAPTER3.ending.lines) && CHAPTER3.ending.lines.length > 0);
+  assert.equal(CHAPTER3.quests.length, 4, 'quatro missões, como o capítulo 2');
+});
+
+test('toda palavra do capítulo 3 existe em GLOSSES e é trilingue', () => {
+  const palavras = new Set();
+  for (const quest of CHAPTER3.quests) for (const word of quest.reward.words) palavras.add(word);
+  for (const fala of [...CHAPTER3.intro, ...CHAPTER3.ending.lines]) if (fala.gloss) palavras.add(fala.gloss);
+  for (const quest of CHAPTER3.quests) for (const fala of quest.offer) if (fala.gloss) palavras.add(fala.gloss);
+  assert.ok(palavras.size > 0);
+  for (const palavra of palavras) {
+    assert.ok(Object.hasOwn(GLOSSES, palavra), `"${palavra}" precisa existir em GLOSSES`);
+    for (const language of ['pt', 'en', 'es']) {
+      assert.ok(GLOSSES[palavra][language]?.trim(), `${palavra}.${language} vazio`);
+    }
+  }
+});
+
+test('toda fala do capítulo 3 é trilíngue e todo giver é um NPC que existe', () => {
+  const falas = [...CHAPTER3.intro, ...CHAPTER3.ending.lines];
+  for (const quest of CHAPTER3.quests) {
+    falas.push(...quest.offer);
+    assert.ok(NPCS[quest.giver], `giver "${quest.giver}" tem que existir em NPCS`);
+  }
+  for (const fala of falas) {
+    if (fala.gloss) continue;
+    // 'owl' é a coruja: o rótulo dela vem de CHARACTERS (state.js), não de
+    // NPCS (content.js). O chapters.js documenta isso no esquema.
+    assert.ok(fala.who === 'owl' || NPCS[fala.who], `who "${fala.who}" tem que existir em NPCS ou ser 'owl'`);
+    for (const language of ['pt', 'en', 'es']) {
+      assert.ok(fala.text?.[language]?.trim(), `fala de ${fala.who} sem ${language}`);
+    }
+  }
+});
+
+test('nenhum passo do capítulo 3 repete flag nem challenge', () => {
+  const flags = new Set();
+  const challenges = new Set();
+  for (const quest of CHAPTER3.quests) {
+    assert.ok(!challenges.has(quest.reward.challenge), `challenge repetido: ${quest.reward.challenge}`);
+    challenges.add(quest.reward.challenge);
+    for (const step of quest.steps) {
+      assert.ok(!flags.has(step.flag), `flag repetida: ${step.flag}`);
+      flags.add(step.flag);
+      assert.ok(['talk', 'fetch', 'solve', 'play'].includes(step.type), `tipo desconhecido: ${step.type}`);
+      for (const language of ['pt', 'en', 'es']) {
+        assert.ok(step.hint?.[language]?.trim(), `${step.id} sem dica em ${language}`);
+      }
+    }
+  }
+  // o flag do fim é distinto de todos os de passo
+  assert.ok(!flags.has(CHAPTER3.ending.flag));
+  assert.ok(!flags.has(CHAPTER3.ending.step.flag));
+});
+
+test('as flags do capítulo 3 não colidem com as do capítulo 2', () => {
+  // colisão de flag faria o capítulo 2 marcar o 3 pronto sem a menina fazer nada
+  const do2 = new Set(CHAPTER2.quests.flatMap((q) => q.steps.map((s) => s.flag)));
+  for (const quest of CHAPTER3.quests) {
+    for (const step of quest.steps) {
+      assert.ok(!do2.has(step.flag), `flag ${step.flag} existe nos dois capítulos`);
+    }
+  }
+});
+
+test('as recompensas do capítulo 3 também rolam por semente', () => {
+  setChapterSeed(11);
+  const a = JSON.stringify(CHAPTER3.quests.map((q) => q.reward.words));
+  setChapterSeed(12);
+  const b = JSON.stringify(CHAPTER3.quests.map((q) => q.reward.words));
+  setChapterSeed(11);
+  const c = JSON.stringify(CHAPTER3.quests.map((q) => q.reward.words));
+  assert.equal(a, c, 'mesma semente, mesma recompensa');
+  assert.notEqual(a, b, 'semente diferente, recompensa diferente');
+  for (const quest of CHAPTER3.quests) {
+    assert.equal(quest.reward.words.length, 3, `${quest.id} paga 3`);
+    assert.equal(new Set(quest.reward.words).size, 3, `${quest.id} não repete`);
+  }
+});
+
+test('os dois capítulos são percorríveis em sequência pelas flags', () => {
+  // capítulo 3 só abre depois do 2: é a ordem da história, e é o que
+  // maybeChapter() usa para escolher qual capítulo está ativo
+  assert.equal(CHAPTER3.requiresFlag, CHAPTER2.ending.flag);
+  assert.equal(CHAPTER2.requiresFlag, 'endingSeen');
 });

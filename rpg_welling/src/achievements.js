@@ -152,6 +152,13 @@ export const ACHIEVEMENTS = Object.freeze([
     'gold',
     (stats) => stats.chapterTwoDone,
   ),
+  achievement(
+    'chapter-three',
+    ['Jardim Secreto', 'Secret Garden', 'Jardín Secreto'],
+    ['Planta as quatro sementes na margem do lago e faz nascer o jardim que não estava no mapa.', 'Plant the four seeds by the pond and make the garden that was not on the map grow.', 'Planta las cuatro semillas en la orilla del estanque y haz crecer el jardín que no estaba en el mapa.'],
+    'gold',
+    (stats) => stats.chapterThreeDone,
+  ),
 ]);
 
 export const ACHIEVEMENT_IDS = Object.freeze(ACHIEVEMENTS.map((item) => item.id));
@@ -239,6 +246,7 @@ export function achievementStats(state) {
     endingSeen: Boolean(flags.endingSeen),
     helpedTeacher: Boolean(flags.umbrellaDone),
     chapterTwoDone: Boolean(flags.ch2Done),
+    chapterThreeDone: Boolean(flags.ch3Done),
   };
 }
 

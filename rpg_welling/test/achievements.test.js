@@ -60,6 +60,10 @@ function makeCompleteState() {
       endingSeen: true,
       umbrellaDone: true,
       ch2Done: true,
+      // Capítulo 3 fechado desde a rodada 6: sem esta flag, o estado 'completo'
+      // não era completo e a conquista chapter-three ficava de fora da lista
+      // estável que o teste promete.
+      ch3Done: true,
     },
     history: makeHistory(7, { added: 0, right: 5, wrong: 0 }),
   };
@@ -73,8 +77,10 @@ function deepFreeze(value) {
   return value;
 }
 
-test('catálogo tem 19 conquistas com conteúdo trilíngue válido', () => {
-  assert.equal(ACHIEVEMENTS.length, 19);
+test('catálogo tem 20 conquistas com conteúdo trilíngue válido', () => {
+  // 20 desde a rodada 6 (Capítulo 3 entrou). O nome do teste acompanha de
+  // propósito: a contagem é o que a lista pública promete.
+  assert.equal(ACHIEVEMENTS.length, 20);
   assert.equal(new Set(ACHIEVEMENT_IDS).size, ACHIEVEMENTS.length);
   for (const item of ACHIEVEMENTS) {
     assert.match(item.id, /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/);
@@ -115,6 +121,7 @@ test('ids e níveis formam a lista pública estável', () => {
     ['chapter-one', 'gold'],
     ['kind-helper', 'bronze'],
     ['chapter-two', 'gold'],
+    ['chapter-three', 'gold'],
   ]);
 });
 
@@ -297,7 +304,11 @@ test('avaliação só devolve conquistas novas e ignora ids corrompidos', () => 
   assert.equal(result.includes('first-word'), false);
   assert.equal(result.includes('clue-hunter'), false);
   assert.equal(result.includes('missing-save-id'), false);
-  assert.equal(result.length, 17);
+  // Só DOIS saem do catálogo: 'first-word' e 'clue-hunter', que já estavam
+  // ganhos. O 'first-word' repetido, o id inexistente, o 42 e o null são
+  // filtrados antes e não contam como exclusões. Deduzir do catálogo em vez de
+  // fixar número é o que impede o teste de quebrar a cada conquista nova.
+  assert.equal(result.length, ACHIEVEMENT_IDS.length - 2);
 });
 
 test('avaliação não muta estado nem lista de conquistas, mesmo deeply frozen', () => {

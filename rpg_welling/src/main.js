@@ -17,7 +17,7 @@ import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz, practice
 import { ACHIEVEMENTS, achievementById, evaluateAchievements } from './achievements.js';
 import { trapFocus, openModalStack, shouldReduceMotion } from './a11y.js';
 import { normalizeSettings, renderOptionsPanel } from './options.js';
-import { CHAPTER2, chapterProgress, nextQuest, nextStep, isQuestComplete, setChapterSeed, rollChapterSeed } from './chapters.js';
+import { CHAPTER2, CHAPTER3, chapterProgress, nextQuest, nextStep, isQuestComplete, setChapterSeed, rollChapterSeed } from './chapters.js';
 import { createMemoryGame } from './games/memory.js';
 import { createDictation, DICTATION_PHRASES, DICTATION_FLAGS } from './games/dictation.js';
 import { createPenalty } from './games/penalty.js';
@@ -947,18 +947,22 @@ function markChallenge(id) {
 function updateHUD() {
   const objective = currentObjective(state);
   let chip = `📜 ${uiText(language, OBJECTIVE_KEYS[objective.id], { count: objective.progress ?? 0 })}`;
-  // Capítulo 2 ativo assume o chip: fragmentos reunidos + missão atual
-  if (state.flags.ch2Started && !state.flags.ch2Done) {
-    const quest = nextQuest(CHAPTER2, state.flags);
-    const progress = chapterProgress(CHAPTER2, state.flags);
+  // Capítulo em andamento assume o chip: recompensas + missão atual. Com o
+  // runner genérico, isto passa a ser "o capítulo que estiver aberto" em vez de
+  // "o capítulo 2" — antes o cap. 3 nem aparecia aqui.
+  const active = activeChapter();
+  if (active) {
+    const quest = nextQuest(active, state.flags);
+    const progress = chapterProgress(active, state.flags);
+    const noun = lang(active.rewardNoun ?? { pt: 'recompensa', en: 'reward', es: 'recompensa' }, language);
     chip = quest
       ? `⭐ ${progress.fragments}/4 — ${lang(quest.title, language)}`
-      : `⭐ ${uiText(language, 'ch2GoTower')}`;
+      : `⭐ ${uiText(language, active.id === 'chapter3' ? 'ch3GoPond' : 'ch2GoTower')} ${noun}`;
   }
   $('questChip').textContent = chip;
   // fragmentos do cap. 2: cobre também passos observados (duelWon) que não
   // têm gancho próprio; idempotente pelo challenge do reward
-  maybeChapter2Fragment();
+  maybeChapterReward();
   $('soundButton').textContent = state.sound ? '🔊' : '🔇';
   const langButton = $('langButton');
   if (langButton) langButton.textContent = `🌐 ${language.toUpperCase()}`;
@@ -980,12 +984,14 @@ function toggleJournal() {
     });
     const secList = $('journalSecondary');
     secList.replaceChildren();
-    // Capítulo 2 em andamento entra nas segundas quests do diário
-    if (state.flags.ch2Started && !state.flags.ch2Done) {
-      const progress = chapterProgress(CHAPTER2, state.flags);
+    // Capítulo em andamento entra nas segundas quests do diário
+    const active = activeChapter();
+    if (active) {
+      const progress = chapterProgress(active, state.flags);
+      const goKey = active.id === 'chapter3' ? 'ch3GoPond' : 'ch2GoTower';
       const line = progress.endingReady
-        ? `▫️ ⭐ ${uiText(language, 'ch2GoTower')}`
-        : `▫️ ⭐ ${progress.fragments}/4 — ${lang(CHAPTER2.title, language)}`;
+        ? `▫️ ⭐ ${uiText(language, goKey)}`
+        : `▫️ ⭐ ${progress.fragments}/4 — ${lang(active.title, language)}`;
       secList.appendChild(el('li', undefined, line));
     }
     for (const sec of seconds) {
@@ -1492,80 +1498,123 @@ function showEnding() {
   confetti(root, 120, 2400);
 }
 
-// ── Capítulo 2 ("A Torre de Severndroog"): runner da tabela em chapters.js ────
-// A lenda é contada pela Willow no 1º encontro após o fim do capítulo 1 e, na
-// mesma visita, ela já entrega a oferta da própria missão (giver == willow).
-// Os outros givers (page, baker, raven) falam a oferta da missão deles no
-// 1º passo 'talk' pendente; o resto do progresso vem de flags que sistemas
-// donos gravam (duelo, lousa, memória, ditados). Tudo idempotente por flag.
-async function maybeChapter2(npcId) {
-  if (!state.flags.endingSeen || state.flags.ch2Done) return false;
-  if (npcId === 'willow' && !state.flags.ch2Started) {
-    await runConversation(CHAPTER2.intro);
-    state.flags.ch2Started = true;
-    // a missão da própria Willow começa na sequência: a lenda JÁ foi contada
-    const quest = CHAPTER2.quests.find((q) => q.giver === npcId && !isQuestComplete(q, state.flags));
-    const step = quest ? nextStep(quest, state.flags) : null;
-    if (step?.type === 'talk') {
-      await runConversation(quest.offer);
-      state.flags[step.flag] = true;
+// Grava a flag de um passo do capítulo 3. Idempotente por flag, entao chamar
+// duas vezes nao paga a recompensa duas vezes — e updateHUD chama
+// maybeChapterReward() logo depois, que e quem entrega a recompensa da missao
+// que acabou de fechar. O padrao e o mesmo dos passos do capítulo 2.
+function completeChapter3Step(flag) {
+  if (!state.flags.ch3Started || state.flags.ch3Done) return false;
+  if (state.flags[flag]) return false;
+  state.flags[flag] = true;
+  return true;
+}
+
+// ── Capítulos (tabelas em chapters.js): runner genérico ──────────────────────
+// A offer, o fim e a recompensa são a MESMA lógica para o capítulo 2 e o 3 —
+// só os dados mudam. Antes isso era uma função por capítulo com CHAPTER2
+// escrito dentro; quando o capítulo 3 entrou, o caminho era copiar e colar
+// três funções e torcer para lembrar de atualizar o nome em cada uma.
+//
+// Tudo aqui lê `chapter.requiresFlag` / `chapter.startFlag`, então um capítulo
+// novo é só acrescentar a tabela em chapters.js.
+const CHAPTERS = [CHAPTER2, CHAPTER3];
+
+// O primeiro capítulo que ainda não começou e cujo pré-requisito já cumpriu.
+function activeChapter() {
+  for (const chapter of CHAPTERS) {
+    if (state.flags[chapter.startFlag] && !state.flags[chapter.ending.flag]) return chapter;
+  }
+  return null;
+}
+
+// offer: a lenda/intro é contada pelo giver do capítulo na 1a visita, e na mesma
+// visita ele já entrega a oferta da própria missao (giver == npcId). Os outros
+// givers falam a oferta no 1o passo 'talk' pendente. Idempotente por flag.
+async function maybeChapter(npcId) {
+  for (const chapter of CHAPTERS) {
+    // Um capítulo que acabou acabou: o flag de FIM decide sozinho, sem exigir o
+    // de início. Com os dois, um save com `ch2Done` e `ch2Started` ausente
+    // (estado que dá para acontecer num save antigo ou corrompido) fazia o
+    // runner tocar a intro do capítulo 2 de novo, bem depois da menina já ter
+    // fechado ele.
+    if (state.flags[chapter.ending.flag]) continue;
+    if (!state.flags[chapter.requiresFlag]) continue;
+    const started = Boolean(state.flags[chapter.startFlag]);
+    const first = chapter.quests.find((q) => q.giver === npcId);
+    if (!first) continue;
+    if (!started) {
+      // so o giver da 1a missao abre o capitulo: evita tres copias da intro
+      if (first.giver !== npcId) continue;
+      await runConversation(chapter.intro);
+      state.flags[chapter.startFlag] = true;
+      const quest = chapter.quests.find((q) => q.giver === npcId && !isQuestComplete(q, state.flags));
+      const step = quest ? nextStep(quest, state.flags) : null;
+      if (step?.type === 'talk') {
+        await runConversation(quest.offer);
+        state.flags[step.flag] = true;
+      }
+      saveState(localStorage, player, state);
+      sounds.magic();
+      confetti(root, 60);
+      updateHUD();
+      const hint = nextStep(quest || chapter.quests[0], state.flags);
+      if (hint) toast(root, `⭐ ${lang(hint.hint, language)}`, { duration: 5200 });
+      return true;
     }
+    const quest = chapter.quests.find((q) => q.giver === npcId && !isQuestComplete(q, state.flags));
+    const step = quest ? nextStep(quest, state.flags) : null;
+    if (!step || step.type !== 'talk') continue;
+    await runConversation(quest.offer);
+    state.flags[step.flag] = true;
     saveState(localStorage, player, state);
-    sounds.magic();
-    confetti(root, 60);
     updateHUD();
-    const hint = nextStep(quest || CHAPTER2.quests[0], state.flags);
+    const hint = nextStep(quest, state.flags);
     if (hint) toast(root, `⭐ ${lang(hint.hint, language)}`, { duration: 5200 });
     return true;
   }
-  if (!state.flags.ch2Started) return false;
-  const quest = CHAPTER2.quests.find((q) => q.giver === npcId && !isQuestComplete(q, state.flags));
-  const step = quest ? nextStep(quest, state.flags) : null;
-  if (!step || step.type !== 'talk') return false;
-  await runConversation(quest.offer);
-  state.flags[step.flag] = true;
-  saveState(localStorage, player, state);
-  updateHUD();
-  const hint = nextStep(quest, state.flags);
-  if (hint) toast(root, `⭐ ${lang(hint.hint, language)}`, { duration: 5200 });
-  return true;
+  return false;
 }
 
-// fim do capítulo 2: com as 4 missões fechadas, a torre entrega a estrela
-async function maybeChapter2Ending() {
-  if (!state.flags.ch2Started || state.flags.ch2Done) return false;
-  if (!chapterProgress(CHAPTER2, state.flags).endingReady) return false;
-  state.flags.ch2Done = true;
-  saveState(localStorage, player, state);
-  await runConversation(CHAPTER2.ending.lines);
-  sounds.fanfare();
-  confetti(root, 140);
-  checkAchievements();
-  updateHUD();
-  return true;
+// fim do capitulo: com as 4 missoes fechadas, o ultimo lugar entrega o premio
+async function maybeChapterEnding() {
+  for (const chapter of CHAPTERS) {
+    if (!state.flags[chapter.startFlag] || state.flags[chapter.ending.flag]) continue;
+    if (!chapterProgress(chapter, state.flags).endingReady) continue;
+    state.flags[chapter.ending.flag] = true;
+    saveState(localStorage, player, state);
+    await runConversation(chapter.ending.lines);
+    sounds.fanfare();
+    confetti(root, 140);
+    checkAchievements();
+    updateHUD();
+    return true;
+  }
+  return false;
 }
 
-// recompensa do fragmento: palavras da tabela + challenge ch2Star<n>. Chamado
-// DEPOIS de gravar a flag do passo — o progresso nunca depende do reward.
-function grantChapter2Reward(questId) {
-  const quest = CHAPTER2.quests.find((q) => q.id === questId);
+// recompensa da missao: palavras da tabela (ja roladas) + challenge proprio.
+// Chamado DEPOIS de gravar a flag do passo — o progresso nunca depende do reward.
+function grantChapterReward(chapter, questId) {
+  const quest = chapter.quests.find((q) => q.id === questId);
   if (!quest) return;
   for (const word of quest.reward.words) registerWordTracked(word, GLOSSES[word]);
   state.challenges[quest.reward.challenge] = true;
   saveState(localStorage, player, state);
   updateHUD();
   checkAchievements();
-  toast(root, `⭐ ${uiText(language, 'ch2Fragment')} (${chapterProgress(CHAPTER2, state.flags).fragments}/4)`, { duration: 4600 });
+  const noun = lang(chapter.rewardNoun ?? { pt: 'recompensa', en: 'reward', es: 'recompensa' }, language);
+  toast(root, `⭐ ${noun}! (${chapterProgress(chapter, state.flags).fragments}/4)`, { duration: 4600 });
 }
 
-// Depois de gravar QUALQUER flag de passo do cap. 2 (lousa, memória, ditado,
-// duelo), entrega o fragmento da missão que acabou de fechar. Idempotente:
-// o challenge do reward marca que a estrela já foi entregue. Chamar de
-// updateHUD é o que cobre passos observados (duelWon) sem gancho próprio.
-function maybeChapter2Fragment() {
-  if (!state.flags.ch2Started || state.flags.ch2Done) return;
-  const quest = CHAPTER2.quests.find((q) => isQuestComplete(q, state.flags) && !state.challenges[q.reward.challenge]);
-  if (quest) grantChapter2Reward(quest.id);
+// Depois de gravar QUALQUER flag de passo, entrega a recompensa da missao que
+// acabou de fechar. Idempotente: o challenge do reward marca que ja foi dado.
+// Chamar de updateHUD e o que cobre passos observados (duelWon) sem gancho.
+function maybeChapterReward() {
+  for (const chapter of CHAPTERS) {
+    if (!state.flags[chapter.startFlag] || state.flags[chapter.ending.flag]) continue;
+    const quest = chapter.quests.find((q) => isQuestComplete(q, state.flags) && !state.challenges[q.reward.challenge]);
+    if (quest) grantChapterReward(chapter, quest.id);
+  }
 }
 
 // ── Minigames em modal (memória da biblioteca, ditados do mundo) ──────────────
@@ -1719,7 +1768,7 @@ function interact(id) {
 async function runInteract(id) {
   if (id === 'finch' || id === 'page') {
     // Capítulo 2: a Sra. Page oferece "O Segredo da Biblioteca" antes do fluxo dela
-    if (id === 'page' && (await maybeChapter2(id))) return;
+    if (id === 'page' && (await maybeChapter(id))) return;
     const solvedKey = id === 'finch' ? 'vocabFinch' : 'compPage';
     const firstTime = !state.challenges[solvedKey];
     await runConversation(firstTime ? CONVERSATIONS[id] : CONVERSATIONS[`${id}After`]);
@@ -1793,7 +1842,7 @@ async function runInteract(id) {
         // Capítulo 2, fragmento 1: a lição completa rende a estrela da lousa
         if (state.flags.ch2Started && !state.flags.ch2Q1Board) {
           state.flags.ch2Q1Board = true;
-          maybeChapter2Fragment();
+          maybeChapterReward();
         }
         return void runConversation([{ who: 'willow', text: { pt: 'Excelente aula! Essas palavras já estão no seu diário — a coruja vai cobrar depois, hein!', en: 'Excellent class! Those words are in your journal now — the owl will quiz you later!', es: '¡Excelente clase! Esas palabras ya están en tu diario — ¡el búho te va a preguntar después!' } }]);
       }
@@ -1836,7 +1885,7 @@ async function runInteract(id) {
   }
   if (id === 'willow') {
     // Capítulo 2: lenda da torre + oferta da missão da lousa
-    if (await maybeChapter2(id)) return;
+    if (await maybeChapter(id)) return;
     return void runConversation([
       { who: 'willow', text: { pt: 'Bem-vindos à minha sala! A lousa está cheia de palavras novas — toque nela e vamos praticar!', en: 'Welcome to my classroom! The blackboard is full of new words — touch it and let\'s practice!', es: '¡Bienvenidos a mi sala! La pizarra está llena de palabras nuevas — ¡tóquenla y practiquemos!' } },
       { gloss: 'practice' },
@@ -1867,7 +1916,7 @@ async function runInteract(id) {
   }
   if (id === 'baker') {
     // Capítulo 2: "A Carta sem Endereço" começa no Sr. Crumb
-    if (await maybeChapter2(id)) return;
+    if (await maybeChapter(id)) return;
     return void runConversation([
       { who: 'baker', text: { pt: 'Bem-vindas à padaria da High Street! O pão de canela sai quentinho às cinco.', en: 'Welcome to the High Street bakery! The cinnamon buns come out warm at five.', es: '¡Bienvenidas a la panadería de High Street! El pan de canela sale calentito a las cinco.' } },
       { gloss: 'warm' },
@@ -1875,7 +1924,7 @@ async function runInteract(id) {
   }
   if (id === 'raven') {
     // Capítulo 2: "O Duelo da Estrela" começa na Prof. Raven
-    if (await maybeChapter2(id)) return;
+    if (await maybeChapter(id)) return;
     const learned = Object.keys(state.words).length;
     if (learned < 3) {
       return void runConversation([{ who: 'raven', text: { pt: 'Sou a Prof. Raven, da Academia Owlburt. Duelo de feitiços? Primeiro aprendam 3 palavras com a coruja. Voltem quando o diário estiver cheio!', en: 'I am Prof. Raven, from Owlburt Academy. A spell duel? First learn 3 words with the owl. Come back when your journal is full!', es: 'Soy la Prof. Raven, de la Academia Owlburt. ¿Un duelo de hechizos? Primero aprendan 3 palabras con el búho. ¡Vuelvan cuando el diario esté lleno!' } }]);
@@ -1905,7 +1954,11 @@ async function runInteract(id) {
     if (tryDictation(id)) return;
     sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.postOffice }, { gloss: 'letter' }]);
   }
-  if (id === 'teaRoom') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.teaRoom }, { gloss: 'tea' }]); }
+  if (id === 'teaRoom') {
+    sounds.hoot();
+    completeChapter3Step('ch3Q2Tea');
+    return void runConversation([{ who: 'owl', text: FLAVOR.teaRoom }, { gloss: 'tea' }]);
+  }
   // ── quest multi-zona: A Encomenda da Sra. Page ────────────────────────────
   if (id === 'orderStart') {
     if (state.flags.orderDone) return void runConversation([{ who: 'page', text: FLAVOR.orderDone }]);
@@ -1965,7 +2018,11 @@ async function runInteract(id) {
   }
   // ── school e woods ampliados: Flavor + glosses das novas áreas ──────────────
   if (id === 'playground') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.playground }, { gloss: 'swing' }]); }
-  if (id === 'garden') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.garden }, { gloss: 'greenhouse' }]); }
+  if (id === 'garden') {
+    sounds.hoot();
+    completeChapter3Step('ch3Q1Garden'); // Capítulo 3: a primeira semente (1.3)
+    return void runConversation([{ who: 'owl', text: FLAVOR.garden }, { gloss: 'greenhouse' }]);
+  }
   // nesta peça a criança fala a palavra em inglês; a âncora fica no mesmo
   // pátio do parquinho, sem criar outro painel de vocabulário na escola.
   if (id === 'listenSchool') {
@@ -2096,7 +2153,7 @@ async function runInteract(id) {
   if (id === 'severndroog') {
     // Capítulo 2: 1º a última frase do ditado; com os 4 fragmentos, o fim
     if (tryDictation(id)) return;
-    if (await maybeChapter2Ending()) return;
+    if (await maybeChapterEnding()) return;
     sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.severndroog }, { gloss: 'castle' }]);
   }
   if (id === 'pond') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.pond }, { gloss: 'pond' }]); }
@@ -2105,12 +2162,17 @@ async function runInteract(id) {
     if (tryDictation(id)) return;
     sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.greenChain }, { gloss: 'path' }]);
   }
-  if (id === 'outdoorGym') { sounds.hoot(); return void runConversation([{ who: 'owl', text: FLAVOR.outdoorGym }, { gloss: 'climb' }]); }
+  if (id === 'outdoorGym') {
+    sounds.hoot();
+    completeChapter3Step('ch3Q3Gym');
+    return void runConversation([{ who: 'owl', text: FLAVOR.outdoorGym }, { gloss: 'climb' }]);
+  }
   // memória da biblioteca (capítulo 2, fragmento 2; jogável sempre)
   if (id === 'memoryLibrary') return void openMemoryLibrary();
   // o globo da biblioteca: Malta tem lugar garantido no mapa
   if (id === 'globe') {
     sounds.hoot();
+    completeChapter3Step('ch3Q4Globe');
     globeFocus = true;
     return void runConversation([
       { who: 'owl', text: {

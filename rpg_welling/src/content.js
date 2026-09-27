@@ -557,6 +557,19 @@ export const GLOSSES = {
     en: 'roots = the part of a plant under the ground',
     es: 'roots = raíces',
   },
+  // Entradas do Capítulo 3 (roadmap 1.3, "O Jardim Secreto"). "garden" já
+  // existia como texto de lugar em FLAVOR, mas a menina nunca a ganhava no
+  // diário — a palavra era o nome do lugar, não uma palavra dela.
+  garden: {
+    pt: 'garden = jardim',
+    en: 'garden = a place where flowers and vegetables grow',
+    es: 'garden = jardín',
+  },
+  seed: {
+    pt: 'seed = semente',
+    en: 'seed = what you plant and it grows into a plant',
+    es: 'seed = semilla',
+  },
   map: {
     pt: 'map = mapa',
     en: 'map = a drawing that shows the way',
