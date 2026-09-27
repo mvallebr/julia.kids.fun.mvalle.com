@@ -1687,7 +1687,19 @@ function hedgeRow(scene, x1, z1, x2, z2, { height = 0.9, color = 0x2e6b34, spaci
     blobs.push({ position: new THREE.Vector3(x, height * 0.55, z), scale: new THREE.Vector3(1, 1.15, 1) });
   }
   // flags de sombra idênticos ao mesh antigo: projetava, não recebia
-  buildInstanced(scene, new THREE.SphereGeometry(height * 0.62, 8, 7), mat(color), blobs, { cast: true, receive: false });
+  const mesh = buildInstanced(scene, new THREE.SphereGeometry(height * 0.62, 8, 7), mat(color), blobs, { cast: true, receive: false });
+  // Esta moldura é DECORATIVA: quem trava a jogadora é zone.bounds, não a sebe
+  // (e a hedgeRow nem registra colisor). Então ela nunca pode atrapalhar a
+  // câmera — QA de 2026-09-27: nos dois pontos de entrada da mata (o spawn de
+  // debug em [0,32] e a entrada real vinda da High Street em [0,-14]) a câmera
+  // abre ~9,5 m para trás, atravessa a sebe de borda e a metade de baixo do
+  // quadro vira sebe, com a menina aparecendo só do peito pra cima.
+  // A marcação deixa o fader (src/occlusion.js) tratar a barreira de borda
+  // como o que ela é: moldura, não obstáculo. src/main.js ignora InstancedMesh
+  // e malha pequena no montaje de occluders — de propósito, para vegetação não
+  // piscar a cada passinho — então a marcação precisa valer sozinha.
+  mesh.userData.boundaryHedge = true;
+  return mesh;
 }
 
 // Portão de um vão de parede: dois postes, verga e placa com o nome da área.

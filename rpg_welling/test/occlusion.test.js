@@ -469,3 +469,110 @@ test('blocked vence o anti-embebimento: cabeça dentro de geometria devolve desi
   assert.equal(result.blocked, true);
   assert.deepEqual(result.desired, { x: HEAD.x, y: HEAD.y, z: HEAD.z });
 });
+
+// ── rodada 4: barreiras de borda (hedgeRow) ──────────────────────────────────
+// A sebe é só a moldura visual que fecha o horizonte: quem trava a jogadora é
+// zone.bounds. Então ela NUNCA pode ficar na frente da menina. QA de
+// 2026-09-27: nos dois pontos de entrada da mata a câmera abre ~9,5 m e a
+// fileira tomava a metade de baixo do quadro.
+//
+// Fake de uma fileira de sebe: InstancedMesh (é assim que hedgeRow constrói,
+// via buildInstanced) com userData.boundaryHedge e a caixa PRÓPRIA do
+// InstancedMesh — a de `geometry` é só de uma bolinha e não localiza a fila.
+// `box` é a caixa da fileira em coords de mundo; a matriz fica identidade.
+function makeHedgeRow(name, { minX, maxX, minZ, maxZ, maxY = 1.52, marked = true } = {}) {
+  return {
+    name,
+    isInstancedMesh: true,
+    material: makeMaterial(name),
+    castShadow: true,
+    userData: marked ? { boundaryHedge: true } : {},
+    geometry: { boundingSphere: { radius: 0.74, center: { x: 0, y: 0, z: 0 } } },
+    boundingBox: {
+      min: { x: minX, y: 0, z: minZ },
+      max: { x: maxX, y: maxY, z: maxZ },
+    },
+    matrixWorld: { elements: [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1] },
+  };
+}
+
+test('barreira de borda na frente da menina esmaece SEM o raio acertar e sem layerCut', () => {
+  const { fader, setOccluders, frame } = setup();
+  // fileira norte atravessada pelo segmento câmera(z=10)→menina(z=0)
+  const north = makeHedgeRow('sebeNorte', { minX: -11.8, maxX: 11.8, minZ: 1.5, maxZ: 2.1 });
+  setOccluders([north]);
+
+  // frame([]) = o raycast NÃO devolve hit nenhum: é o caso do bug, em que o
+  // cone de 5 raios sai da cabeça e passa por cima da sebe
+  const result = frame([], 0, { layerCut: false });
+
+  assert.equal(north.material.transparent, true, 'sebe virou fantasma');
+  assert.equal(north.material.opacity, FADE_TARGET_OPACITY);
+  assert.equal(north.castShadow, false, 'fantasma não projeta sombra sólida');
+  assert.equal(fader.fadedCount(), 1);
+  assert.equal(result.blocked, false, 'barreira não bloqueia a câmera, só vira transparente');
+});
+
+test('as outras três fileiras da zona continuam opacas', () => {
+  const { fader, setOccluders, frame } = setup();
+  const north = makeHedgeRow('sebeNorte', { minX: -11.8, maxX: 11.8, minZ: 1.5, maxZ: 2.1 });
+  // sul, oeste e leste: nenhuma cruza o segmento z ∈ [0,10] em x=0
+  const south = makeHedgeRow('sebeSul', { minX: -11.8, maxX: 11.8, minZ: -8, maxZ: -7.4 });
+  const west = makeHedgeRow('sebeOeste', { minX: -14.8, maxX: -14.2, minZ: -8, maxZ: 8 });
+  const east = makeHedgeRow('sebeLeste', { minX: 14.2, maxX: 14.8, minZ: -8, maxZ: 8 });
+  setOccluders([north, south, west, east]);
+
+  frame([], 0, { layerCut: false });
+
+  assert.equal(north.material.transparent, true, 'a da frente esmaece');
+  assert.equal(south.material.clonesMade, 0, 'sebe sul intacta');
+  assert.equal(west.material.clonesMade, 0, 'sebe oeste intacta');
+  assert.equal(east.material.clonesMade, 0, 'sebe leste intacta');
+  assert.equal(fader.fadedCount(), 1);
+});
+
+test('fileira rasteira (maxY <= 0.8) não esmaece', () => {
+  const { fader, setOccluders, frame } = setup();
+  const flat = makeHedgeRow('sebeRasteira', { minX: -11.8, maxX: 11.8, minZ: 1.5, maxZ: 2.1, maxY: 0.4 });
+  setOccluders([flat]);
+
+  frame([], 0, { layerCut: false });
+
+  assert.equal(flat.material.clonesMade, 0, 'moldura achatada fica opaca');
+  assert.equal(fader.fadedCount(), 0);
+});
+
+test('vegetação InstancedMesh sem a marca continua de fora (o campo não pisca)', () => {
+  const { fader, setOccluders, frame } = setup();
+  // mesma geometria, mas sem boundaryHedge: é vegetação, não moldura
+  const bush = makeHedgeRow('arbusto', { minX: -1, maxX: 1, minZ: 1.5, maxZ: 2.1, marked: false });
+  setOccluders([bush]);
+
+  frame([], 0, { layerCut: false });
+
+  assert.equal(bush.material.clonesMade, 0, 'arbusto intacto');
+  assert.equal(fader.fadedCount(), 0);
+});
+
+test('barreira que sai do caminho volta ao normal depois da histerese', () => {
+  const { fader, setOccluders, frame } = setup();
+  const north = makeHedgeRow('sebeNorte', { minX: -11.8, maxX: 11.8, minZ: 1.5, maxZ: 2.1 });
+  const originalMaterial = north.material;
+  setOccluders([north]);
+
+  frame([], 0, { layerCut: false });
+  assert.equal(fader.fadedCount(), 1, 'virou fantasma');
+  assert.notEqual(north.material, originalMaterial, 'material clonado');
+
+  // dentro da histerese (250 ms) ainda não volta: frame no mesmo t
+  setOccluders([]);
+  frame([], 0, { layerCut: false });
+  assert.equal(fader.fadedCount(), 1, 'histerese segura o fantasma');
+  assert.notEqual(north.material, originalMaterial, 'ainda clonado dentro da histerese');
+
+  // passou a histerese sem ser hitada: material original volta
+  frame([], 1000, { layerCut: false });
+  assert.equal(fader.fadedCount(), 0, 'voltou ao normal');
+  assert.equal(north.material, originalMaterial, 'material original devolvido');
+  assert.equal(north.castShadow, true, 'sombra sólida de volta');
+});

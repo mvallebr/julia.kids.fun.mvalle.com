@@ -252,6 +252,68 @@ export function createOcclusionFader({
       fadeMesh(mesh, ts);
     }
 
+    // Barreiras de borda (world.js hedgeRow): a moldura que fecha o horizonte
+    // do jogável. NÃO é obstáculo — a colisão de verdade está em zone.bounds e a
+    // hedgeRow nem registra colisor — então sempre que uma delas ficar entre a
+    // menina e a câmera vira fantasma.
+    //
+    // Por que uma regra à parte, e não o raycast: o cone de 5 raios sai da
+    // CABEÇA e a sebe é baixa e larga, então em muitos ângulos os raios passam
+    // por cima dela. E por que não o corte de camada: ele só liga com pitch alto
+    // (>= 0.9) ou câmera longe (>= 20 m), e o defeito aparece justamente no
+    // enquadramento de sempre, com a menina perto da borda.
+    //
+    // O teste é sobreposição da CAIXA da fileira com o segmento câmera→menina,
+    // projetado no plano do chão — não pela esfera. A esfera do InstancedMesh
+    // abraça a fileira inteira (raio de ~12 m numa fila de 24 m), então usá-la
+    // para decidir "isto é chão?" dava sempre negativo e a regra nunca
+    // disparava. A caixa separa a fila da frente das outras três.
+    //
+    // Fica ANTES da camada no frame: barreira na frente da menina importa mais
+    // que telhado, e a layerCut respeita o teto de 28.
+    for (const mesh of occluders()) {
+      if (mesh.userData?.boundaryHedge !== true) continue;
+      if (keep.has(mesh)) continue;
+      if (!mesh.boundingBox) mesh.computeBoundingBox();
+      const box = mesh.boundingBox;
+      const elements = mesh.matrixWorld?.elements;
+      if (!box || !elements) continue;
+
+      // AABB do mundo pela matriz do objeto (column-major). InstancedMesh tem
+      // caixa própria, já com as instâncias dentro.
+      let minX = Infinity, minZ = Infinity, maxX = -Infinity, maxZ = -Infinity;
+      let maxY = -Infinity;
+      for (let i = 0; i < 8; i++) {
+        const x = (i & 1) ? box.max.x : box.min.x;
+        const y = (i & 2) ? box.max.y : box.min.y;
+        const z = (i & 4) ? box.max.z : box.min.z;
+        const wx = elements[0] * x + elements[4] * y + elements[8] * z + elements[12];
+        const wy = elements[1] * x + elements[5] * y + elements[9] * z + elements[13];
+        const wz = elements[2] * x + elements[6] * y + elements[10] * z + elements[14];
+        if (wx < minX) minX = wx; if (wx > maxX) maxX = wx;
+        if (wz < minZ) minZ = wz; if (wz > maxZ) maxZ = wz;
+        if (wy > maxY) maxY = wy;
+      }
+      if (![minX, minZ, maxX, maxZ, maxY].every(Number.isFinite)) continue;
+      // rasteira no chão não é moldura (a marca já garante que é sebe, mas a
+      // guarda evita fade de uma fileira achatada por algum ajuste futuro)
+      if (maxY <= 0.8) continue;
+      // slabe 2D: o segmento câmera→menina cruza a caixa da fileira no plano XZ?
+      const lo = { x: Math.min(camX, head.x), z: Math.min(camZ, head.z) };
+      const hi = { x: Math.max(camX, head.x), z: Math.max(camZ, head.z) };
+      if (hi.x < minX || lo.x > maxX) continue;
+      if (hi.z < minZ || lo.z > maxZ) continue;
+
+      keep.add(mesh);
+      const record = faded.get(mesh);
+      if (record) {
+        record.lastSeen = ts;
+        continue;
+      }
+      if (faded.size >= maxFadedTotal) continue; // teto total: a camada espera
+      fadeMesh(mesh, ts);
+    }
+
     // corte de camada: varre os occluders da zona (barato — usa a boundingSphere
     // JÁ computada, sem raycast) e escolhe quem é "teto entre a menina e a
     // câmera". Entra na MESMA máquina de fade/histerese: é só "kept" a mais. A

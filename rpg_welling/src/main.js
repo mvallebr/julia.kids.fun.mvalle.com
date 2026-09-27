@@ -196,10 +196,18 @@ function buildScene(zoneName) {
   // jardim inteiro piscavam a cada passinho da menina.
   occluders = [];
   scene.traverse((node) => {
-    if (!node.isMesh || !node.visible || node.isInstancedMesh) return;
+    if (!node.isMesh || !node.visible) return;
+    // Barreira de borda (hedgeRow) entra SEM os dois filtros abaixo: é
+    // InstancedMesh e as bolinhas são pequenas, exatamente o perfil que o
+    // resto da vegetação tem. A diferença é que a barreira não é decoração —
+    // é a moldura que fecha o horizonte, e quem trava a jogadora de verdade é
+    // zone.bounds. Se ela entrar no caminho da câmera tem que virar fantasma,
+    // ou a criança fica jogando sem se ver (QA 2026-09-27, zona `woods`).
+    const isBarrier = node.userData?.boundaryHedge === true;
+    if (node.isInstancedMesh && !isBarrier) return;
     if (node.geometry) {
       if (!node.geometry.boundingSphere) node.geometry.computeBoundingSphere();
-      if ((node.geometry.boundingSphere?.radius ?? 0) < CAM_OCCLUDER_MIN_RADIUS) return;
+      if (!isBarrier && (node.geometry.boundingSphere?.radius ?? 0) < CAM_OCCLUDER_MIN_RADIUS) return;
     }
     occluders.push(node);
   });
