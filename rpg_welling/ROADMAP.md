@@ -1,7 +1,10 @@
 # Roadmap — RPG Welling
 
-Status deste arquivo: **vivo**. Atualizado em 2026-09-24 depois da rodada 2
-"Capítulo 2 + minigames + opções + performance" (live `?v=20260924m`, 141 testes).
+Status deste arquivo: **vivo**. Atualizado em 2026-09-27 depois da rodada 3
+"câmera, oclusão e minigame de pênaltis" (live `?v=20260925h`, **374 testes**).
+
+A rodada 3 não tinha roadmap: ela cresceu a partir do QA visual. Os itens 4.1 a
+4.5 são os defeitos que esse QA expôs, com captura de tela de cada zona.
 
 Este é o plano de evolução do jogo da Julia. Ele existe para que qualquer sessão
 futura saiba o que já foi feito, o que está em andamento e o que é próximo —
@@ -63,7 +66,7 @@ qualquer item de conteúdo é uma roleta de regressão silenciosa.
 |---|---|---|---|
 | 0.1 | Teste de fumaça de boot: as 5 zonas constroem sem lançar | M | **entregue** |
 | 0.2 | Cache do service worker versionado pelo hash do bundle | P | **entregue (o que dá para fazer sem build no deploy)** — `sw.js` + `sw-cache-name.js` com namespace por `?v=`, nome ativo persistido em cache de metadados, rotação na navegação HTML, limpeza só depois de provar HTML + bundle da MESMA versão, fallback para reservas antigas completas, manifesto e fontes num cache compartilhado persistente, isolamento total dos outros jogos (network-only) e política de MIME/escopo para tudo que entra no cache. O `?v=` continua **manual** por escolha: `index.html` estático no GitHub Pages não roda build, então derivar o hash do bundle no deploy exigiria mudar o pipeline — ver "Sobre 0.2" |
-| 0.3 | Quebrar `world.js` e `main.js` em módulos (destrava o paralelismo) | G | planejado |
+| 0.3 | Quebrar `world.js` e `main.js` em módulos (destrava o paralelismo) | G | planejado — **mais urgente que em 09-24**: os dois arquivos cresceram para 3.596 e 2.728 linhas e nenhum módulo novo conseguiu entrar neles (câmera, oclusão e pênaltis nasceram fora). A Fase 4 depende disso para ser paralelizável |
 | 0.4 | CI: `npm ci && npm run build && npm test` + grep de CJK | P | **entregue** — `.github/workflows/ci.yml`, Node 20.19.4, e `git diff --exit-code -- lib/bundle.js` |
 
 Sobre 0.1: o teste roda em Node, onde não existe `document` nem canvas, com um
@@ -109,7 +112,8 @@ Cada um é um arquivo novo, sem tocar nos outros.
 | 2.1 | Escutar e repetir (fala com pontuação por semelhança) | M | **entregue** — `games/listen.js`: 20 palavras em 5 zonas (sem sobrepor as de 2.4), âncora `listenSchool` no pátio do parquinho, 3 tentativas, pontuação por similaridade de Levenshtein (0,9/0,6/0,35 = 3/2/1 estrelas — a estrela decide se a rodada passou e quantos confetes são lançados, não aparece desenhada) e digitação como reserva quando o navegador não tem `SpeechRecognition`; a fala é reprovada em 0,2 se **qualquer** palavra da frase for negação ("I don't know swing", "não sei swing"), com uma única exceção documentada: um "no," inicial é marcador de discurso e é removido antes da varredura — reprovar quem disse a frase errada é melhor do que aprovar quem disse "não sei"; o acerto grava a palavra no diário e conta no histórico de estudo |
 | 2.2 | Sequência / memória (4–6 itens) | M | **entregue** — `games/memory.js` na biblioteca da escola (âncora `memoryLibrary`), 4 rodadas 3→6 cartas, dica no 2º erro, erro repete a sequência |
 | 2.3 | Ditado de campo (3 frases escondidas no mundo) | M | **entregue** — `games/dictation.js` no correio (High Street), placa do Green Chain e torre Severndroog (woods); flags `dictation1/2/3`, 1 deslize de digitação perdoado, revelação gentil após 3 tentativas |
-| 2.4 | Vocabulário no cenário (tocar no objeto oferece 4 palavras) | M | **entregue** — `games/words.js`: 5 âncoras (`wordsSchool`, `wordsWoods`, `wordsHighStreet`, `wordsClassroom`, `wordsAcademy`), 4 palavras por lugar, revelação por toque, áudio por `speechSynthesis` (quando há voz) e "Guardar no diário" que grava **só** o que a criança revelou; o painel só anuncia sucesso quando houve gravação real (`saved > 0`), senão diz "Nada novo para guardar" |
+| 2.4 | Vocabulário no cenário (toque no objeto oferece 4 palavras) | M | **entregue** — `games/words.js`: 5 âncoras (`wordsSchool`, `wordsWoods`, `wordsHighStreet`, `wordsClassroom`, `wordsAcademy`), 4 palavras por lugar, revelação por toque, áudio por `speechSynthesis` (quando há voz) e "Guardar no diário" que grava **só** o que a criança revelou; o painel só anuncia sucesso quando houve gravação real (`saved > 0`), senão diz "Nada novo para guardar" |
+| 2.5 | Pênaltis (arraste + direção) | M | **entregue fora do plano** — `games/penalty.js` (538 linhas) nasceu da rodada 3, como jogo de futebol no pátio. Nunca entrou em tabela nenhuma: foi escrito direto no código e o roadmap ficou para trás. Ganhou o rótulo de minigame do dia; ver também 4.5, porque a câmera o expôs |
 
 ## 5. Fase 3 — Payload, performance e acesso
 
@@ -129,6 +133,36 @@ entre zonas. Ninguém quebrou por causa disso ainda e mexer agora, com o 3.1
 recém-entregue, arrisca trocar um bug raro por um crash de tela preta. Fica
 marcado para quando os personagens da Ivy e do Oakley passarem a ser
 instanciados de verdade em vez de cacheados.
+
+Assets medidos em 2026-09-27: `assets/` = **72 MB**, 15 GLBs. Os sete rigs de
+personagem somam **64,6 MB (90%)** — `ivy-rigged.glb` 10,9 MB, `oakley-rigged.glb`
+9,7 MB, `willow-rigged.glb` 9,5 MB, `raven-rigged.glb` e `crumb-rigged.glb` 9,2 MB
+cada, `finch-rigged.glb` 8,6 MB, `page-rigged.glb` 7,5 MB. O maior item de
+props é `trees.glb` (1,9 MB). O 3.1 cortou o boot pela metade, mas o disco
+continua crescendo: cada rig novo entra com ~9 MB.
+
+## 5.1 Fase 4 — Visual e jogabilidade
+
+Rodada nova, nascida do **QA visual com navegador**, e não de leitura de código.
+Em 2026-09-27 o jogo foi aberto em Chrome headless via CDP, com o servidor local
+de `jogar.sh`, e cada zona foi capturada depois do boot real. Os itens abaixo
+foram vistos nas imagens, não deduzidos.
+
+| # | Item | Tamanho | Status |
+|---|---|---|---|
+| 4.1 | Câmera não deixa a sebe tapar a personagem na mata | M | **planejado (P0)** — na captura da zona `woods`, a fileira de sebes ocupa o terço inferior do quadro e a Ivy/Oakley aparece só pela metade. A criança joga sem enxergar a si mesma; o `occlusion.js` apaga o que está *na frente da câmera*, mas a sebe está embaixo e atrás, fora do alcance dele. Candidatos: recuar a câmera quando há oclusão baixa, ou baixar/encurtar a sebe na borda da zona |
+| 4.2 | Faixa preta no topo e texto cortado na fachada da escola | P | **planejado** — na captura da zona `school` há uma faixa preta e outra bege ocupando a faixa superior do quadro, e o letreiro da fachada aparece truncado ("RD" e "GR" nas pontas). Ou é a camada de teto do diorama que não some inteira, ou é geometria de fachada atravessando o frustum. Diagnóstico: capturar `school` com o overlay de debug e ver o que ocupa essa faixa |
+| 4.3 | Translúcido fantasma no lado direito da escola | P | **planejado** — um plano branco semitransparente cobre o terço direito da captura, com as janelas aparecendo através dele. Cheira a material com `opacity` baixo applied no lugar errado, ou plano de vidro do prédio sem `depthWrite` |
+| 4.4 | Cena da mata escura e sem contraste | P-M | **planejado** — a mata renderiza em verde muito escuro, com o riacho como um elipse azul chapado e um bloco marrom solto à direita. Legibilidade do chão é ruim para uma criança no tablet |
+| 4.5 | Pênaltis e diorama expostos pela câmera | M | **parcial** — a rodada 3 já criou `occlusion.js` (esmaecer o que está entre a câmera e a jogadora) e o cone de 5 raios do diorama, mas o QA mostrou que a câmera ainda tem casos ruins. O botão dos pênaltis que "abre sempre" e a aterragem das árvores já foram corrigidos nos commits `89ad7f4` e `d539710` |
+| 4.6 | QA visual automatizado como verificação, não como ritual | M | **entregue (parcial)** — o caminho funciona: `jogar.sh` (ou `python3 -m http.server`) + Chrome headless em `--remote-debugging-port` + um cliente CDP mínimo para navegar, esperar o boot e capturar. Ver §7. Falta virar script no repo para qualquer agente rodar sem montar a mão |
+
+O que o QA mostrou sobre o método: `--screenshot` puro não serve, porque
+dispara no evento `load` e o boot do RPG só termina depois de baixar ~25 MB de
+GLB — a primeira captura pegou a tela de loading em 100%, sem a cena. É
+obrigatório **esperar em tempo real** (55 s bastaram para a escola) e só então
+capturar. Vale registrar: teste de boot em Node não pega nada disso, porque
+`world.js` renderiza certo e *parece* errado.
 
 ---
 
@@ -171,6 +205,13 @@ Para que vários agentes trabalhando em paralelo não se atropelem:
   agente principal, sempre. Checkout paralelo destrói o trabalho do vizinho.
 - **Nenhum agente usa navegador.** Só existe uma instância do Chrome, e QA de
   navegador é feito uma vez, no fim, pelo agente principal.
+  **Revisto em 2026-09-27:** a regra valia porque só havia um Chrome e ele
+  disputava a tela com o agente principal. Headless muda isso — o agente
+  principal sobe o servidor e a sessão de QA visual, e um subagente pode fazer
+  o mesmo em porta e `--user-data-dir` próprios, sem roubar a tela de ninguém.
+  O que continua valendo: **um único agente principal por navegador de QA**, e
+  ninguém mexe no Chrome que a pessoa está usando. A instância do
+  `chrome-devtools-mcp` é do host e não deve ser disputada.
 - **Nenhum agente sobe servidor.** Nenhuma porta compartilhada.
 - **Nenhum agente roda `npm install`** nem mexe em `node_modules`/`package-lock.json`.
 - **Nenhum agente roda `npm run build`** nem edita `lib/bundle.js` — é artefato
@@ -188,7 +229,12 @@ Antes de qualquer commit:
 1. `npm run verify` passa — ele já roda o grep PCRE de CJK, o build e os testes
    (texto CJK já corrompeu arquivos três vezes).
 2. `npm run build` passa.
-3. `npm test` passa (baseline hoje: **255**, eram 39 antes das rodadas 1-2).
+3. `npm test` passa (baseline hoje: **374**; eram 39 antes das rodadas 1-2, 141
+   depois da rodada 2, 255 no meio da rodada 3).
 4. Se tocou `world.js` ou qualquer builder: **teste de fumaça de boot** passa.
-5. Se tocou `index.html`: bump de `?v=` no `<script src="lib/bundle.js?v=…">`.
-6. Depois do push: conferir o `?v=` no ar e o **md5 do bundle live = local**.
+5. Se tocou em cor, luz, material, câmera ou geometria de zona: **captura de
+   tela** da zona passa. O teste de boot não cobre isso — o `world.js` pode
+   construir as 5 zonas sem lançar e ainda assim a imagem estar errada. Foi
+   exatamente assim que 4.1 a 4.4 apareceram.
+6. Se tocou `index.html`: bump de `?v=` no `<script src="lib/bundle.js?v=…">`.
+7. Depois do push: conferir o `?v=` no ar e o **md5 do bundle live = local**.
