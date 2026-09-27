@@ -3235,8 +3235,15 @@ export function buildWoods(scene) {
       // primeiro mostra o fim do capítulo; só depois a saída vira High Street
       { x: 0, z: -20.4, radius: 1.0, target: 'highstreet', spawn: [0, 14.6] },
     ],
-    hemi: [0xcfe8c8, 0x24401f, 1.0],
-    sun: { color: 0xffd98a, intensity: 1.75, pos: [-7, 16, -4] },
+    // Luz da mata (4.4 do roadmap: cena escura e sem contraste, chão ilegível
+    // no tablet). O problema não era o sol — 1,75 já é forte — e sim a cor DE
+    // BAIXO do hemisférico, 0x24401f, quase preta: ela pinta de sombra tudo
+    // que a luz direcional não pega, e num bosque fechado isso é praticamente
+    // o chão inteiro. Subir para um verde médio e dar um pouco mais de ar ao
+    // hemisférico levanta a leitura do chão sem achatar a atmosfera de bosque:
+    // o sol continua dando a direção da luz.
+    hemi: [0xcfe8c8, 0x40643f, 1.25],
+    sun: { color: 0xffd98a, intensity: 1.95, pos: [-7, 16, -4] },
     background: 0x87b7a0,
     fog: [0x87b7a0, 34, 130],
     npcSpots: {},
