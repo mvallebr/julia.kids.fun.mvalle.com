@@ -51,7 +51,11 @@ export function emptyState() {
     history: {}, // 'YYYY-MM-DD' → { added, right, wrong } — dias de estudo p/ relatório
     duelWins: 0, // total de duelos vencidos (conta medalhas da Academia)
     achievements: [], // ids permanentes de conquistas já conquistadas
-    settings: { textScale: 'normal', ambience: true }, // preferências da tela de opções
+    // Preferências da tela de opções. Vem de normalizeSettings() em vez de
+    // literal: o painel ganhou som e idioma na rodada 6, e um literal aqui
+    // viraria uma segunda fonte de verdade que o teste pegaria só quando
+    // alguém já tivesse salvo um jogo no formato antigo.
+    settings: normalizeSettings({}),
     // semente da rolagem de recompensas do capítulo 2 (chapters.js, roadmap 1.1).
     // Fica no save para a recompensa não mudar entre recargas nem entre abas:
     // 0 = ainda não sorteada, e o boot sorteia e grava na primeira vez.

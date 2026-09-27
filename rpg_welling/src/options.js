@@ -10,7 +10,14 @@
 // e a mesma ordem que o CSS de `data-text-scale` no index.html precisa cobrir.
 export const TEXT_SCALES = Object.freeze(['normal', 'large', 'xlarge']);
 
-const DEFAULTS = Object.freeze({ textScale: 'normal', ambience: true });
+const DEFAULTS = Object.freeze({
+  textScale: 'normal',
+  ambience: true,
+  // som geral e idioma. O de som começa ligado; o idioma começa vazio
+  // ('' = seguir o launcher/URL), que é o mesmo default de state.language.
+  sound: true,
+  language: '',
+});
 
 // Textos default: as chaves espelham o que o principal deve adicionar em
 // src/i18n.js (ver relatório de integração), mas o painel NÃO depende do
@@ -34,6 +41,23 @@ const DEFAULT_STRINGS = Object.freeze({
   },
   ambienceOn: { pt: '🔊 Ligado', en: '🔊 On', es: '🔊 Activado' },
   ambienceOff: { pt: '🔇 Desligado', en: '🔇 Off', es: '🔇 Apagado' },
+  sound: { pt: 'Som do jogo', en: 'Game sound', es: 'Sonido del juego' },
+  soundHint: {
+    pt: 'Palavras, enigmas e efeitos.',
+    en: 'Words, puzzles and effects.',
+    es: 'Palabras, puzles y efectos.',
+  },
+  soundOn: { pt: '🔊 Ligado', en: '🔊 On', es: '🔊 Activado' },
+  soundOff: { pt: '🔇 Desligado', en: '🔇 Off', es: '🔇 Apagado' },
+  language: { pt: 'Idioma', en: 'Language', es: 'Idioma' },
+  languageHint: {
+    pt: 'O jogo inteiro muda de idioma, inclusive a lição.',
+    en: 'The whole game changes language, the lesson included.',
+    es: 'Todo el juego cambia de idioma, incluida la lección.',
+  },
+  langPt: { pt: 'Português', en: 'Portuguese', es: 'Portugués' },
+  langEn: { pt: 'Inglês', en: 'English', es: 'Inglés' },
+  langEs: { pt: 'Espanhol', en: 'Spanish', es: 'Español' },
 });
 
 // Rótulo amigável por nível (nada de A/AA/AAA, que não significa nada para
@@ -78,7 +102,13 @@ export function normalizeSettings(input) {
   const ambience = typeof source.ambience === 'boolean'
     ? source.ambience
     : DEFAULTS.ambience;
-  return { textScale, ambience };
+  // som e idioma moram no TOPO do state (state.sound / state.language), não em
+  // state.settings — são anteriores ao painel. O painel os trata como mais dois
+  // campos da visão e quem mapeia de volta é o main.js; duplicá-los em settings
+  // criaria duas fontes de verdade para a mesma preferência.
+  const sound = typeof source.sound === 'boolean' ? source.sound : DEFAULTS.sound;
+  const language = LANGUAGES.includes(source.language) ? source.language : DEFAULTS.language;
+  return { textScale, ambience, sound, language };
 }
 
 // Desenha o conteúdo de opções DENTRO de `container` (o principal fornece o
@@ -100,6 +130,62 @@ export function normalizeSettings(input) {
 //   - update() sincroniza aria-checked/tabindex sem disparar onChange (para o
 //     principal re-sincronizar o painel se o estado mudar por outro caminho);
 //   - destroy() remove o corpo e invalida o registro do container.
+// Um switch (role="switch") com rótulo, estado visível e dica. Fábrica
+// interna porque as duas seções de som são o mesmo controle com texto
+// diferente — e porque o teclado é delicado: o handler global do jogo cancela
+// o espaço na janela, então o toggle precisa acontecer aqui, uma única vez.
+function buildSwitch({ text, id, labelKey, onKey, offKey, hintKey, isOn, onToggle }) {
+  const section = document.createElement('section');
+  section.className = 'rpg-options-section';
+
+  const heading = document.createElement('h3');
+  heading.className = 'rpg-options-heading';
+  heading.id = id;
+  heading.textContent = text(labelKey);
+  section.appendChild(heading);
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'rpg-opt-switch';
+  button.setAttribute('role', 'switch');
+  button.setAttribute('aria-labelledby', heading.id);
+  button.style.minWidth = '48px';
+  button.style.minHeight = '48px';
+
+  const label = document.createElement('span');
+  label.className = 'rpg-opt-switch-label';
+  label.textContent = text(labelKey);
+
+  const state = document.createElement('span');
+  state.className = 'rpg-opt-switch-state';
+  button.appendChild(label);
+  button.appendChild(state);
+
+  const apply = (value) => {
+    button.setAttribute('aria-checked', value ? 'true' : 'false');
+    state.textContent = text(value ? onKey : offKey);
+  };
+  const toggle = () => { onToggle(!isOn()); apply(isOn()); };
+  button.addEventListener('click', toggle);
+  button.addEventListener('keydown', (event) => {
+    if (event?.key === ' ') {
+      event.preventDefault?.();
+      event.stopPropagation?.();
+      toggle();
+    }
+    // Enter: clique nativo do <button> alterna — não duplicar aqui.
+  });
+
+  const hint = document.createElement('p');
+  hint.className = 'rpg-options-hint';
+  hint.textContent = text(hintKey);
+
+  section.appendChild(button);
+  section.appendChild(hint);
+  apply(isOn());
+  return { section, apply };
+}
+
 export function renderOptionsPanel({ container, settings, lang = 'pt', strings, onChange } = {}) {
   if (!container || typeof container.appendChild !== 'function') {
     throw new TypeError('renderOptionsPanel requires a container element with appendChild');
@@ -236,69 +322,104 @@ export function renderOptionsPanel({ container, settings, lang = 'pt', strings, 
     });
   });
 
-  // ── seção 2: sons do ambiente (switch único) ─────────────────────────────
-  const ambienceSection = document.createElement('section');
-  ambienceSection.className = 'rpg-options-section';
-
-  const ambienceHeading = document.createElement('h3');
-  ambienceHeading.className = 'rpg-options-heading';
-  ambienceHeading.id = 'rpg-options-ambience-heading';
-  ambienceHeading.textContent = text('ambience');
-  ambienceSection.appendChild(ambienceHeading);
-
-  const switchButton = document.createElement('button');
-  switchButton.type = 'button';
-  switchButton.className = 'rpg-opt-switch';
-  switchButton.setAttribute('role', 'switch');
-  switchButton.setAttribute('aria-labelledby', ambienceHeading.id);
-  switchButton.style.minWidth = '48px';
-  switchButton.style.minHeight = '48px';
-
-  const switchLabel = document.createElement('span');
-  switchLabel.className = 'rpg-opt-switch-label';
-  switchLabel.textContent = text('ambience');
-
-  const switchState = document.createElement('span');
-  switchState.className = 'rpg-opt-switch-state';
-  switchButton.appendChild(switchLabel);
-  switchButton.appendChild(switchState);
-
-  function applySwitchState() {
-    switchButton.setAttribute('aria-checked', current.ambience ? 'true' : 'false');
-    switchState.textContent = text(current.ambience ? 'ambienceOn' : 'ambienceOff');
-  }
-
-  function toggleAmbience() {
-    current.ambience = !current.ambience;
-    applySwitchState();
-    notify({ ambience: current.ambience });
-  }
-
-  switchButton.addEventListener('click', toggleAmbience);
-  switchButton.addEventListener('keydown', (event) => {
-    if (event?.key === ' ') {
-      // mesmo raciocínio dos rádios: espaço global é cancelado pelo jogo,
-      // então o toggle acontece aqui (uma única vez por tecla)
-      event.preventDefault?.();
-      event.stopPropagation?.();
-      toggleAmbience();
-    }
-    // Enter: clique nativo do <button> alterna — não duplicar aqui.
+  // ── seções 2 e 3: dois sons ───────────────────────────────────────────────
+  const ambience = buildSwitch({
+    text, id: 'rpg-options-ambience-heading',
+    labelKey: 'ambience', onKey: 'ambienceOn', offKey: 'ambienceOff', hintKey: 'ambienceHint',
+    isOn: () => current.ambience,
+    onToggle: (value) => { current.ambience = value; notify({ ambience: value }); },
+  });
+  const sound = buildSwitch({
+    text, id: 'rpg-options-sound-heading',
+    labelKey: 'sound', onKey: 'soundOn', offKey: 'soundOff', hintKey: 'soundHint',
+    isOn: () => current.sound,
+    onToggle: (value) => { current.sound = value; notify({ sound: value }); },
   });
 
-  const ambienceHint = document.createElement('p');
-  ambienceHint.className = 'rpg-options-hint';
-  ambienceHint.textContent = text('ambienceHint');
+  // ── seção 4: idioma (radiogroup) ──────────────────────────────────────────
+  const languageSection = document.createElement('section');
+  languageSection.className = 'rpg-options-section';
 
-  ambienceSection.appendChild(switchButton);
-  ambienceSection.appendChild(ambienceHint);
+  const languageHeading = document.createElement('h3');
+  languageHeading.className = 'rpg-options-heading';
+  languageHeading.id = 'rpg-options-language-heading';
+  languageHeading.textContent = text('language');
+  languageSection.appendChild(languageHeading);
+
+  const languageHint = document.createElement('p');
+  languageHint.className = 'rpg-options-hint';
+  languageHint.textContent = text('languageHint');
+  languageSection.appendChild(languageHint);
+
+  const languageGroup = document.createElement('div');
+  languageGroup.className = 'rpg-options-radiogroup';
+  languageGroup.setAttribute('role', 'radiogroup');
+  languageGroup.setAttribute('aria-labelledby', languageHeading.id);
+
+  const LANG_KEYS = { pt: 'langPt', en: 'langEn', es: 'langEs' };
+  const langRadios = LANGUAGES.map((value) => {
+    const radio = document.createElement('button');
+    radio.type = 'button';
+    radio.className = 'rpg-opt-radio';
+    radio.setAttribute('role', 'radio');
+    radio.dataset.lang = value;
+    radio.style.minWidth = '48px';
+    radio.style.minHeight = '48px';
+    const label = document.createElement('span');
+    label.className = 'rpg-opt-radio-label';
+    // mostra o nome do idioma no PRÓPRIO idioma: quem não lê português ainda
+    // reconhece "English" e "Español" na primeira tela
+    label.textContent = DEFAULT_STRINGS[LANG_KEYS[value]][value];
+    radio.appendChild(label);
+    languageGroup.appendChild(radio);
+    return radio;
+  });
+  languageSection.appendChild(languageGroup);
+
+  let langIndex = LANGUAGES.indexOf(current.language);
+
+  function applyLangStates() {
+    langRadios.forEach((radio, index) => {
+      const checked = index === langIndex;
+      radio.setAttribute('aria-checked', checked ? 'true' : 'false');
+      radio.tabIndex = checked ? 0 : -1;
+    });
+  }
+
+  function selectLang(index) {
+    langIndex = ((index % langRadios.length) + langRadios.length) % langRadios.length;
+    applyLangStates();
+    langRadios[langIndex].focus?.();
+    notify({ language: LANGUAGES[langIndex] });
+  }
+
+  langRadios.forEach((radio, index) => {
+    radio.addEventListener('click', () => {
+      if (langIndex !== index) selectLang(index);
+    });
+    radio.addEventListener('keydown', (event) => {
+      const key = event?.key;
+      const step = { ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 }[key];
+      if (step !== undefined) {
+        event.preventDefault?.();
+        event.stopPropagation?.();
+        selectLang(langIndex + step);
+      } else if (key === ' ') {
+        event.preventDefault?.();
+        event.stopPropagation?.();
+        selectLang(index);
+      }
+    });
+  });
 
   wrapper.appendChild(sizeSection);
-  wrapper.appendChild(ambienceSection);
+  wrapper.appendChild(ambience.section);
+  wrapper.appendChild(sound.section);
+  wrapper.appendChild(languageSection);
   container.appendChild(wrapper);
 
   applyRadioStates();
-  applySwitchState();
+  applyLangStates();
 
   const api = {
     wrapper,
@@ -306,8 +427,13 @@ export function renderOptionsPanel({ container, settings, lang = 'pt', strings, 
       const next = normalizeSettings(nextSettings);
       checkedIndex = TEXT_SCALES.indexOf(next.textScale);
       current.ambience = next.ambience;
+      current.sound = next.sound;
+      current.language = next.language;
+      langIndex = LANGUAGES.indexOf(next.language);
       applyRadioStates();
-      applySwitchState();
+      ambience.apply(current.ambience);
+      sound.apply(current.sound);
+      applyLangStates();
     },
     destroy() {
       if (typeof wrapper.remove === 'function') wrapper.remove();

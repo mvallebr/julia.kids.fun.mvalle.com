@@ -1069,22 +1069,47 @@ function renderOptions() {
   if (!body) return;
   optionsPanel = renderOptionsPanel({
     container: body,
-    settings: normalizeSettings(state.settings),
+    // O painel treats som e idioma como mais dois campos da visão, mas eles
+    // moram no TOPO do state (state.sound / state.language) — são anteriores ao
+    // painel. A junção acontece aqui, e o mapeio de volta logo abaixo.
+    settings: normalizeSettings({
+      ...state.settings,
+      sound: state.sound,
+      // state.language vazio significa "seguir o launcher"; o painel precisa
+      // mostrar o idioma que esta NA TELA, senao o radiogroup abre sem nenhum
+      // item marcado e a menina nao sabe o que esta escolhendo.
+      language: state.language || language,
+    }),
     lang: language,
     onChange: (partial) => {
       // Espaço num rádio já marcado reemite o mesmo valor: guardar sem mudança
       // seria um save de localStorage a cada Espaço, de graça
       if (partial.textScale !== undefined && partial.textScale === state.settings?.textScale) return;
       if (partial.ambience !== undefined && partial.ambience === state.settings?.ambience) return;
-      state.settings = normalizeSettings({ ...state.settings, ...partial });
-      saveState(localStorage, player, state);
+      if (partial.sound !== undefined && partial.sound === state.sound) return;
+      if (partial.language !== undefined && partial.language === state.language) return;
+      if (partial.language !== undefined || partial.sound !== undefined) {
+        // som e idioma saem de settings e vão para o topo do state
+        const { sound, language: lang, ...settings } = partial;
+        if (sound !== undefined) state = { ...state, sound };
+        if (lang !== undefined) state = { ...state, language: lang };
+        if (Object.keys(settings).length > 0) {
+          state.settings = normalizeSettings({ ...state.settings, ...settings });
+        }
+        saveState(localStorage, player, state);
+        if (sound !== undefined) applySound(state.sound);
+        if (lang !== undefined) applyLanguage(lang);
+      } else {
+        state.settings = normalizeSettings({ ...state.settings, ...partial });
+        saveState(localStorage, player, state);
+      }
       if (partial.textScale !== undefined) applyTextScale(state.settings);
       if (partial.ambience !== undefined) setAmbienceEnabled(state.settings.ambience);
     },
   });
 }
 function openOptions() {
-  optionsPanel?.update?.(normalizeSettings(state.settings));
+  optionsPanel?.update?.(normalizeSettings({ ...state.settings, sound: state.sound, language: state.language || language }));
   $('optionsBackdrop').classList.remove('hidden');
   openModal('optionsBackdrop');
 }
@@ -1266,12 +1291,19 @@ $('hintButton')?.addEventListener('click', (e) => {
   }
 }, { capture: true });
 
-$('soundButton').addEventListener('click', () => {
-  state.sound = !state.sound;
+// Aplica o som geral e reflete no HUD. Extraído do handler do botão porque o
+// painel de opções (3.5) agora mexe no MESMO campo de state: dois caminhos com
+// a mesma linha de código divergem na primeira vez que um esquecer o outro.
+function applySound(on) {
+  state.sound = Boolean(on);
   setMuted(!state.sound);
   saveState(localStorage, player, state);
   updateHUD();
   refreshDynamicAria();
+}
+
+$('soundButton').addEventListener('click', () => {
+  applySound(!state.sound);
   sounds.tap();
 });
 // 🔊 do quiz repete a palavra falada (funciona em qualquer uma das 3 sessões)
@@ -1279,11 +1311,18 @@ $('quizVoice').addEventListener('click', () => {
   if (quizWord && !($('quizBackdrop').classList.contains('hidden'))) speakEnglish(quizWord);
 });
 // 🌐 cicla pt → en → es e recarrega: o boot inteiro se renderiza no idioma novo
-$('langButton').addEventListener('click', () => {
-  const cycle = { pt: 'en', en: 'es', es: 'pt' };
-  state.language = cycle[language] || 'en';
+// Idioma = recarrega: o boot inteiro se renderiza no idioma novo, e fazer isso
+// pela metade deixaria metade da tela na língua anterior.
+function applyLanguage(next) {
+  if (next === language) return;
+  state.language = next;
   saveState(localStorage, player, state);
   location.reload();
+}
+
+$('langButton').addEventListener('click', () => {
+  const cycle = { pt: 'en', en: 'es', es: 'pt' };
+  applyLanguage(cycle[language] || 'en');
 });
 $('hintButton').addEventListener('click', () => {
   sounds.hoot();

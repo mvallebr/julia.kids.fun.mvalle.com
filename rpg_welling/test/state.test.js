@@ -30,8 +30,12 @@ test('normalizeState limpa lixo sem quebrar (defesa contra save corrompido)', ()
 
 test('save vem vazio e sadio quando não há nada salvo', () => {
   const storage = fakeStorage();
+  // chapter2Seed entrou no estado na rodada 6 (roadmap 1.1), então o default
+  // de emptyState tem uma chave a mais do que antes. Comparar contra
+  // emptyState() continua sendo o contrato: save vazio === estado novo.
   assert.deepEqual(loadState(storage, 'julia'), emptyState());
   assert.deepEqual(loadState(storage, ''), emptyState());
+  assert.equal(emptyState().chapter2Seed, 0, 'semente zerada = ainda não sorteada');
   storage.setItem(STORAGE_KEY, 'não-json{{{');
   assert.deepEqual(loadState(storage, 'julia'), emptyState());
 });

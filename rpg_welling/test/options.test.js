@@ -92,6 +92,24 @@ function findAll(rootElement, className) {
   return walk(rootElement).filter((node) => node.className === className);
 }
 
+// O painel tem DOIS radiogroups (tamanho do texto e idioma) e DOIS switches
+// (ambiente e som geral). As Beardus antigas pegavam tudo junto e quebravam
+// quando a segunda seção entrou, então cada teste escolhe o seu grupo pelo
+// data-atributo em vez de pegar "todos os rádios".
+function radiosByKey(panel, key) {
+  return walk(panel).filter((node) => node.attributes.role === 'radio' && node.dataset[key] !== undefined);
+}
+
+function switchByHeading(panel, headingId) {
+  return walk(panel).find((node) => node.className === 'rpg-opt-switch'
+    && node.attributes['aria-labelledby'] === headingId);
+}
+
+function switchStateOf(panel, headingId) {
+  const button = switchByHeading(panel, headingId);
+  return button ? findAll(button, 'rpg-opt-switch-state')[0] : null;
+}
+
 function makePanel() {
   return makeElement('div');
 }
@@ -102,7 +120,7 @@ test('TEXT_SCALES expõe a ordem canônica dos níveis, congelada', () => {
 });
 
 test('normalizeSettings devolve os defaults para ausência e lixo de topo', () => {
-  const expected = { textScale: 'normal', ambience: true };
+  const expected = { textScale: 'normal', ambience: true, sound: true, language: '' };
   assert.deepEqual(normalizeSettings(), expected);
   assert.deepEqual(normalizeSettings(undefined), expected);
   assert.deepEqual(normalizeSettings(null), expected);
@@ -113,16 +131,22 @@ test('normalizeSettings devolve os defaults para ausência e lixo de topo', () =
 });
 
 test('normalizeSettings preserva valores válidos', () => {
-  assert.deepEqual(normalizeSettings({ textScale: 'large', ambience: false }), { textScale: 'large', ambience: false });
-  assert.deepEqual(normalizeSettings({ textScale: 'xlarge' }), { textScale: 'xlarge', ambience: true });
-  assert.deepEqual(normalizeSettings({ ambience: false }), { textScale: 'normal', ambience: false });
+  assert.deepEqual(normalizeSettings({ textScale: 'large', ambience: false, sound: false, language: 'en' }),
+    { textScale: 'large', ambience: false, sound: false, language: 'en' });
+  assert.deepEqual(normalizeSettings({ textScale: 'xlarge' }),
+    { textScale: 'xlarge', ambience: true, sound: true, language: '' });
+  assert.deepEqual(normalizeSettings({ ambience: false }),
+    { textScale: 'normal', ambience: false, sound: true, language: '' });
+  for (const lang of ['pt', 'en', 'es']) {
+    assert.equal(normalizeSettings({ language: lang }).language, lang);
+  }
   for (const scale of TEXT_SCALES) {
     assert.equal(normalizeSettings({ textScale: scale }).textScale, scale);
   }
 });
 
 test('normalizeSettings descarta valores fora do enum e tipos errados por campo', () => {
-  const expected = { textScale: 'normal', ambience: true };
+  const expected = { textScale: 'normal', ambience: true, sound: true, language: '' };
   assert.deepEqual(normalizeSettings({ textScale: 'HUGE' }), expected);
   assert.deepEqual(normalizeSettings({ textScale: 'giant' }), expected);
   assert.deepEqual(normalizeSettings({ textScale: 3 }), expected);
@@ -130,6 +154,10 @@ test('normalizeSettings descarta valores fora do enum e tipos errados por campo'
   assert.deepEqual(normalizeSettings({ ambience: 0 }), expected); // só booleano é confiável
   assert.deepEqual(normalizeSettings({ ambience: 'false' }), expected);
   assert.deepEqual(normalizeSettings({ ambience: 1 }), expected);
+  assert.deepEqual(normalizeSettings({ sound: 'true' }), expected); // só booleano
+  assert.deepEqual(normalizeSettings({ sound: 0 }), expected);
+  assert.deepEqual(normalizeSettings({ language: 'de' }), expected); // fora do enum
+  assert.deepEqual(normalizeSettings({ language: 7 }), expected);
 });
 
 test('normalizeSettings aceita qualquer lixo sem lançar', () => {
@@ -166,8 +194,9 @@ test('render desenha radiogroup com 3 rádios na ordem de TEXT_SCALES e o switch
   renderOptionsPanel({ container: panel, settings: { textScale: 'large', ambience: false }, lang: 'pt' });
 
   const groups = findByRole(panel, 'radiogroup');
-  assert.equal(groups.length, 1);
-  const radios = findByRole(panel, 'radio');
+  // desde a rodada 6 o painel tem DOIS grupos: tamanho do texto e idioma
+  assert.equal(groups.length, 2);
+  const radios = radiosByKey(panel, 'scale');
   assert.deepEqual(radios.map((radio) => radio.dataset.scale), ['normal', 'large', 'xlarge']);
   assert.equal(radios.every((radio) => radio.type === 'button'), true);
 
@@ -176,7 +205,8 @@ test('render desenha radiogroup com 3 rádios na ordem de TEXT_SCALES e o switch
   assert.deepEqual(radios.map((radio) => radio.tabIndex), [-1, 0, -1]);
 
   const switches = findByRole(panel, 'switch');
-  assert.equal(switches.length, 1);
+  // ambiente + som geral
+  assert.equal(switches.length, 2);
   assert.equal(switches[0].attributes['aria-checked'], 'false');
 
   // rótulos amigáveis + preview de tamanho no próprio botão (nada de A/AA/AAA)
@@ -203,7 +233,7 @@ test('clicar num rádio chama onChange com o partial certo e move o aria-checked
     lang: 'pt',
     onChange: (partial) => changes.push(partial),
   });
-  const radios = findByRole(panel, 'radio');
+  const radios = radiosByKey(panel, 'scale');
 
   radios[2].emit('click');
   assert.deepEqual(changes, [{ textScale: 'xlarge' }]);
@@ -224,7 +254,7 @@ test('setas do teclado navegam o radiogroup, com wrap nas duas pontas', () => {
     lang: 'pt',
     onChange: (partial) => changes.push(partial),
   });
-  const radios = findByRole(panel, 'radio');
+  const radios = radiosByKey(panel, 'scale');
   changes.length = 0;
 
   radios[1].emit('keydown', { key: 'ArrowRight' });
@@ -258,7 +288,7 @@ test('espaço seleciona o rádio focado (o jogo cancela o clique nativo de espa�
     lang: 'pt',
     onChange: (partial) => changes.push(partial),
   });
-  const radios = findByRole(panel, 'radio');
+  const radios = radiosByKey(panel, 'scale');
   radios[0].emit('keydown', { key: ' ' });
   assert.deepEqual(changes, [{ textScale: 'normal' }]);
   assert.equal(radios[0].attributes['aria-checked'], 'true');
@@ -294,22 +324,28 @@ test('todo texto do painel é trilíngue e nunca vazio nos três idiomas', () =>
     const title = walk(panel).find((node) => node.className === 'rpg-options-title');
     const headings = findAll(panel, 'rpg-options-heading');
     const hints = findAll(panel, 'rpg-options-hint');
-    const radioLabels = findByRole(panel, 'radio').map((radio) => radio.children[1].textContent);
-    const switchState = findAll(panel, 'rpg-opt-switch-state')[0].textContent;
+    const radioLabels = radiosByKey(panel, 'scale').map((radio) => radio.children[1].textContent);
+    const switchState = switchStateOf(panel, 'rpg-options-ambience-heading').textContent;
 
     assert.ok(title.textContent.length > 0, `título vazio em ${language}`);
-    assert.equal(headings.length, 2);
-    assert.equal(hints.length, 2);
+    // 4 seções desde a rodada 6: texto, ambiente, som, idioma
+    assert.equal(headings.length, 4);
+    assert.equal(hints.length, 4);
     for (const heading of headings) assert.ok(heading.textContent.length > 0, `heading vazio em ${language}`);
     for (const hint of hints) assert.ok(hint.textContent.length > 0, `dica vazia em ${language}`);
     for (const label of radioLabels) assert.ok(label.length > 0, `rótulo de rádio vazio em ${language}`);
+    // os rádios de idioma têm UM filho só (o rótulo), sem o preview "Aa"
+    for (const label of radiosByKey(panel, 'lang').map((r) => r.children[0].textContent)) {
+      assert.ok(label.length > 0, `rótulo de idioma vazio em ${language}`);
+    }
     assert.ok(switchState.length > 0, `estado do switch vazio em ${language}`);
+    assert.ok(switchStateOf(panel, 'rpg-options-sound-heading').textContent.length > 0, `estado do som vazio em ${language}`);
   }
 
   const en = makePanel();
   renderOptionsPanel({ container: en, settings: { ambience: true }, lang: 'en' });
   assert.equal(walk(en).find((node) => node.className === 'rpg-options-title').textContent, '⚙️ Options');
-  assert.equal(findAll(en, 'rpg-opt-switch-state')[0].textContent, '🔊 On');
+  assert.equal(switchStateOf(en, 'rpg-options-ambience-heading').textContent, '🔊 On');
 
   const es = makePanel();
   renderOptionsPanel({ container: es, settings: { ambience: false }, lang: 'es' });
@@ -327,10 +363,11 @@ test('strings sobrescreve os textos default (string solta ou { pt, en, es })', (
   assert.equal(walk(panel).find((node) => node.className === 'rpg-options-title').textContent, 'Meu painel');
   // override { en: 'Big' } com lang pt cai no fallback en; override vazio ('')
   // NÃO apaga o texto: volta o default embutido
-  const radioLabels = findByRole(panel, 'radio').map((radio) => radio.children[1].textContent);
+  const radioLabels = radiosByKey(panel, 'scale').map((radio) => radio.children[1].textContent);
   assert.deepEqual(radioLabels, ['Normal', 'Big', 'Gigante']);
+  // as quatro seções, na ordem em que o painel as empilha
   const headings = findAll(panel, 'rpg-options-heading').map((node) => node.textContent);
-  assert.deepEqual(headings, ['Tamanho do texto', 'Sons do ambiente']);
+  assert.deepEqual(headings, ['Tamanho do texto', 'Sons do ambiente', 'Som do jogo', 'Idioma']);
 });
 
 test('idioma inválido cai em pt e settings de lixo caem nos defaults', () => {
@@ -352,7 +389,7 @@ test('update() sincroniza os controles sem disparar onChange', () => {
   });
   api.update({ textScale: 'xlarge', ambience: false, lixo: 'ignorado' });
   assert.deepEqual(changes, []);
-  const radios = findByRole(panel, 'radio');
+  const radios = radiosByKey(panel, 'scale');
   assert.deepEqual(radios.map((radio) => radio.attributes['aria-checked']), ['false', 'false', 'true']);
   assert.deepEqual(radios.map((radio) => radio.tabIndex), [-1, -1, 0]);
   assert.equal(findByRole(panel, 'switch')[0].attributes['aria-checked'], 'false');
