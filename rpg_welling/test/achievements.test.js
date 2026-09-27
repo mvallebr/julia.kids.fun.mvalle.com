@@ -64,6 +64,7 @@ function makeCompleteState() {
       // não era completo e a conquista chapter-three ficava de fora da lista
       // estável que o teste promete.
       ch3Done: true,
+      ch4Done: true,
     },
     history: makeHistory(7, { added: 0, right: 5, wrong: 0 }),
   };
@@ -77,10 +78,10 @@ function deepFreeze(value) {
   return value;
 }
 
-test('catálogo tem 20 conquistas com conteúdo trilíngue válido', () => {
-  // 20 desde a rodada 6 (Capítulo 3 entrou). O nome do teste acompanha de
+test('catálogo tem 21 conquistas com conteúdo trilíngue válido', () => {
+  // 21 desde a rodada 8 (Capítulo 4 entrou). O nome do teste acompanha de
   // propósito: a contagem é o que a lista pública promete.
-  assert.equal(ACHIEVEMENTS.length, 20);
+  assert.equal(ACHIEVEMENTS.length, 21);
   assert.equal(new Set(ACHIEVEMENT_IDS).size, ACHIEVEMENTS.length);
   for (const item of ACHIEVEMENTS) {
     assert.match(item.id, /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/);
@@ -122,6 +123,7 @@ test('ids e níveis formam a lista pública estável', () => {
     ['kind-helper', 'bronze'],
     ['chapter-two', 'gold'],
     ['chapter-three', 'gold'],
+    ['chapter-four', 'gold'],
   ]);
 });
 

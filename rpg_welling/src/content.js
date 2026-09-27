@@ -560,6 +560,29 @@ export const GLOSSES = {
   // Entradas do Capítulo 3 (roadmap 1.3, "O Jardim Secreto"). "garden" já
   // existia como texto de lugar em FLAVOR, mas a menina nunca a ganhava no
   // diário — a palavra era o nome do lugar, não uma palavra dela.
+  // Entradas do Capítulo 4 ("O Passaporte para Malta"). A viagem é o fio do
+  // capítulo, então estas quatroPrecisam ser palavras dela — sem elas o
+  // roteiro relyia em texto que a menina nunca ganharia no diário.
+  send: {
+    pt: 'send = enviar',
+    en: 'send = to make something go away to someone else',
+    es: 'send = enviar',
+  },
+  island: {
+    pt: 'island = ilha',
+    en: 'island = land with sea all around it',
+    es: 'island = isla',
+  },
+  ticket: {
+    pt: 'ticket = bilhete',
+    en: 'ticket = the little paper that lets you travel',
+    es: 'ticket = billete',
+  },
+  fly: {
+    pt: 'fly = voar',
+    en: 'fly = to move through the air',
+    es: 'fly = volar',
+  },
   garden: {
     pt: 'garden = jardim',
     en: 'garden = a place where flowers and vegetables grow',

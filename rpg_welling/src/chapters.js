@@ -235,8 +235,22 @@ function hashOf(text) {
   return h >>> 0;
 }
 
+// Um unico lugar conhece os pools de TODOS os capitulos. A primeira versao
+// do capitulo 4 listava so o 2 e o 3 aqui, e as recompensas dele saiam
+// VAZIAS — silenciosamente, porque `pool` ficava undefined e a funcao
+// devolvia []. Foi o teste de variedade que pegou.
+// Os mapas sao lidos AQUI, dentro da funcao, e nao numa constante de modulo:
+// os pools dos capitulos 3 e 4 sao declarados no fim do arquivo, e uma
+// lista no topo pegaria o TDZ de `const` na hora da avaliacao do modulo.
+function poolFor(challengeId) {
+  for (const pools of [REWARD_POOLS, REWARD_POOLS_CH3, REWARD_POOLS_CH4]) {
+    if (pools[challengeId]) return pools[challengeId];
+  }
+  return null;
+}
+
 function rollReward(challengeId, count = 3) {
-  const pool = REWARD_POOLS[challengeId] || REWARD_POOLS_CH3[challengeId];
+  const pool = poolFor(challengeId);
   if (!pool) return [];
   if (pool.length <= count) return pool.slice();
   const rand = seededRandom(hashOf(`${chapterSeed}:${challengeId}`));
@@ -554,6 +568,211 @@ export const CHAPTER3 = {
         en: 'Come back tomorrow. That is what a seed is: you plant it and the choosing is up to the seed.',
         es: 'Vuelve manana. Eso es una semilla: la plantas y elegir es de la semilla.',
       } },
+    ],
+  },
+};
+
+// ── Capítulo 4: "O Passaporte para Malta" (roadmap 1.3) ───────────────────────
+// Fecha a ponta que o jogo já tinha aberto sem pagar a conta: o globo da
+// biblioteca diz, desde o commit da Malta, que "um dia a gente visita Malta".
+// Este capítulo é a visita — planejada, não vivida, porque uma menina de 6 anos
+// não vai a Malta jogando no tablet. E isso é proposital: a viagem acontece no
+// que ela FAZ para partir (passaporte, carta, carimbo, mala), que é mais
+// divertido do que um avião.
+//
+// Ele nasce do mundo pronto: o correio da High Street, a livraria, a estação,
+// o globo da escola e a banca do Welling FC. Nenhum minigame novo.
+//
+// As palavras de viagem do capítulo aproveitam as âncoras de vocabulário que a
+// rodada 6 acabou de criar na High Street (estação e mural), então o que a
+// menina aprende aqui é o mesmo que ela pode descobrir lá andando.
+const QUESTS_CH4 = [
+  {
+    id: 'ch4q1Passport',
+    title: { pt: 'O Caderno de Viagem', en: 'The Travel Book', es: 'El Cuaderno de Viaje' },
+    giver: 'finch',
+    zone: 'school',
+    offer: [
+      { who: 'finch', text: {
+        pt: 'A estrela na torre aponta para uma ilha no meio do mar. Se um dia a gente for mesmo, vai precisar de um caderno de viagem. Comeco eu, que tenho a letra bonita.',
+        en: 'The star on the tower points at an island in the middle of the sea. If we ever really go, we will need a travel book. I will start it, I have the best handwriting.',
+        es: 'La estrella de la torre señala una isla en mitad del mar. Si algún día vamos de verdad, hará falta un cuaderno de viaje. Empiezo yo, que tengo la mejor letra.',
+      } },
+      { gloss: 'letter' },
+    ],
+    steps: [
+      { id: 'ch4q1s1', type: 'talk', zone: 'school', npcId: 'finch', flag: 'ch4Q1Finch',
+        hint: { pt: 'Fale com o Sr. Finch na escola.', en: 'Talk to Mr Finch at school.', es: 'Habla con el Sr. Finch en la escuela.' } },
+      { id: 'ch4q1s2', type: 'play', zone: 'school', target: 'globe', flag: 'ch4Q1Globe',
+        hint: { pt: 'Gire o globo até a ilha do anel dourado.', en: 'Turn the globe to the island with the golden ring.', es: 'Gira el globo hasta la isla del anillo dorado.' } },
+    ],
+    reward: { words: ['map', 'letter', 'key', 'bag'], challenge: 'ch4Stamp1' },
+  },
+  {
+    id: 'ch4q2Letter',
+    title: { pt: 'A Carta que Não Chega', en: 'The Letter That Never Arrives', es: 'La Carta que No Llega' },
+    giver: 'baker',
+    zone: 'highstreet',
+    offer: [
+      { who: 'baker', text: {
+        pt: 'Escrevi ao correio de Malta perguntando quanto custa um carimbo. Faz três semanas que espero. Malta deve estar longe.',
+        en: 'I wrote to the Malta post office asking how much a stamp costs. It has been three weeks. Malta must be very far.',
+        es: 'Escribí a la correos de Malta preguntando cuánto cuesta un sello. Hace tres semanas que espero. Malta debe estar muy lejos.',
+      } },
+      { gloss: 'send' },
+    ],
+    steps: [
+      { id: 'ch4q2s1', type: 'talk', zone: 'highstreet', npcId: 'baker', flag: 'ch4Q2Baker',
+        hint: { pt: 'Fale com o Sr. Crumb na padaria.', en: 'Talk to Mr Crumb at the bakery.', es: 'Habla con el Sr. Crumb en la panadería.' } },
+      { id: 'ch4q2s2', type: 'solve', zone: 'highstreet', target: 'postOffice', flag: 'ch4Q2Post',
+        hint: { pt: 'Escreva a carta para Malta no correio da High Street.', en: 'Write the letter to Malta at the High Street post box.', es: 'Escribe la carta para Malta en el buzón de High Street.' } },
+    ],
+    reward: { words: ['letter', 'answer', 'paper', 'book'], challenge: 'ch4Stamp2' },
+  },
+  {
+    id: 'ch4q3Boat',
+    title: { pt: 'Barco ou Avião?', en: 'Boat or Plane?', es: '¿Barco o Avión?' },
+    giver: 'page',
+    zone: 'school',
+    offer: [
+      { who: 'page', text: {
+        pt: 'Trouxe dois livros da biblioteca: um de aviões e um de barcos. A menina decide qual a gente lê primeiro. Eu voto no barco.',
+        en: 'I brought two library books: one about planes and one about boats. You choose which we read first. I vote for the boat.',
+        es: 'Traje dos libros de la biblioteca: uno de aviones y uno de barcos. Tú eliges cuál leemos primero. Yo voto por el barco.',
+      } },
+      { gloss: 'boat' },
+      // Segunda escolha da história, e aqui a escolha muda o que ela LEVE
+      // adiante: a menina descobre que ler uma coisa não é a mesma que ler a
+      // outra, e isso é uma ideia de verdade, escondida num botão.
+      { branch: {
+        prompt: { pt: 'Qual livro a gente lê primeiro?',
+          en: 'Which book do we read first?',
+          es: '¿Cuál libro leemos primero?' },
+        options: [
+          { id: 'barco', label: { pt: 'O barco', en: 'The boat', es: 'El barco' },
+            then: [
+              { who: 'owl', text: {
+                pt: 'Barcos balançam. A gente vai ler sentada, porque por mais que a gente se segure, o chão mexe mesmo assim.',
+                en: 'Boats rock. We will read sitting down, because however still we sit, the floor moves anyway.',
+                es: 'Los barcos se balancean. Vamos a leer sentadas, por muy quietas que nos sentemos, el suelo se mueve igual.' } },
+              { gloss: 'boat' },
+            ] },
+          { id: 'aviao', label: { pt: 'O avião', en: 'The plane', es: 'El avión' },
+            then: [
+              { who: 'owl', text: {
+                pt: 'Aviões não balançam, mas tremem. E eu prefiro tremer do que ficar com o mar liquidado na sola. Both are good.',
+                en: 'Planes do not rock, but they shake. And I would rather shake than stand in a puddle of sea water. Both are good.',
+                es: 'Los aviones no se balancean, pero tiemblan. Y prefiero temblar que pisar charco de mar. Los dos están bien.' } },
+              { gloss: 'fly' },
+            ] },
+        ],
+      } },
+    ],
+    steps: [
+      { id: 'ch4q3s1', type: 'talk', zone: 'school', npcId: 'page', flag: 'ch4Q3Page',
+        hint: { pt: 'Fale com a Sra. Page na biblioteca.', en: 'Talk to Ms Page in the library.', es: 'Habla con la Sra. Page en la biblioteca.' } },
+      { id: 'ch4q3s2', type: 'play', zone: 'school', target: 'bookshop', flag: 'ch4Q3Shop',
+        hint: { pt: 'Procure o livro de viagem na livraria da High Street.', en: 'Look for the travel book in the High Street bookshop.', es: 'Busca el libro de viaje en la librería de High Street.' } },
+    ],
+    reward: { words: ['boat', 'plane', 'train', 'bus'], challenge: 'ch4Stamp3' },
+  },
+  {
+    id: 'ch4q4Stamp',
+    title: { pt: 'O Carimbo da Prof. Raven', en: "Prof. Raven's Stamp", es: 'El Sello de la Prof. Raven' },
+    giver: 'raven',
+    zone: 'academy',
+    offer: [
+      { who: 'raven', text: {
+        pt: 'Passaporte sem carimbo é papel em branco. Eu carimboo desempenho — mas o meu duelo é o único teste de passaporte que existe por aqui. The rules are different.',
+        en: 'A passport without a stamp is blank paper. I stamp performance — but my duel is the only passport test around here. The rules are different.',
+        es: 'Un pasaporte sin sello es papel en blanco. Yo sello el rendimiento — pero mi duelo es el único examen de pasaporte que hay por aquí. Las reglas son otras.',
+      } },
+      { gloss: 'magic' },
+    ],
+    steps: [
+      { id: 'ch4q4s1', type: 'talk', zone: 'academy', npcId: 'raven', flag: 'ch4Q4Raven',
+        hint: { pt: 'Fale com a Prof. Raven na Academia Owlburt.', en: 'Talk to Prof. Raven at Owlburt Academy.', es: 'Habla con la Prof. Raven en Owlburt Academy.' } },
+      { id: 'ch4q4s2', type: 'solve', zone: 'academy', target: 'duel', flag: 'duelWon',
+        hint: { pt: 'Vença o duelo de feitiços: 3 palavras no diário, 2 acertos.', en: 'Win the spell duel: 3 words in the journal, 2 right answers.', es: 'Gana el duelo de hechizos: 3 palabras en el diario, 2 aciertos.' } },
+    ],
+    reward: { words: ['brave', 'wizard', 'spell', 'magic'], challenge: 'ch4Stamp4' },
+  },
+];
+
+// Pools do capítulo 4 (viagem). Mesma regra: tudo tem que existir em GLOSSES.
+const REWARD_POOLS_CH4 = Object.freeze({
+  ch4Stamp1: Object.freeze(['map', 'letter', 'key', 'bag', 'house', 'room', 'book', 'paper']),
+  ch4Stamp2: Object.freeze(['letter', 'answer', 'paper', 'book', 'read', 'write', 'shop', 'market']),
+  ch4Stamp3: Object.freeze(['boat', 'plane', 'train', 'bus', 'taxi', 'car', 'truck', 'park']),
+  ch4Stamp4: Object.freeze(['brave', 'wizard', 'spell', 'magic', 'hero', 'kind', 'warm', 'grateful']),
+});
+
+export const CHAPTER4 = {
+  id: 'chapter4',
+  title: {
+    pt: 'O Passaporte para Malta',
+    en: 'The Passport to Malta',
+    es: 'El Pasaporte para Malta',
+  },
+  requiresFlag: 'ch3Done',
+  startFlag: 'ch4Started',
+  rewardNoun: { pt: 'carimbo', en: 'stamp', es: 'sello' },
+
+  intro: [
+    { who: 'owl', text: {
+      pt: 'A estrela que a gente levou de volta para a torre não era um prêmio. Era um bilhete. Olha onde ela aponta no globo: uma ilha pequena no meio de um mar enorme.',
+      en: 'The star we carried back up the tower was not a prize. It was a ticket. Look where it points on the globe: a small island in the middle of an enormous sea.',
+      es: 'La estrella que llevamos de vuelta a la torre no era un premio. Era un billete. Mira donde apunta en el globo: una isla pequeña en medio de un mar enorme.',
+    } },
+    { gloss: 'island' },
+    { branch: {
+      prompt: { pt: 'Como a gente vai até lá?',
+        en: 'How do we get there?',
+        es: '¿Cómo llegamos hasta allí?' },
+      options: [
+        { id: 'mar', label: { pt: 'De barco.', en: 'By boat.', es: 'En barco.' },
+          then: [
+            { who: 'owl', text: {
+              pt: 'De barco é mais barato e eu gosto do balanço. Já vou escolher a cadeira que balança mais.',
+              en: 'By boat is cheaper and I like the rocking. I will pick the seat that rocks the most.',
+              es: 'En barco es más barato y me gusta el balanceo. Ya elegiré el asiento que más se mece.' } },
+            { gloss: 'boat' },
+          ] },
+        { id: 'ceu', label: { pt: 'De avião.', en: 'By plane.', es: 'En avión.' },
+          then: [
+            { who: 'owl', text: {
+              pt: 'De avião chega mais rápido, que é o que importa quando se tem uma ilha para ver. E eu fico na janela.',
+              en: 'By plane arrives sooner, which matters when there is an island to see. And I get the window.',
+              es: 'En avión se llega antes, que es lo que importa cuando hay una isla que ver. Y yo me quedo en la ventana.' } },
+            { gloss: 'fly' },
+          ] },
+      ],
+    } },
+  ],
+
+  get quests() {
+    return QUESTS_CH4.map((quest) => ({
+      ...quest,
+      reward: { ...quest.reward, words: rollReward(quest.reward.challenge) },
+    }));
+  },
+
+  // Fim: com as 4 missoes fechadas, o carimbo fecha o passaporte — e a viagem
+  // fica para quando a menina for grande de verdade. A saida e o proprio
+  // portao da torre, que e onde os dois capitulos anteriores terminaram.
+  ending: {
+    zone: 'woods',
+    target: 'severndroog',
+    flag: 'ch4Done',
+    step: { id: 'ch4end1', type: 'play', zone: 'woods', target: 'severndroog', flag: 'ch4Stamped',
+      hint: { pt: 'Leve o passaporte carimbado ao alto da torre de Severndroog.', en: 'Take the stamped passport to the top of Severndroog Tower.', es: 'Lleva el pasaporte sellado a lo alto de la Torre de Severndroog.' } },
+    lines: [
+      { who: 'owl', text: {
+        pt: 'Passaporte pronto. Faltam só duas coisas: o dia de partir e ficar grande. Nessa ordem.',
+        en: 'Passport ready. Two things left: the day we leave, and growing up. In that order.',
+        es: 'Pasaporte listo. Faltan dos cosas: el día de salir y hacerse mayor. En ese orden.',
+      } },
+      { gloss: 'ticket' },
     ],
   },
 };

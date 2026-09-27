@@ -159,6 +159,13 @@ export const ACHIEVEMENTS = Object.freeze([
     'gold',
     (stats) => stats.chapterThreeDone,
   ),
+  achievement(
+    'chapter-four',
+    ['Passaporte para Malta', 'Passport to Malta', 'Pasaporte para Malta'],
+    ['Junta as quatro coisas da viagem e carimba o passaporte no alto da torre.', 'Gather the four things for the trip and get the passport stamped at the top of the tower.', 'Reúne las cuatro cosas del viaje y sella el pasaporte en lo alto de la torre.'],
+    'gold',
+    (stats) => stats.chapterFourDone,
+  ),
 ]);
 
 export const ACHIEVEMENT_IDS = Object.freeze(ACHIEVEMENTS.map((item) => item.id));
@@ -247,6 +254,7 @@ export function achievementStats(state) {
     helpedTeacher: Boolean(flags.umbrellaDone),
     chapterTwoDone: Boolean(flags.ch2Done),
     chapterThreeDone: Boolean(flags.ch3Done),
+    chapterFourDone: Boolean(flags.ch4Done),
   };
 }
 

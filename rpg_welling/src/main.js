@@ -17,7 +17,7 @@ import { registerWord, dueWords, answerCorrect, answerWrong, buildQuiz, practice
 import { ACHIEVEMENTS, achievementById, evaluateAchievements } from './achievements.js';
 import { trapFocus, openModalStack, shouldReduceMotion } from './a11y.js';
 import { normalizeSettings, renderOptionsPanel } from './options.js';
-import { CHAPTER2, CHAPTER3, chapterProgress, nextQuest, nextStep, isQuestComplete, setChapterSeed, rollChapterSeed } from './chapters.js';
+import { CHAPTER2, CHAPTER3, CHAPTER4, chapterProgress, nextQuest, nextStep, isQuestComplete, setChapterSeed, rollChapterSeed } from './chapters.js';
 import { createMemoryGame } from './games/memory.js';
 import { createDictation, DICTATION_PHRASES, DICTATION_FLAGS } from './games/dictation.js';
 import { createPenalty } from './games/penalty.js';
@@ -908,7 +908,7 @@ function updateHUD() {
     const noun = lang(active.rewardNoun ?? { pt: 'recompensa', en: 'reward', es: 'recompensa' }, language);
     chip = quest
       ? `⭐ ${progress.fragments}/4 — ${lang(quest.title, language)}`
-      : `⭐ ${uiText(language, active.id === 'chapter3' ? 'ch3GoPond' : 'ch2GoTower')} ${noun}`;
+      : `⭐ ${uiText(language, CHAPTER_ENDING_KEY[active.id] ?? 'ch2GoTower')} ${noun}`;
   }
   $('questChip').textContent = chip;
   // fragmentos do cap. 2: cobre também passos observados (duelWon) que não
@@ -939,7 +939,7 @@ function toggleJournal() {
     const active = activeChapter();
     if (active) {
       const progress = chapterProgress(active, state.flags);
-      const goKey = active.id === 'chapter3' ? 'ch3GoPond' : 'ch2GoTower';
+      const goKey = CHAPTER_ENDING_KEY[active.id] ?? 'ch2GoTower';
       const line = progress.endingReady
         ? `▫️ ⭐ ${uiText(language, goKey)}`
         : `▫️ ⭐ ${progress.fragments}/4 — ${lang(active.title, language)}`;
@@ -1468,7 +1468,16 @@ function completeChapter3Step(flag) {
 //
 // Tudo aqui lê `chapter.requiresFlag` / `chapter.startFlag`, então um capítulo
 // novo é só acrescentar a tabela em chapters.js.
-const CHAPTERS = [CHAPTER2, CHAPTER3];
+const CHAPTERS = [CHAPTER2, CHAPTER3, CHAPTER4];
+
+// Chave de UI do aviso de "va ate la" no fim de cada capitulo. Antes era um ternario
+// que so conhecia dois capitulos; o terceiro entrou e o ternario mentia em
+// silencio, caindo no texto do capitulo 2.
+const CHAPTER_ENDING_KEY = Object.freeze({
+  chapter2: 'ch2GoTower',
+  chapter3: 'ch3GoPond',
+  chapter4: 'ch4GoTower',
+});
 
 // O primeiro capítulo que ainda não começou e cujo pré-requisito já cumpriu.
 function activeChapter() {

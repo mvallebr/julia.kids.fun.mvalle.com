@@ -9,6 +9,7 @@ import assert from 'node:assert/strict';
 import {
   CHAPTER2,
   CHAPTER3,
+  CHAPTER4,
   CHAPTERS,
   chapterById,
   chapterFlags,
@@ -273,6 +274,21 @@ test('CHAPTERS expõe o capítulo para o runner genérico e chapterById acha', (
 // quando a semente muda, dá a MESMA quando a semente não muda, e nunca
 // inventa palavra fora do GLOSSES.
 
+// Sortear 3 de 8 pode colidir: 56 combinações, e um par fixo de sementes
+// divergentes é teste quebradiço por natureza. A propriedade que vale é
+// "semente nova MUDA a recompensa" — então o teste pede muitas sementes e
+// exige que existam pelo menos dois resultados distintos.
+// Recebe o CAPITULO, nao a lista de quests: `chapter.quests` e um getter que
+// rola a recompensa na hora do acesso, e passar a lista como argumento
+// avaliava o getter uma vez so — as oito sementes liam a mesma rolagem e o
+// teste acusava variedade zero.
+function resultadosDe(chapter, sementes) {
+  return sementes.map((semente) => {
+    setChapterSeed(semente);
+    return JSON.stringify(chapter.quests.map((q) => q.reward.words));
+  });
+}
+
 test('a mesma semente devolve exatamente a mesma recompensa', () => {
   setChapterSeed(12345);
   const antes = JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words));
@@ -282,14 +298,9 @@ test('a mesma semente devolve exatamente a mesma recompensa', () => {
 });
 
 test('sementes diferentes dão recompensas diferentes (o que faz o capítulo valer a repetição)', () => {
-  setChapterSeed(1);
-  const um = JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words));
-  setChapterSeed(2);
-  const dois = JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words));
-  setChapterSeed(3);
-  const tres = JSON.stringify(CHAPTER2.quests.map((q) => q.reward.words));
-  const distintos = new Set([um, dois, tres]).size;
-  assert.equal(distintos, 3, 'três sementes têm de dar três recopensas diferentes');
+  const resultados = resultadosDe(CHAPTER2, [1, 2, 3, 4, 5, 6, 7, 8]);
+  assert.equal(new Set(resultados).size, resultados.length, 'nenhuma semente se repete no lote');
+  assert.ok(new Set(resultados).size > 3, 'sementes diferentes precisam produzir recompensas diferentes');
 });
 
 test('cada fragmento sorteia 3 palavras do seu próprio pool, sem repetir dentro dele', () => {
@@ -441,12 +452,10 @@ test('as flags do capítulo 3 não colidem com as do capítulo 2', () => {
 test('as recompensas do capítulo 3 também rolam por semente', () => {
   setChapterSeed(11);
   const a = JSON.stringify(CHAPTER3.quests.map((q) => q.reward.words));
-  setChapterSeed(12);
-  const b = JSON.stringify(CHAPTER3.quests.map((q) => q.reward.words));
   setChapterSeed(11);
   const c = JSON.stringify(CHAPTER3.quests.map((q) => q.reward.words));
   assert.equal(a, c, 'mesma semente, mesma recompensa');
-  assert.notEqual(a, b, 'semente diferente, recompensa diferente');
+  assert.ok(new Set(resultadosDe(CHAPTER3, [11, 12, 13, 14, 15, 16])).size > 1, 'sementes diferentes mudam');
   for (const quest of CHAPTER3.quests) {
     assert.equal(quest.reward.words.length, 3, `${quest.id} paga 3`);
     assert.equal(new Set(quest.reward.words).size, 3, `${quest.id} não repete`);
@@ -490,5 +499,73 @@ test('todo ramo de narrativa tem opcoes validas, sem certo/errado', () => {
         assert.ok(option.label?.[language]?.trim(), `rotulo ${option.id} sem ${language}`);
       }
     }
+  }
+});
+
+
+// ── roadmap 1.3: Capítulo 4 "O Passaporte para Malta" ─────────────────────────
+test('o capítulo 4 encadeia depois do 3 e tem o esquema que o runner consome', () => {
+  assert.equal(CHAPTER4.requiresFlag, CHAPTER3.ending.flag, 'o 4 só abre depois do 3');
+  assert.equal(CHAPTER4.startFlag, 'ch4Started');
+  assert.equal(CHAPTER4.ending.flag, 'ch4Done');
+  assert.equal(CHAPTER4.quests.length, 4);
+  assert.ok(CHAPTER4.intro.length > 0 && CHAPTER4.ending.lines.length > 0);
+  assert.ok(CHAPTER4.rewardNoun?.pt, 'o_runner usa rewardNoun no texto do brinde');
+});
+
+test('toda palavra e toda fala do capítulo 4 é válida e trilíngue', () => {
+  const falas = [...CHAPTER4.intro, ...CHAPTER4.ending.lines];
+  for (const quest of CHAPTER4.quests) falas.push(...quest.offer);
+  for (const node of falas) {
+    for (const option of node.branch?.options || []) falas.push(...(option.then || []));
+  }
+  for (const quest of CHAPTER4.quests) {
+    assert.ok(NPCS[quest.giver], `giver "${quest.giver}" tem que existir em NPCS`);
+  }
+  for (const node of falas) {
+    if (node.branch) continue;
+    if (node.gloss) {
+      assert.ok(Object.hasOwn(GLOSSES, node.gloss), `glossa "${node.gloss}" precisa existir`);
+      continue;
+    }
+    assert.ok(node.who === 'owl' || NPCS[node.who], `who "${node.who}" inválido`);
+    for (const language of ['pt', 'en', 'es']) {
+      assert.ok(node.text?.[language]?.trim(), `fala de ${node.who} sem ${language}`);
+    }
+  }
+  for (const quest of CHAPTER4.quests) {
+    for (const word of quest.reward.words) {
+      assert.ok(Object.hasOwn(GLOSSES, word), `recompensa "${word}" precisa existir em GLOSSES`);
+    }
+  }
+});
+
+test('as flags do capítulo 4 não colidem com as dos capítulos anteriores', () => {
+  // As flags HERDADAS de sistema ficam de fora de propósito: `duelWon` é
+  // gravada pelo duelo e tanto o capítulo 2 quanto o 4 apenas a observam —
+  // é o que o chapters.js documenta no esquema. Colisão que quebra historia é
+  // entre flags PROPRIAS de passo.
+  const herdadas = new Set(['duelWon', 'memoryDone', 'dictation1', 'dictation2', 'dictation3']);
+  const anteriores = new Set([
+    ...CHAPTER2.quests.flatMap((q) => q.steps.map((st) => st.flag)),
+    ...CHAPTER3.quests.flatMap((q) => q.steps.map((st) => st.flag)),
+  ]);
+  for (const quest of CHAPTER4.quests) {
+    for (const step of quest.steps) {
+      if (herdadas.has(step.flag)) continue;
+      assert.ok(!anteriores.has(step.flag), `flag ${step.flag} colide com um capítulo anterior`);
+    }
+  }
+});
+
+test('as recompensas do capítulo 4 rolam por semente, sem repetir', () => {
+  setChapterSeed(21);
+  const a = JSON.stringify(CHAPTER4.quests.map((q) => q.reward.words));
+  setChapterSeed(21);
+  const c = JSON.stringify(CHAPTER4.quests.map((q) => q.reward.words));
+  assert.equal(a, c, 'mesma semente, mesma recompensa');
+  assert.ok(new Set(resultadosDe(CHAPTER4, [21, 22, 23, 24, 25, 26])).size > 1, 'sementes diferentes mudam');
+  for (const quest of CHAPTER4.quests) {
+    assert.equal(new Set(quest.reward.words).size, 3, `${quest.id} não repete palavra`);
   }
 });
