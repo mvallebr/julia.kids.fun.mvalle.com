@@ -817,13 +817,55 @@ function askChoice(node) {
   });
 }
 
+// ── ramo de NARRATIVA (não é quiz) ───────────────────────────────────────────
+// askChoice acima é pergunta de palavra: uma opção está certa e a outra errada,
+// e errar devolve a pergunta. Isso é bom para revisar vocabulario e ruim para
+// historia — numa escolha de historia NAO existe errar, e a menina que escolhe
+// "chato" nao pode levar um sermao.
+//
+// Aqui todas as opções são válidas: cada uma devolve as próprias falas. A
+// diferença é de CARATER, nao de acerto, e é o que faz a escolha parecer que
+// importa. O botao é o mesmo `.rpg-choice`, entao o visual nao muda.
+function askBranch(node) {
+  return new Promise((resolve) => {
+    currentAbort = () => resolve(null);
+    dialogName.textContent = `💭 ${lang(node.prompt, language)}`;
+    dialogText.textContent = '';
+    dialogVoice.classList.add('hidden');
+    const buttons = el('div', 'rpg-choices');
+    for (const option of node.options || []) {
+      const button = el('button', 'rpg-choice', lang(option.label, language));
+      button.type = 'button';
+      button.addEventListener('click', async () => {
+        sounds.tap();
+        // Sem closeDialog() aqui de propósito: sayLine() escreve direto nos
+        // nós do diálogo e NÃO o reabre, então fechar agora deixaria a
+        // consequência do ramo invisível. sayLine() substitui dialogButtons,
+        // o que já tira as opções da tela.
+        button.disabled = true;
+        for (const other of buttons.querySelectorAll('button')) other.disabled = true;
+        for (const line of option.then || []) {
+          if (line.gloss) showGloss(line.gloss);
+          else if (line.who) await sayLine(line.who, line.text);
+        }
+        resolve(option.id ?? null);
+      });
+      buttons.appendChild(button);
+    }
+    dialogButtons.replaceChildren(buttons);
+    advanceDialog = null; // a escolha é o advance: não há "continuar" antes dela
+  });
+}
+
 async function runConversation(nodes) {
   const session = { aborted: false };
   activeConversation = session;
   try {
     openDialog();
     for (const node of nodes) {
-      if (node.choice) {
+      if (node.branch) {
+        await askBranch(node.branch);
+      } else if (node.choice) {
         const solved = await askChoice(node.choice);
         if (solved) markChallenge(node.choice.challengeId);
       } else if (node.gloss) {

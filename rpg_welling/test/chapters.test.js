@@ -384,13 +384,21 @@ test('toda palavra do capítulo 3 existe em GLOSSES e é trilingue', () => {
 });
 
 test('toda fala do capítulo 3 é trilíngue e todo giver é um NPC que existe', () => {
+  // `falas` APLANA as falas de dentro dos ramos: um no `branch` nao tem `who`,
+  // e sem descer nas opcoes o teste passava por cima de texto que ninguem
+  // valida.
   const falas = [...CHAPTER3.intro, ...CHAPTER3.ending.lines];
   for (const quest of CHAPTER3.quests) {
     falas.push(...quest.offer);
     assert.ok(NPCS[quest.giver], `giver "${quest.giver}" tem que existir em NPCS`);
   }
+  for (const node of falas) {
+    for (const option of node.branch?.options || []) falas.push(...(option.then || []));
+  }
   for (const fala of falas) {
     if (fala.gloss) continue;
+    // o nó de ramo em si não é fala: as falas dele já foram achatadas acima
+    if (fala.branch) continue;
     // 'owl' é a coruja: o rótulo dela vem de CHARACTERS (state.js), não de
     // NPCS (content.js). O chapters.js documenta isso no esquema.
     assert.ok(fala.who === 'owl' || NPCS[fala.who], `who "${fala.who}" tem que existir em NPCS ou ser 'owl'`);
@@ -450,4 +458,37 @@ test('os dois capítulos são percorríveis em sequência pelas flags', () => {
   // maybeChapter() usa para escolher qual capítulo está ativo
   assert.equal(CHAPTER3.requiresFlag, CHAPTER2.ending.flag);
   assert.equal(CHAPTER2.requiresFlag, 'endingSeen');
+});
+
+
+test('todo ramo de narrativa tem opcoes validas, sem certo/errado', () => {
+  // A diferenca entre askChoice e um ramo e esta: em narrativa NENHUMA opcao
+  // esta errada, e cada uma devolve as proprias falas. Se alguem meter
+  // `correct: true` num ramo, a menina que escolher a outra leva sermao.
+  const ramos = [];
+  for (const chapter of [CHAPTER2, CHAPTER3]) {
+    for (const node of [...chapter.intro, ...chapter.ending.lines]) {
+      if (node.branch) ramos.push(node.branch);
+    }
+    for (const quest of chapter.quests) {
+      for (const node of quest.offer) if (node.branch) ramos.push(node.branch);
+    }
+  }
+  assert.ok(ramos.length > 0, 'deve existir pelo menos um ramo de narrativa');
+  for (const ramo of ramos) {
+    assert.ok(Array.isArray(ramo.options) && ramo.options.length >= 2, 'ramo com pelo menos 2 opcoes');
+    for (const language of ['pt', 'en', 'es']) {
+      assert.ok(ramo.prompt?.[language]?.trim(), `prompt do ramo sem ${language}`);
+    }
+    const ids = new Set();
+    for (const option of ramo.options) {
+      assert.equal(option.correct, undefined, `ramo nao e quiz: "${option.id}" nao pode ter correct`);
+      assert.ok(!ids.has(option.id), `id de opcao repetido: ${option.id}`);
+      ids.add(option.id);
+      assert.ok(Array.isArray(option.then) && option.then.length > 0, `opcao ${option.id} sem consequencia`);
+      for (const language of ['pt', 'en', 'es']) {
+        assert.ok(option.label?.[language]?.trim(), `rotulo ${option.id} sem ${language}`);
+      }
+    }
+  }
 });

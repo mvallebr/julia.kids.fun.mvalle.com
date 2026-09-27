@@ -278,8 +278,8 @@ const QUESTS = [
         zone: 'classroom',
         offer: [
           { who: 'willow', text: {
-            pt: 'A lousa acordou com palavras novas hoje! Meu giz dourado passou por aqui à noite — façam a lição e o primeiro fragmento é de vocês.',
-            en: 'The blackboard woke up with new words today! My golden chalk passed by at night — do the lesson and the first fragment is yours.',
+            pt: 'A lousa acordou com palavras novas hoje! Meu giz dourado passou por aqui à noite. Ele faz isso quando eu tenho aula para preparar. Fazam a lição e o primeiro fragmento é de vocês.',
+            en: 'The blackboard woke up with new words today! My golden chalk passed by at night. It does that when I have a lesson to prepare. Do the lesson and the first fragment is yours.',
             es: '¡La pizarra amaneció con palabras nuevas hoy! Mi giz dorado pasó por aquí en la noche — hagan la lección y el primer fragmento es de ustedes.',
           } },
           { gloss: 'practice' },
@@ -494,6 +494,37 @@ export const CHAPTER3 = {
       es: 'La estrella volvio a lo alto de la torre y bajo con el dibujo de un jardin. Detras de la huerto de la escuela, por una puerta que nadie abria. Vamos?',
     } },
     { gloss: 'secret' },
+    // Escolha de tom, nao de acerto. As duas respostas servem a historia: a
+    // menina descobre o jardim do mesmo jeito, so que de um jeito ou do outro.
+    // Quem joga escolhe COMO ela entra, e a coruja reage a escolha.
+    { branch: {
+      prompt: { pt: 'Antes de abrir a porta, o que você diz?',
+        en: 'Before opening the door, what do you say?',
+        es: 'Antes de abrir la puerta, ¿que dices?' },
+      // NENHUM nome proprio nestas falas. `who: 'owl'` no rotulo e a coruja DA
+      // jogadora (Pip na Ivy, Marlow no Oakley) — entao citar "Pip" numa fala
+      // do Marlow saía como Pip, e o rotulo de opcao com "Pip" estaria errado
+      // para quem joga de Oakley. A coruja fala de si mesma em terceira e nao
+      // depende do personagem escolhido.
+      options: [
+        { id: 'brava', label: { pt: 'Vem, coruja!', en: 'Come on, little owl!', es: '¡Vamos, pajarita!' },
+          then: [
+            { who: 'owl', text: {
+              pt: 'Eu disse sim, balancei as duas asas e caí da escada. Foi a coisa mais burra que eu já fiz. Eu vou portras, entao!',
+              en: 'I said yes, flapped both wings and fell down the step. That is the silliest thing I have ever done. I will go after you, then!',
+              es: 'Dije que si, aletee las dos alas y me caí del escalón. Es lo más tonto que he hecho. ¡Voy detrás, entonces!' } },
+            { gloss: 'brave' },
+          ] },
+        { id: 'quieta', label: { pt: 'Devagar, corujinha.', en: 'Slowly, little owl.', es: 'Despacio, pajarita.' },
+          then: [
+            { who: 'owl', text: {
+              pt: 'Devagar é mais esperto do que depressa, e isso é irritante porque eu sou a coruja. A porta range menos assim. Melhor.',
+              en: 'Slowly is smarter than quickly, which is insulting because I am the owl. The door creaks less this way. Better.',
+              es: 'Despacio es más listo que deprisa, y eso me molesta porque soy la lechuza. La puerta cruje menos así. Mejor.' } },
+            { gloss: 'slow' },
+          ] },
+      ],
+    } },
   ],
 
   get quests() {
