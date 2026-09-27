@@ -138,6 +138,11 @@
       box-shadow: 0 10px 26px rgba(58, 123, 213, .38);
     }
     .app-english:hover { transform: translateY(-2px); filter: brightness(1.06); }
+    .app-arts {
+      background: linear-gradient(135deg, #f0913a, #e4657f);
+      box-shadow: 0 10px 26px rgba(228, 101, 127, .38);
+    }
+    .app-arts:hover { transform: translateY(-2px); filter: brightness(1.06); }
     .app-soon {
       background: rgba(255,255,255,.08); color: rgba(255,255,255,.68);
       border: 2px dashed rgba(255,255,255,.28); cursor: default;
@@ -273,11 +278,11 @@
         <span data-i18n="notebook">Caderno de Stickers e Badges</span>
         <span class="emoji" style="margin-left:auto" aria-hidden="true">✨</span>
       </a>
-      <button class="app app-soon" type="button" disabled>
+      <a class="app app-arts" href="arts_crafts/index.html" id="appArts">
         <span class="emoji" aria-hidden="true">🎨</span>
         <span data-i18n="arts">Arts &amp; Crafts</span>
-        <span class="soon-badge" data-i18n="soon">EM BREVE</span>
-      </button>
+        <span class="emoji" style="margin-left:auto" aria-hidden="true">🖌️</span>
+      </a>
     </nav>
     <div class="page-buttons">
       <button class="page-button" id="helpOpen" type="button">❓ <span data-i18n="helpButton">Help</span></button>
@@ -472,6 +477,7 @@
       $('appRpg').href = `rpg_welling/index.html?${params}`;
       $('appNotebook').href = `notebook/index.html?${params}`;
       $('appWordQuest').href = `word_quest/index.html?${params}`;
+      $('appArts').href = `arts_crafts/index.html?${params}`;
     }
 
     function updateWorldLabel() {
