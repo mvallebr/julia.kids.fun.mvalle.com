@@ -25,7 +25,7 @@ export default [
       { veil: 'active', region: 'centre' },
       { veil: 'active', region: 'bottom' },
       { veil: 'active', region: 'all' },
-      { veil: 'full' },
+      { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],
     copy: {
@@ -90,7 +90,7 @@ export default [
       { veil: 'active', region: 'top' },
       { veil: 'active', region: 'bottom' },
       { veil: 'active', region: 'all' },
-      { veil: 'full' },
+      { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],
     copy: {
@@ -154,8 +154,8 @@ export default [
       { veil: 'active', region: 'centre' },
       { veil: 'active', region: 'top' },
       { veil: 'active', region: 'bottom' },
-      { veil: 'full' },
-      { veil: 'full' },
+      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],
     copy: {

@@ -194,7 +194,9 @@ test('todo tutorial sem impressão não expõe botão de impressão', () => {
 
 test('região de tutorial cabe dentro da imagem', () => {
   for (const tutorial of TUTORIALS) {
-    const shapes = Object.values(tutorial.regions || {}).flat();
+    // regionsOf, e não tutorial.regions: quase todo tutorial novo deriva os
+    // recortes da caixa do objeto, e o teste precisa ver os dois caminhos.
+    const shapes = Object.values(regionsOf(tutorial)).flat();
     assert.ok(shapes.length > 0, `${tutorial.id}: sem regiões`);
     for (const shape of shapes) {
       const box = shape.kind === 'ellipse'

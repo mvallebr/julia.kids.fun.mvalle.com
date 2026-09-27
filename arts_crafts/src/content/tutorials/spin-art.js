@@ -21,14 +21,14 @@ export default [
     requiresAdultHelp: true,
     baseImage: 'assets/tutorials/first-spin-art-painting/base.webp',
     objectBox: { x: 0.20, y: 0.27, w: 0.60, h: 0.45 },
-    materials: ['material.cardboard', 'material.paper', 'material.paint'],
+    materials: ['material.spinner', 'material.cardboard', 'material.paper', 'material.paint'],
     steps: [
       { veil: 'full' },
       { veil: 'full', swatches: true },
       { veil: 'active', region: 'centre' },
       { veil: 'active', region: 'all' },
       { veil: 'active', region: 'centre' },
-      { veil: 'full' },
+      { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],
     copy: {
@@ -82,13 +82,13 @@ export default [
     requiresAdultHelp: true,
     baseImage: 'assets/tutorials/rainbow-rings-spin-art/base.webp',
     objectBox: { x: 0.20, y: 0.27, w: 0.60, h: 0.45 },
-    materials: ['material.cardboard', 'material.paper', 'material.paint'],
+    materials: ['material.spinner', 'material.cardboard', 'material.paper', 'material.paint'],
     steps: [
       { veil: 'full' },
       { veil: 'active', region: 'centre' },
-      { veil: 'full' },
       { veil: 'active', region: 'all' },
-      { veil: 'full' },
+      { veil: 'active', region: 'all' },
+      { veil: 'active', region: 'all' },
       { veil: 'active', region: 'centre' },
       { veil: 'none' },
     ],
@@ -146,12 +146,12 @@ export default [
     // cobre a composição toda, e o anel é achatado, então a altura é menor
     // que a largura de um círculo cheio.
     objectBox: { x: 0.14, y: 0.20, w: 0.72, h: 0.56 },
-    materials: ['material.cardboard', 'material.paper', 'material.paint', 'material.glue', 'material.pen'],
+    materials: ['material.spinner', 'material.cardboard', 'material.paper', 'material.paint', 'material.scissors', 'material.glue', 'material.pen'],
     steps: [
       { veil: 'full' },
       { veil: 'full' },
       { veil: 'active', region: 'centre' },
-      { veil: 'full' },
+      { veil: 'active', region: 'all' },
       { veil: 'active', region: 'centre' },
       { veil: 'active', region: 'all' },
       { veil: 'none' },
@@ -209,14 +209,14 @@ export default [
     // obra, e a flor nasce em cima dela. Por isso 'all' entra no passo das
     // pétalas — é o passo em que o desenho inteiro muda de cara.
     objectBox: { x: 0.17, y: 0.24, w: 0.66, h: 0.50 },
-    materials: ['material.cardboard', 'material.paint', 'material.pen'],
+    materials: ['material.spinner', 'material.cardboard', 'material.paint', 'material.pen'],
     steps: [
       { veil: 'full', swatches: true },
       { veil: 'full' },
       { veil: 'active', region: 'centre' },
       { veil: 'active', region: 'all' },
       { veil: 'active', region: 'bottom' },
-      { veil: 'full' },
+      { veil: 'active', region: 'all' },
       { veil: 'none' },
     ],
     copy: {

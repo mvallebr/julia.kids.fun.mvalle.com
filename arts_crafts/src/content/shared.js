@@ -100,9 +100,17 @@ export function derivedRegions(box) {
   };
 }
 
+// O foco é o mesmo mapa de seis nomes que as regiões: um passo 'active' diz
+// QUAL região está em jogo, e o foco devolve o retângulo que pulsa. Devolver um
+// retângulo só quebrava a biblioteca inteira derivada — `focus['top']` vinha
+// undefined, o teste acusava "região top sem foco" e o furo não era desenhado.
 export function derivedFocus(box) {
-  if (!box) return null;
-  return { kind: 'rect', x: box.x, y: box.y, w: box.w, h: box.h };
+  const regions = derivedRegions(box);
+  const byName = {};
+  for (const [name, shapes] of Object.entries(regions)) {
+    byName[name] = shapes[0] || null;
+  }
+  return byName;
 }
 
 export function regionsOf(tutorial) {
@@ -157,9 +165,18 @@ export function contentProblems(tutorials) {
     const steps = tutorial.steps || [];
     if (steps.length < 2) problems.push(`${tutorial.id}: precisa de ao menos dois passos`);
 
+    // O véu só pode clarear. Voltar a esconder depois de mostrar é a criança
+    // ver o objeto sumir da tela, que é pior do que nunca ter mostrado.
+    const VEIL_WEIGHT = { full: 2, active: 1, none: 0 };
+    let previous = Infinity;
+
     for (const [index, step] of steps.entries()) {
       const where = `${tutorial.id}.s${index + 1}`;
       if (!['full', 'active', 'none'].includes(step.veil)) problems.push(`${where}: véu "${step.veil}" inválido`);
+      if (VEIL_WEIGHT[step.veil] > previous) {
+        problems.push(`${where}: o véu escureceu depois de clarear (${previous} → ${step.veil})`);
+      }
+      previous = Math.min(previous, VEIL_WEIGHT[step.veil]);
       if (step.veil === 'active') {
         if (!step.region) problems.push(`${where}: véu ativo sem região`);
         else if (!regions[step.region]) problems.push(`${where}: região "${step.region}" não existe`);
