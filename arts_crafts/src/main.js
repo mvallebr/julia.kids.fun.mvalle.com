@@ -7,9 +7,10 @@
 import { CSS } from './styles.js';
 import { DICTIONARIES, translate } from './i18n.js';
 import {
-  CATEGORIES, DESTINATIONS, SEASONS, SEASON_PALETTE, FEATURED_ID, TUTORIALS, QUICK_MINUTES,
-  isQuick, assetUrl, tutorialById, tutorialBySlug, contentProblems,
-} from './content.js';
+  CATEGORIES, DESTINATIONS, SEASONS, SEASON_PALETTE, DEST_LAYOUT, SEASON_BACKDROP,
+  HOME_ART, FEATURED_ID, TUTORIALS, QUICK_MINUTES,
+  LANGUAGES, isQuick, assetUrl, regionsOf, focusOf, tutorialById, tutorialBySlug, contentProblems,
+} from './content/index.js';
 import {
   readPlayerContext, readSeason, writeSeason, readProgressFor, writeProgressFor,
   readCompleted, readLastTutorial,
@@ -19,6 +20,13 @@ const context = readPlayerContext();
 const dictionary = DICTIONARIES[context.language];
 const t = (key, values) => translate(dictionary, key, values);
 
+// O texto de um tutorial vem do próprio tutorial, no idioma da jogadora. Se um
+// idioma faltar, cai no português em vez de mostrar a chave na tela.
+const DEFAULT_COPY = 'pt';
+const copyOf = (tutorial) => tutorial.copy[context.language] || tutorial.copy[DEFAULT_COPY] || { steps: [] };
+const titleOf = (tutorial) => copyOf(tutorial).title || '';
+const stepText = (tutorial, index) => copyOf(tutorial).steps[index] || {};
+
 const root = document.getElementById('app');
 
 // O CSS entra pelo bundle em vez de um arquivo a parte: um artefato para
@@ -27,24 +35,6 @@ const style = document.createElement('style');
 style.textContent = CSS;
 document.head.appendChild(style);
 document.documentElement.lang = { pt: 'pt-BR', en: 'en', es: 'es' }[context.language];
-
-const SEASON_BACKDROP = {
-  spring: 'assets/map/spring.webp',
-  summer: 'assets/map/summer.webp',
-  autumn: 'assets/map/autumn.webp',
-  winter: 'assets/map/winter.webp',
-};
-
-// Posições em % do mapa. A arte do mapa entra na fase de arte; enquanto não
-// existe, o chão procedural mantém os seis destinos legíveis e clicáveis.
-const DEST_LAYOUT = {
-  '3d-studio': { x: 50, y: 20 },
-  'art-studio': { x: 24, y: 42 },
-  'spin-art-lab': { x: 77, y: 44 },
-  'craft-workshop': { x: 30, y: 70 },
-  '2d-studio': { x: 57, y: 72 },
-  'creative-challenges': { x: 84, y: 76 },
-};
 
 function el(tag, props = {}, children = []) {
   const node = document.createElement(tag);
@@ -86,17 +76,18 @@ function renderHome() {
   ]);
 
   const last = readLastTutorial();
-  const resume = last ? tutorialById(last) : null;
+  const resume = last ? tutorialById(TUTORIALS, last) : null;
   const progress = resume ? readProgressFor(resume.id) : null;
 
   return [
     topbar(),
+    el('img', { class: 'hero', src: assetUrl(HOME_ART), alt: '', width: '1280', height: '720' }),
     el('h1', { text: t('app.title') }),
-    el('p', { class: 'sub', text: context.name ? t('app.hello', { name: context.name }) : '' }),
+    el('p', { class: 'sub', text: t('tutorials.count', { count: TUTORIALS.length }) }),
     resume && progress && !progress.completed
       ? el('button', {
           class: 'btn', type: 'button', onclick: () => { location.hash = `#/t/${resume.slug}/${progress.stepIndex}`; },
-        }, [`${t('tutorials.continue')} — ${t(dictionaryKey(resume))} (${progress.stepIndex + 1}/${resume.steps.length})`])
+        }, [`${t('tutorials.continue')} — ${titleOf(resume)} (${progress.stepIndex + 1}/${resume.steps.length})`])
       : null,
     el('div', { class: 'cards' }, [
       card('tutorials', '🎨', 'home.tutorials', 'home.tutorialsSub', '#/tutorials'),
@@ -105,8 +96,6 @@ function renderHome() {
     ]),
   ].filter(Boolean);
 }
-
-const dictionaryKey = (tutorial) => tutorial.titleKey;
 
 /* ------------------------------------------------------------- tutorials --- */
 
@@ -119,8 +108,8 @@ function visibleTutorials() {
     if (filters.printable && !tutorial.requiresPrinting) return false;
     if (filters.quick && !isQuick(tutorial)) return false;
     if (!needle) return true;
-    const title = t(tutorial.titleKey).toLowerCase();
-    const description = t(tutorial.descriptionKey).toLowerCase();
+    const title = titleOf(tutorial).toLowerCase();
+    const description = (copyOf(tutorial).description || '').toLowerCase();
     return title.includes(needle) || description.includes(needle);
   });
 }
@@ -130,12 +119,12 @@ function tutorialCard(tutorial) {
   const done = readCompleted().includes(tutorial.id);
   return el('button', {
     class: 'tut-card', type: 'button',
-    'aria-label': t(tutorial.titleKey),
+    'aria-label': titleOf(tutorial),
     onclick: () => { location.hash = `#/t/${tutorial.slug}/${progress?.completed ? 0 : (progress?.stepIndex || 0)}`; },
   }, [
     el('img', { src: assetUrl(tutorial.baseImage), alt: '', loading: 'lazy', width: '480', height: '360' }),
     el('div', { class: 'body' }, [
-      el('span', { class: 'name', text: t(tutorial.titleKey) }),
+      el('span', { class: 'name', text: titleOf(tutorial) }),
       el('span', { class: 'meta' }, [
         el('span', { class: 'badge', text: t(`difficulty.${tutorial.difficulty}`) }),
         el('span', { class: 'badge', text: t('tutorial.time', { minutes: tutorial.estimatedMinutes }) }),
@@ -165,7 +154,7 @@ function renderTutorials() {
   categoryChips.push(chip(t('tutorials.quick'), () => { filters.quick = !filters.quick; rerender(); }, filters.quick));
 
   const list = visibleTutorials();
-  const featured = filters.search || filters.category || filters.printable || filters.quick ? null : tutorialById(FEATURED_ID);
+  const featured = filters.search || filters.category || filters.printable || filters.quick ? null : tutorialById(TUTORIALS, FEATURED_ID);
 
   return [
     topbar(),
@@ -220,7 +209,7 @@ function veilElement(tutorial, step, maskId) {
   full.setAttribute('fill', '#fff');
   mask.appendChild(full);
 
-  for (const shape of tutorial.regions[step.region] || []) {
+  for (const shape of regionsOf(tutorial)[step.region] || []) {
     const node = document.createElementNS(SVG_NS, shape.kind);
     if (shape.kind === 'ellipse') {
       node.setAttribute('cx', shape.cx * 100);
@@ -262,7 +251,7 @@ function stageFor(tutorial, step) {
   }
   if (step.veil === 'active') {
     stage.appendChild(veilElement(tutorial, step, 'veil-mask'));
-    const focus = tutorial.focus?.[step.region];
+    const focus = focusOf(tutorial)?.[step.region];
     if (focus) {
       const box = shapeBox(focus);
       stage.appendChild(el('div', {
@@ -289,17 +278,15 @@ function printTemplate(url) {
 }
 
 function renderTutorial(slug, stepIndex) {
-  const tutorial = tutorialBySlug(slug);
+  const tutorial = tutorialBySlug(TUTORIALS, slug);
   if (!tutorial) return renderTutorials();
 
   const total = tutorial.steps.length;
   const index = Math.min(Math.max(Number.isInteger(stepIndex) ? stepIndex : 0, 0), total - 1);
   const step = tutorial.steps[index];
+  const text = stepText(tutorial, index);
   const isLast = index === total - 1;
 
-  if (step.printable && tutorial.printable) {
-    // nada a persistir ainda; o passo 1 é sempre o de impressão
-  }
   writeProgressFor(tutorial.id, index, isLast);
 
   const dots = el('div', { class: 'dots', 'aria-hidden': 'true' },
@@ -308,14 +295,15 @@ function renderTutorial(slug, stepIndex) {
   const side = el('div', { class: 'side' }, [
     el('p', { class: 'step-count', text: t('step.of', { n: index + 1, total }) }),
     dots,
-    el('div', { class: 'panel' }, [el('p', { class: 'instruction', text: t(step.instructionKey) })]),
+    el('div', { class: 'panel' }, [el('p', { class: 'instruction', text: text.instruction })]),
     step.swatches
       ? el('div', { class: 'panel' }, [
           el('h3', { text: t('step.swatches') }),
-          el('div', { class: 'swatches' }, step.swatches.map(() => el('span'))),
+          el('div', { class: 'swatches' }, [el('span'), el('span'), el('span')]),
         ])
       : null,
-    step.tipKey ? el('div', { class: 'panel tip' }, [el('h3', { text: t('tutorial.tip') }), el('p', { text: t(step.tipKey) })]) : null,
+    text.tip ? el('div', { class: 'panel tip' }, [el('h3', { text: t('tutorial.tip') }), el('p', { text: text.tip })]) : null,
+    text.safety ? el('div', { class: 'panel safety' }, [el('h3', { text: t('tutorial.safety') }), el('p', { text: text.safety })]) : null,
     el('div', { class: 'panel' }, [
       el('h3', { text: t('tutorial.materials') }),
       el('ul', {}, tutorial.materials.map((key) => el('li', { text: t(key) }))),
@@ -326,7 +314,7 @@ function renderTutorial(slug, stepIndex) {
 
   return [
     topbar(),
-    el('h1', { text: t(tutorial.titleKey) }),
+    el('h1', { text: titleOf(tutorial) }),
     el('div', { class: 'viewer' }, [stageFor(tutorial, step), side]),
     el('div', { class: 'nav-row' }, [
       el('button', { class: 'btn', type: 'button', disabled: index === 0 ? '' : null, onclick: () => go(index - 1) }, [t('step.prev')]),
@@ -342,17 +330,17 @@ function renderTutorial(slug, stepIndex) {
 }
 
 function renderCelebration(slug) {
-  const tutorial = tutorialBySlug(slug);
-  const last = tutorial ? tutorial.steps[tutorial.steps.length - 1] : null;
+  const tutorial = tutorialBySlug(TUTORIALS, slug);
+  const lastIndex = tutorial ? tutorial.steps.length - 1 : -1;
   return [
     topbar(),
     el('h1', { text: t('celebrate.title', { name: context.name || '' }) }),
-    tutorial && last
+    tutorial && lastIndex >= 0
       ? el('div', { class: 'viewer' }, [
           el('div', { class: 'stage' }, [el('img', { class: 'art', src: assetUrl(tutorial.baseImage), alt: '', width: '1152', height: '864' })]),
           el('div', { class: 'side' }, [
             el('div', { class: 'panel' }, [
-              el('p', { class: 'instruction', text: t(last.instructionKey) }),
+              el('p', { class: 'instruction', text: stepText(tutorial, lastIndex).instruction }),
             ]),
           ]),
         ])
@@ -460,7 +448,7 @@ function currentRoute() {
 
 function rerender() {
   const route = currentRoute();
-  const problems = contentProblems();
+  const problems = contentProblems(TUTORIALS);
   if (problems.length) console.warn('artsCrafts: conteúdo inválido', problems);
   const view = {
     home: renderHome,
@@ -484,7 +472,7 @@ globalThis.__artsCrafts = {
   route: currentRoute,
   render: rerender,
   tutorials: () => TUTORIALS,
-  regionsOf: (tutorialId) => tutorialById(tutorialId)?.regions || null,
+  regionsOf: (tutorialId) => { const item = tutorialById(TUTORIALS, tutorialId); return item ? regionsOf(item) : null; },
   setFilter(next) { Object.assign(filters, next); rerender(); },
   goToStep(slug, step) { location.hash = `#/t/${slug}/${step}`; },
   QUICK_MINUTES,

@@ -59,6 +59,12 @@ h2 { margin: 0 0 12px; font-size: clamp(22px, 4.4vw, 28px); }
 .sub { margin: 0 0 22px; color: var(--ink-soft); }
 
 /* --- home --- */
+.hero {
+  display: block; width: calc(100% + 36px); margin: -18px -18px 22px;
+  height: clamp(150px, 26vw, 240px);
+  object-fit: cover; object-position: center 62%;
+  border-bottom: 3px solid var(--line);
+}
 .cards { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
 .card-btn {
   display: grid; gap: 6px; padding: 22px 20px; text-align: left; cursor: pointer;
@@ -183,6 +189,7 @@ h2 { margin: 0 0 12px; font-size: clamp(22px, 4.4vw, 28px); }
 @media (max-width: 560px) {
   #app { padding: 14px 14px 44px; }
   .topbar { margin: -14px -14px 16px; padding: 10px 14px; }
+  .hero { width: calc(100% + 28px); margin: -14px -14px 18px; }
   .nav-row { flex-direction: column; }
   .dest { font-size: 13px; padding: 6px 10px; }
 }

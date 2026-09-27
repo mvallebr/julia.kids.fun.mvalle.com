@@ -8,11 +8,11 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
-import { DICTIONARIES, LANGUAGES, interpolate, isLanguage, translate } from '../src/i18n.js';
+import { DICTIONARIES, LANGUAGES as UI_LANGUAGES, interpolate, isLanguage, translate } from '../src/i18n.js';
 import {
-  CATEGORIES, DESTINATIONS, SEASONS, TUTORIALS, QUICK_MINUTES, isQuick,
-  contentProblems, tutorialById, tutorialBySlug,
-} from '../src/content.js';
+  CATEGORIES, DESTINATIONS, SEASONS, TUTORIALS, QUICK_MINUTES, LANGUAGES, isQuick,
+  contentProblems, tutorialById, tutorialBySlug, regionsOf, focusOf, derivedRegions,
+} from '../src/content/index.js';
 import { readPlayerContext, readSeason, writeSeason, KEYS } from '../src/state.js';
 
 // Um localStorage de mentira, só o suficiente. Sem ele os testes de estado não
@@ -38,7 +38,7 @@ const APP_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const APP_DIRNAME = 'arts_crafts';
 
 function allKeys() {
-  return new Set(LANGUAGES.flatMap((language) => Object.keys(DICTIONARIES[language])));
+  return new Set(UI_LANGUAGES.flatMap((language) => Object.keys(DICTIONARIES[language])));
 }
 
 function keysUsedByContent() {
@@ -84,9 +84,9 @@ test('nenhuma chave do Arts & Crafts colide com a preferência do launcher', () 
 
 // --- 2. idioma segue o launcher e cobre os três idiomas ---
 
-test('todo idioma tem as mesmas chaves', () => {
+test('todo idioma da interface tem as mesmas chaves', () => {
   const reference = allKeys();
-  for (const language of LANGUAGES) {
+  for (const language of UI_LANGUAGES) {
     const keys = new Set(Object.keys(DICTIONARIES[language]));
     const missing = [...reference].filter((key) => !keys.has(key));
     const extra = [...keys].filter((key) => !reference.has(key));
@@ -97,15 +97,32 @@ test('todo idioma tem as mesmas chaves', () => {
 
 test('toda chave usada pelo conteúdo existe nos três idiomas', () => {
   for (const key of keysUsedByContent()) {
-    for (const language of LANGUAGES) {
+    for (const language of UI_LANGUAGES) {
       assert.ok(DICTIONARIES[language][key], `falta "${key}" em ${language}`);
     }
   }
 });
 
-test('chave de tutorial é única por tutorial', () => {
-  const keys = TUTORIALS.map((tutorial) => tutorial.titleKey);
-  assert.equal(new Set(keys).size, keys.length);
+test('todo tutorial tem um título diferente em cada idioma', () => {
+  for (const language of LANGUAGES) {
+    const titles = TUTORIALS.map((tutorial) => tutorial.copy[language]?.title || '');
+    const unique = new Set(titles);
+    assert.equal(unique.size, titles.length, `títulos repetidos em ${language}`);
+    for (const title of titles) assert.ok(title, `tutorial sem título em ${language}`);
+  }
+});
+
+test('o texto de cada passo existe nos três idiomas e no mesmo número', () => {
+  for (const tutorial of TUTORIALS) {
+    for (const language of LANGUAGES) {
+      const steps = tutorial.copy[language]?.steps || [];
+      assert.equal(steps.length, tutorial.steps.length, `${tutorial.id}: ${language}`);
+      for (const [index, text] of steps.entries()) {
+        assert.ok(text.instruction, `${tutorial.id} ${language} passo ${index + 1}: sem instrução`);
+        if (index > 0) assert.ok(text.tip, `${tutorial.id} ${language} passo ${index + 1}: dica só no primeiro`);
+      }
+    }
+  }
 });
 
 test('tradução substitui placeholder e não quebra sem valor', () => {
@@ -117,7 +134,7 @@ test('tradução substitui placeholder e não quebra sem valor', () => {
 });
 
 test('linguagens aceitas são exatamente as do launcher', () => {
-  assert.deepEqual([...LANGUAGES].sort(), ['en', 'es', 'pt']);
+  assert.deepEqual([...UI_LANGUAGES].sort(), ['en', 'es', 'pt']);
   assert.ok(isLanguage('es'));
   assert.ok(!isLanguage('fr'));
 });
@@ -125,7 +142,7 @@ test('linguagens aceitas são exatamente as do launcher', () => {
 // --- 3. dados do tutorial ---
 
 test('conteúdo não tem problema estrutural', () => {
-  assert.deepEqual(contentProblems(), []);
+  assert.deepEqual(contentProblems(TUTORIALS), []);
 });
 
 test('todo tutorial tem os campos que a spec exige', () => {
@@ -137,15 +154,27 @@ test('todo tutorial tem os campos que a spec exige', () => {
     assert.ok(tutorial.estimatedMinutes > 0, `${tutorial.id}: duração`);
     assert.ok(tutorial.materials.length > 0, `${tutorial.id}: materiais`);
     assert.ok(tutorial.steps.length > 0, `${tutorial.id}: passos`);
-    assert.ok(tutorial.tags !== undefined || tutorial.tags === undefined);
   }
 });
 
-test('todo passo de tutorial tem instrução e véu declarado', () => {
+test('a estrutura de cada passo declara o véu, e o texto vem por idioma', () => {
   for (const tutorial of TUTORIALS) {
-    for (const step of tutorial.steps) {
-      assert.ok(step.instructionKey, `${tutorial.id}.${step.id}: instrução`);
-      assert.ok(['full', 'active', 'none'].includes(step.veil), `${tutorial.id}.${step.id}: véu`);
+    for (const [index, step] of tutorial.steps.entries()) {
+      assert.ok(['full', 'active', 'none'].includes(step.veil), `${tutorial.id} passo ${index + 1}: véu`);
+      assert.ok(step.instructionKey === undefined, `${tutorial.id} passo ${index + 1}: texto não pertence à estrutura`);
+    }
+  }
+});
+
+test('as regiões derivadas da caixa do objeto têm seis recortes', () => {
+  const box = { x: 0.2, y: 0.3, w: 0.4, h: 0.5 };
+  const regions = derivedRegions(box);
+  for (const name of ['all', 'top', 'bottom', 'left', 'right', 'centre']) {
+    assert.ok(regions[name]?.length, `região derivada "${name}" vazia`);
+  }
+  for (const shape of Object.values(regions).flat()) {
+    for (const value of [shape.x, shape.y, shape.x + shape.w, shape.y + shape.h]) {
+      assert.ok(value >= 0 && value <= 1, `coordenada ${value} fora da imagem`);
     }
   }
 });
@@ -189,11 +218,11 @@ test('a navegação de passo não passa do primeiro nem do último', () => {
 
 test('lookup por id e por slug encontra o mesmo tutorial', () => {
   for (const tutorial of TUTORIALS) {
-    assert.equal(tutorialById(tutorial.id), tutorial);
-    assert.equal(tutorialBySlug(tutorial.slug), tutorial);
+    assert.equal(tutorialById(TUTORIALS, tutorial.id), tutorial);
+    assert.equal(tutorialBySlug(TUTORIALS, tutorial.slug), tutorial);
   }
-  assert.equal(tutorialById('nao-existe'), null);
-  assert.equal(tutorialBySlug('nao-existe'), null);
+  assert.equal(tutorialById(TUTORIALS, 'nao-existe'), null);
+  assert.equal(tutorialBySlug(TUTORIALS, 'nao-existe'), null);
 });
 
 // --- 4. filtro de crafts rápidos ---
@@ -232,7 +261,7 @@ test('o launcher aponta para a pasta do app', () => {
 test('as seis áreas da spec estão no mapa', () => {
   assert.equal(DESTINATIONS.length, 6);
   for (const id of DESTINATIONS) {
-    for (const language of LANGUAGES) {
+    for (const language of UI_LANGUAGES) {
       assert.ok(DICTIONARIES[language][`dest.${id}`], `falta ${id} em ${language}`);
       assert.ok(DICTIONARIES[language][`dest.${id}.soon`], `falta ${id}.soon em ${language}`);
     }

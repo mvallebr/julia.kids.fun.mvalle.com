@@ -6,7 +6,9 @@
 // com `artsCrafts.`.
 
 import { DEFAULT_LANGUAGE, isLanguage } from './i18n.js';
-import { SEASONS } from './content.js';
+// Só a lista de estações, e direto do contrato: puxar a biblioteca inteira
+// aqui criaria um ciclo quando o conteúdo importar o estado.
+import { SEASONS } from './content/shared.js';
 
 const LAUNCHER_PREFERENCES = 'mundo-da-julia.preferences.v1';
 const PREFIX = 'artsCrafts.';
