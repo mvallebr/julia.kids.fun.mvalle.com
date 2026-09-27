@@ -17,6 +17,8 @@ const {
   isAppPathname,
   isScopedResourcePath,
   isSharedResourcePath,
+  isSharedAssetPath,
+  SHARED_ASSET_EPOCH,
   versionOfCacheName,
   bundleVersionOfEntry,
   temReservaRpg,
@@ -95,6 +97,37 @@ test('as dependências compartilhadas do RPG são explícitas e não abrem escop
   assert.equal(isScopedResourcePath('/maths_adventure/index.html'), false);
 });
 
+test('os GLB do RPG são compartilhados: não mudam com o ?v= do bundle', () => {
+  // Motivo medido em 2026-09-27: os modelos são 72 MB de arte commitada, e o
+  // `?v=` é a versão do BUNDLE. Estando no cache por versão, cada bump
+  // rebaixava e rearmazenava ~25 MB — a sessão de QA acumulou 11 caches com
+  // cópias dos mesmos arquivos de ~9 MB.
+  for (const arquivo of [
+    '/rpg_welling/assets/ivy-rigged.glb',
+    '/rpg_welling/assets/trees.glb',
+    '/rpg_welling/assets/owl.glb',
+  ]) {
+    assert.equal(isSharedAssetPath(arquivo), true, `${arquivo} tem que ser compartilhado`);
+    assert.equal(isSharedResourcePath(arquivo), true, `${arquivo} tem que abrir o cache compartilhado`);
+  }
+  // mas não tudo em assets/ é compartilhado: a política é por sufixo
+  assert.equal(isSharedAssetPath('/rpg_welling/assets/oxleas-backdrop.jpg'), false, 'jpg não entra');
+  assert.equal(isSharedAssetPath('/rpg_welling/index.html'), false, 'HTML não entra pelo caminho de asset');
+  assert.equal(isSharedAssetPath('/maths_adventure/assets/thing.glb'), false, 'outro jogo não entra');
+  assert.equal(isSharedAssetPath(null), false);
+  assert.equal(isSharedAssetPath(42), false);
+});
+
+test('o nome do cache compartilhado carrega a época dos assets', () => {
+  // Substituir um .glb não o invalida (o cache compartilhado sobrevive à
+  // rotação de propósito). O conserto é subir SHARED_ASSET_EPOCH, que muda o
+  // nome do cache e apaga o antigo inteiro na navegação seguinte. Este teste
+  // existe para o número não ser renormalizado sem querer: sem o sufixo, a
+  // troca de assets não-invalidaria nada.
+  assert.match(SHARED_CACHE_NAME, /shared-v\d+$/);
+  assert.equal(SHARED_CACHE_NAME, `${APP_CACHE_PREFIX}shared-v${SHARED_ASSET_EPOCH}`);
+});
+
 test('política de MIME ignora parâmetros e rejeita tipos inesperados', () => {
   const aceitos = [
     ['/rpg_welling/assets/scene.glb', 'model/gltf-binary; charset=binary'],
@@ -168,7 +201,9 @@ test('política de MIME ignora parâmetros e rejeita tipos inesperados', () => {
 });
 
 test('o cache compartilhado é persistente e nunca é candidato de limpeza', () => {
-  assert.equal(SHARED_CACHE_NAME, `${APP_CACHE_PREFIX}shared`);
+  // o sufixo -v<época> é o que permite invalidar o cache compartilhado quando
+  // um .glb for substituído; o teste seguinte fixa essa forma
+  assert.equal(SHARED_CACHE_NAME, `${APP_CACHE_PREFIX}shared-v${SHARED_ASSET_EPOCH}`);
   assert.equal(isNomeAtivoValido(SHARED_CACHE_NAME), false);
   const active = `${APP_CACHE_PREFIX}release-42`;
   assert.deepEqual(qualCacheApagar([SHARED_CACHE_NAME, active, META_CACHE_NAME], active), []);

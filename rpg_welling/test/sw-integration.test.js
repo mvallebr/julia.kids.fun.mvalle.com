@@ -13,6 +13,7 @@ const {
   META_CACHE_NAME,
   SHARED_CACHE_NAME,
   FALLBACK_CACHE_NAME,
+  isSharedResourcePath,
 } = require('../../sw-cache-name.js');
 const swSource = readFileSync(fileURLToPath(new URL('../../sw.js', import.meta.url)), 'utf8');
 const helperSource = readFileSync(fileURLToPath(new URL('../../sw-cache-name.js', import.meta.url)), 'utf8');
@@ -796,13 +797,26 @@ test('integração 17-A: MIME JavaScript com sufixo não substitui o bundle bom'
 });
 
 test('integração 18: MIME correto é cacheado e MIME inesperado não substitui cópia', async () => {
+  // A coluna `shared` é DERIVADA de isSharedResourcePath, não escrita à mão:
+  // o .glb virou compartilhado em 2026-09-27 (não muda com o ?v= do bundle), e
+  // um teste que codificasse "glb não é compartilhado" quebraria em silêncio
+  // quando alguém legasse e legesse mal a regra.
   const cases = [
-    ['/rpg_welling/assets/scene.glb', 'model/gltf-binary', 'glb', false],
-    ['/rpg_welling/assets/panel.png', 'image/png', 'png', false],
-    ['/manifest.webmanifest', 'application/manifest+json', '{}', true],
-    ['/julia_world/fonts/fonts.css', 'text/css', 'body{}', true],
-    ['/julia_world/fonts/fredoka-latin.woff2', 'font/woff2', 'font', true],
-  ];
+    '/rpg_welling/assets/scene.glb',
+    '/rpg_welling/assets/panel.png',
+    '/manifest.webmanifest',
+    '/julia_world/fonts/fonts.css',
+    '/julia_world/fonts/fredoka-latin.woff2',
+  ].map((path) => {
+    const shared = isSharedResourcePath(path);
+    const tipo = path.endsWith('.glb') ? 'model/gltf-binary'
+      : path.endsWith('.png') ? 'image/png'
+      : path.endsWith('.woff2') ? 'font/woff2'
+      : path.endsWith('.css') ? 'text/css' : 'application/manifest+json';
+    const corpo = path.endsWith('.glb') ? 'glb' : path.endsWith('.png') ? 'png'
+      : path.endsWith('.woff2') ? 'font' : path.endsWith('.css') ? 'body{}' : '{}';
+    return [path, tipo, corpo, shared];
+  });
   for (const [path, goodType, body, shared] of cases) {
     const goodUrl = `${ORIGIN}${path}`;
     const goodStore = new MemoryCaches();
@@ -1245,13 +1259,17 @@ test('integração 24-F-A: fetch não-navegação da raiz não aceita HTML', asy
 });
 
 test('integração 24-G: fallback valida respostas armazenadas não-HTML e usa reserva antiga', async () => {
+  // Só entra aqui o que vive em CACHE DE VERSÃO. O .glb saiu de propósito: ele
+  // passou para o cache compartilhado (não muda com o ?v= do bundle), e o
+  // cache compartilhado é um só, sem "reserva antiga" — plantar duas cópias
+  // nele faz a segunda sobrescrever a primeira e o teste vira teatro. A
+  // validação de resposta armazenada para GLB tem teste próprio, logo abaixo.
   const cases = [
     {
       path: '/rpg_welling/lib/bundle.js?v=release-41',
       type: 'application/javascript',
       destination: 'script',
     },
-    { path: '/rpg_welling/assets/scene.glb', type: 'model/gltf-binary' },
     { path: '/rpg_welling/assets/panel.css', type: 'text/css' },
     { path: '/rpg_welling/assets/panel.png', type: 'image/png' },
   ];
@@ -1284,6 +1302,45 @@ test('integração 24-G: fallback valida respostas armazenadas não-HTML e usa r
       assert.equal(await result.text(), 'copia-antiga', `${scenario.path}: ${JSON.stringify(invalid)}`);
     }
   }
+});
+
+test('integração 24-G-GLB: resposta armazenada de GLB no cache compartilhado é validada', async () => {
+  // O .glb mora no cache compartilhado desde 2026-09-27. A política de
+  // resposta inválida é a mesma (206, HTML, opaque e error não substituem uma
+  // cópia boa), mas o destino do cache é outro — e é justamente por isso que
+  // este teste é separado do 24-G.
+  const path = '/rpg_welling/assets/scene.glb';
+  const url = `${ORIGIN}${path}`;
+  for (const invalid of [
+    { status: 206, type: 'basic', contentType: null },
+    { status: 200, type: 'basic', contentType: 'text/html' },
+    { status: 200, type: 'opaque', contentType: null },
+    { status: 0, type: 'error', contentType: null },
+  ]) {
+    const store = new MemoryCaches();
+    seedMetadata(store, NEW_CACHE);
+    seedRpg(store, NEW_CACHE, 'release-42');
+    store.seed(SHARED_CACHE_NAME, [[url, 'glb-invalido', {
+      status: invalid.status,
+      type: invalid.type,
+      headers: { 'content-type': invalid.contentType || 'model/gltf-binary' },
+    }]]);
+    const rede = new FakeResponse('glb-bom', { url, headers: { 'content-type': 'model/gltf-binary' } });
+    const harness = createHarness({ store, responses: { [url]: rede } });
+    const result = await harness.fetch(new FakeRequest(url));
+    assert.equal(await result.text(), 'glb-bom', `${path}: ${JSON.stringify(invalid)}`);
+  }
+
+  // cópia boa no compartilhado é servida sem tocar a rede
+  const store = new MemoryCaches();
+  seedMetadata(store, NEW_CACHE);
+  seedRpg(store, NEW_CACHE, 'release-42');
+  store.seed(SHARED_CACHE_NAME, [[url, 'glb-bom', {
+    headers: { 'content-type': 'model/gltf-binary' },
+  }]]);
+  const harness = createHarness({ store });
+  const result = await harness.fetch(new FakeRequest(url));
+  assert.equal(await result.text(), 'glb-bom');
 });
 
 test('integração 24-G-A: entrada inválida não completa reserva nem autoriza limpeza', async () => {

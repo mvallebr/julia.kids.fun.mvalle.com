@@ -21,7 +21,25 @@
     '/julia_world/fonts/luckiest-guy-latin.woff2',
   ]);
   const SHARED_RESOURCE_SET = new Set(SHARED_RESOURCE_PATHS);
-  const SHARED_CACHE_NAME = `${APP_CACHE_PREFIX}shared`;
+
+  // Os GLB do RPG entram no mesmo cache persistente. Motivo medido em
+  // 2026-09-27: o `?v=` é a versão do BUNDLE, e os modelos não mudam com ele —
+  // são 72 MB de arte gerada uma vez e commitada. Mesmo assim eles estavam
+  // no cache por VERSÃO, então cada bump de `?v=` rebaixava e rearmazenava
+  // ~25 MB de modelos. A sessão de QA acumulou 11 caches de versão com
+  // cópias dos mesmos arquivos de ~9 MB.
+  //
+  // Vira prefixo+sufixo em vez de lista explícita porque são 15 arquivos e a
+  // lista inteira viria a cada modelo novo.
+  const SHARED_ASSET_PREFIXES = Object.freeze(['/rpg_welling/assets/']);
+  const SHARED_ASSET_SUFFIXES = Object.freeze(['.glb']);
+
+  // ATRITO DOCUMENTADO: o cache compartilhado não é limpo pela rotação, então
+  // substituir um .glb não o invalida. Quando isso acontecer, o conserto é
+  // subir o número abaixo — é um número, muda uma linha e apaga todo o cache
+  // compartilhado na próxima navegação.
+  const SHARED_ASSET_EPOCH = '1';
+  const SHARED_CACHE_NAME = `${APP_CACHE_PREFIX}shared-v${SHARED_ASSET_EPOCH}`;
   const FALLBACK_VERSION = 'v1';
   const FALLBACK_CACHE_NAME = `${APP_CACHE_PREFIX}${FALLBACK_VERSION}`;
   const META_CACHE_NAME = `${APP_CACHE_PREFIX}meta`;
@@ -41,8 +59,15 @@
       && (pathname === APP_PATH_PREFIX.slice(0, -1) || pathname.startsWith(APP_PATH_PREFIX));
   }
 
+  function isSharedAssetPath(pathname) {
+    if (typeof pathname !== 'string') return false;
+    if (!SHARED_ASSET_PREFIXES.some((prefix) => pathname.startsWith(prefix))) return false;
+    return SHARED_ASSET_SUFFIXES.some((suffix) => pathname.endsWith(suffix));
+  }
+
   function isSharedResourcePath(pathname) {
-    return typeof pathname === 'string' && SHARED_RESOURCE_SET.has(pathname);
+    if (typeof pathname !== 'string') return false;
+    return SHARED_RESOURCE_SET.has(pathname) || isSharedAssetPath(pathname);
   }
 
   function isScopedResourcePath(pathname) {
@@ -304,6 +329,8 @@
     BUNDLE_PATH,
     SHARED_RESOURCE_PATHS,
     SHARED_CACHE_NAME,
+    SHARED_ASSET_EPOCH,
+    isSharedAssetPath,
     FALLBACK_CACHE_NAME,
     META_CACHE_NAME,
     isAppPathname,

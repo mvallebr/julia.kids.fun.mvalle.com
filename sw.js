@@ -18,6 +18,17 @@
 // sw.js é um script clássico; importScripts preserva esse contrato e o caminho
 // é relativo à raiz onde este worker mora. O helper fica fora do RPG para não
 // ser interpretado como módulo ESM pelo package.json local.
+// Versão do worker. O passo a tocar NÃO é enfeite: o algoritmo de atualização
+// de um service worker só reinstala quando os BYTES do script principal
+// mudam. Alterar só o `sw-cache-name.js` (importado abaixo) rebaixa o helper,
+// mas não dispara install, e o navegador continua rodando o worker antigo —
+// foi exatamente o que aconteceu em 2026-09-27 ao passar os .glb para o cache
+// compartilhado: o código estava certo e nada mudou, porque o `sw.js` não
+// tinha mudado de byte.
+//
+// Bump a cada mudança de comportamento deste arquivo ou do helper.
+const SW_VERSION = '2026-09-28a';
+
 importScripts('./sw-cache-name.js');
 
 const helpers = self.JuliaKidsSwCacheName;
