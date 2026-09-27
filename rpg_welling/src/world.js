@@ -2040,7 +2040,22 @@ export function buildSchool(scene) {
   // ficavam inalcançáveis. Cada vão tem um portão com placa indicando a área,
   // e o do corredor em z −12.8..−11.2 fica em linha reta com a porta da sala
   // de aula (dentro dele) e com a quadra (do lado de fora).
-  wall(scene, -7, 4, -1, 4, 2.2, brick); wall(scene, 1, 4, 7, 4, 2.2, brick);
+  // Muro de frente da escola: BAIXO, de propósito (item 4.5 do roadmap).
+  //
+  // Com 2,2 m ele tapava a personagem da cintura para baixo no enquadramento
+  // do spawn, e o fader não podia socorrer: a menina está no VAO do portão
+  // (x −1 a 1), então os raios passam por dentro do vão e nunca acertam o
+  // muro. Não era o fader faltando cobertura, era geometria: a câmera de
+  // diorama abre ~10 m para trás do spawn ([0, 0,6] → z ~10,7) e o muro está
+  // em z 4, ou seja, 6,7 m à frente da câmera, e o topo dele cai na tela
+  // ACIMA dos pés da menina (30,8° contra 31,6° de altura vista).
+  //
+  // A 1,6 m o topo cai para ~34,7°, abaixo dos pés dela, e a personagem
+  // aparece inteira. Baixar o muro também abre a vista do pátio inteiro, e
+  // 1,6 m é altura plausível de muro frontal de escola primária. O colisor
+  // sai do FOOTPRINT (w × d) no helper wall(), não da altura — então
+  // baixar não abre passagem nenhuma, a menina continua batendo no muro.
+  wall(scene, -7, 4, -1, 4, 1.6, brick); wall(scene, 1, 4, 7, 4, 1.6, brick);
   wall(scene, -7, -6, -7, 0.2, 2.2, plaster); wall(scene, -7, 2.4, -7, 4, 2.2, plaster);
   wall(scene, 7, -6, 7, 0.2, 2.2, plaster); wall(scene, 7, 2.4, 7, 4, 2.2, plaster);
   wall(scene, -7, -6, -1.8, -6, 2.2, plaster); wall(scene, 1.8, -6, 7, -6, 2.2, plaster);
