@@ -1,8 +1,8 @@
 # Roadmap — RPG Welling
 
-Status deste arquivo: **vivo**. Atualizado em 2026-09-27 depois da rodada 6
-"Capítulo 3, recompensas roláveis, opções e modularização em 3 fatias" (live
-`?v=20260927p`, **403 testes**).
+Status deste arquivo: **vivo**. Atualizado em 2026-09-27 depois da rodada 7
+"cache dos modelos, `?v=` automático e a dívida do 3.3 fechada" (live
+`?v=cf717787cb4d`, **408 testes**).
 
 A rodada 4 nasceu do `tools/qa-visual.mjs` (4.6) e andar sobre ele. Tudo o que
 ela mediu virou item: o chão que não alcançava a câmera (4.7), o telhado que
@@ -11,7 +11,10 @@ dela (4.5), resolveu o 1.2 de verdade — as 45 glosas que o diário prometia e
 o mundo não entregava — e deu a primeira fatia do 0.3. A rodada 6 fechou a Fase 1 e a Fase 4: Capítulo 3, o 1.1 rolável de verdade, o
 3.5 com som e idioma no painel, e as três fatias do 0.3 — o jogo saiu de
 `world.js` com 6.623 linhas em três arquivos para três módulos com rede de
-segurança.
+segurança. A rodada 7 fecha o que ainda estava anotado como dívida ou como
+escolha: o 3.1 na verdade (o cache de disco existia, o problema era outro), o
+0.2 automatizado, a ressalva falsa do 4.5 removida com medição, e a dívida do
+3.3 fechada sem esperar a instanciação que o roadmap exigia.
 
 Este é o plano de evolução do jogo da Julia. Ele existe para que qualquer sessão
 futura saiba o que já foi feito, o que está em andamento e o que é próximo —
@@ -143,13 +146,21 @@ Cada um é um arquivo novo, sem tocar nos outros.
 | 3.5 | Tela de opções (efeitos / ambiente / fala / idioma / tamanho de texto) | P | **entregue** — o painel tinha só tamanho de texto e som do ambiente; idioma e som geral viviam soltos no HUD, e para uma criança de 6 anos procurar som num botão e idioma noutro é Davies. Agora as quatro coisas estão no mesmo lugar: texto, ambiente, som, idioma. Três decisões que valem registro: (1) os dois switches viraram uma **fábrica** (`buildSwitch`) em vez de código copiado — são o mesmo controle com texto diferente, e o teclado é delicado, porque o handler global do jogo cancela o espaço na janela e o toggle precisa acontecer dentro do painel, uma única vez; (2) `sound` e `language` **continuam no topo do state**, não foram para `settings` — são anteriores ao painel, e duplicá-los criaria duas fontes de verdade para a mesma preferência, então o painel os trata como campos da visão e o `main.js` mapeia de volta; (3) cada idioma aparece escrito **no próprio idioma** (Português / English / Español), porque quem ainda não lê português reconhece o nome na primeira tela. O `main.js` ganhou `applySound` e `applyLanguage` extraídos dos handlers do HUD, para o botão e o painel passarem pelo mesmo caminho — dois lugares com a mesma linha divergem na primeira vez que um esquecer o outro |
 | 3.6 | README e CREDITS desatualizados | P | **entregue** |
 
-**Dívida conhecida (fora da lista, para não se perder):** `stashZoneResources`
-roda dentro dos builders de zona, antes de o `main.js` adicionar os objetos da
-zona nova, e pode alcançar recursos de GLB que o `createGlbCache` compartilha
-entre zonas. Ninguém quebrou por causa disso ainda e mexer agora, com o 3.1
-recém-entregue, arrisca trocar um bug raro por um crash de tela preta. Fica
-marcado para quando os personagens da Ivy e do Oakley passarem a ser
-instanciados de verdade em vez de cacheados.
+**Dívida do 3.3 — FECHADA em 2026-09-27.** `stashZoneResources` descartava todo
+material e textura da cena anterior no fim de cada zona, **inclusive os que o
+cache de GLB ainda ia reusar** — o mesmo modelo vive na escola e na mata, e o
+cache guarda a cena original, então a próxima zona clonava material já
+descartado. O roadmap mandava não mexer "até os personagens da Ivy e do Oakley
+passarem a ser instanciados de verdade". **A condição nunca foi a instanciação:
+era o cache.** O conserto é um registro de posse: o loader marca, ao carregar,
+quais materiais, texturas e InstancedMesh pertencem ao cache, e o teardown da
+zona pula esses. Um teste trava a garantia (material do cache sobrevive,
+material da zona é descartado) sem baixar 9 MB de modelo para isso.
+
+O `.glb` literal dentro de um comentário meu tripped o guard de nomes do
+`model-preload.test.js` — que existe justamente para pegar arquivo embutido
+fora do catálogo. O comentário foi reescrito; é o segundo guard útil que pegou
+algo meu nesta rodada, e vale mais que a correção.
 
 Assets medidos em 2026-09-27: `assets/` = **72 MB**, 15 GLBs. Os sete rigs de
 personagem somam **64,6 MB (90%)** — `ivy-rigged.glb` 10,9 MB, `oakley-rigged.glb`

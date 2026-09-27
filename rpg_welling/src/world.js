@@ -80,11 +80,50 @@ export function createGlbCache(loadOne) {
   };
 }
 
+// Recursos que PERTENCEM ao cache de GLB, e não à zona que os clonou. O mesmo
+// modelo é usado por mais de uma zona (o pack de árvores vive na escola e na
+// mata), e
+// `stashZoneResources` descartava todo material da cena anterior — incluindo
+// estes. Como o cache guarda a cena original, a próxima zona clonava material
+// já descartado. Nobody quebrou por causa disso, e o roadmap marcava a dívida
+// como "não mexer até os personagens da Ivy e do Oakley serem instanciados de
+// verdade" — mas a condição nunca foi a instanciação: foi o cache. Com este
+// registro, o teardown da zona pula o que é do cache, e a dívida fecha sem
+// esperar pelo 0.3.
+const glbOwnedMaterials = new Set();
+const glbOwnedTextures = new Set();
+const glbOwnedInstanced = new Set();
+
+function registerGlbOwnership(scene) {
+  scene.traverse((node) => {
+    if (node.isInstancedMesh) glbOwnedInstanced.add(node);
+    if (node.geometry) {
+      for (const slot of MATERIAL_MAP_SLOTS) {
+        const texture = node.geometry[slot];
+        if (texture?.isTexture) glbOwnedTextures.add(texture);
+      }
+    }
+    if (!node.material) return;
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
+    for (const material of materials) {
+      if (!material) continue;
+      glbOwnedMaterials.add(material);
+      for (const slot of MATERIAL_MAP_SLOTS) {
+        const texture = material[slot];
+        if (texture?.isTexture) glbOwnedTextures.add(texture);
+      }
+    }
+  });
+}
+
 function loadGlbOnce(filename) {
   return new Promise((resolve, reject) => {
     gltfLoader.load(
       ASSETS + filename,
-      (gltf) => resolve({ scene: gltf.scene, animations: gltf.animations || [] }),
+      (gltf) => {
+        registerGlbOwnership(gltf.scene);
+        resolve({ scene: gltf.scene, animations: gltf.animations || [] });
+      },
       undefined,
       (err) => reject(err),
     );
@@ -92,6 +131,12 @@ function loadGlbOnce(filename) {
 }
 
 export const loadGlb = createGlbCache(loadGlbOnce);
+
+// Gancho de teste: o registro de posse de recursos do cache é interno de
+// propósito (ninguem de fora tem por que mexer), mas a garantia que ele dá —
+// "o teardown da zona não descarta o que o cache vai reusar" — precisa ser
+// testável, e testá-la pela via pública exigiria baixar 9 MB de modelo.
+export const __test__ = Object.freeze({ registerGlbOwnership });
 
 // Este catálogo é a única fonte dos nomes GLB: consumo e preloading precisam
 // permanecer sincronizados sem repetir literais em funções diferentes.
@@ -415,7 +460,10 @@ function disposeZoneResources(resources) {
       if (texture?.isTexture && !textures.has(texture)) textures.add(texture);
     }
   }
-  for (const texture of textures) disposeTolerant(texture);
+  for (const texture of textures) {
+    if (glbOwnedTextures.has(texture)) continue;
+    disposeTolerant(texture);
+  }
   for (const material of resources.materials) disposeTolerant(material);
   // InstancedMesh.dispose libera instanceMatrix/instanceColor na GPU sem
   // tocar na geometry/material (esses ficam com o disposeScene de main.js)
@@ -426,14 +474,18 @@ function disposeZoneResources(resources) {
 // captura os recursos desta. Tem que ser no fim (e não depois do dispose de
 // main.js) porque scene.clear() destaca os filhos — depois deles não dá mais
 // para descobrir quais materiais a cena usava.
-function stashZoneResources(scene) {
+export function stashZoneResources(scene) {
   disposeZoneResources(previousZoneResources);
   const resources = { materials: new Set(), instanced: [] };
   scene.traverse((node) => {
-    if (node.isInstancedMesh) resources.instanced.push(node);
+    // o que é do cache de GLB sobrevive à zona: a próxima zona usa o mesmo
+    // arquivo, e descartar agora só adiaria o estrago para o próximo carregamento
+    if (node.isInstancedMesh && !glbOwnedInstanced.has(node)) resources.instanced.push(node);
     if (!node.material) return;
-    if (Array.isArray(node.material)) node.material.forEach((m) => m && resources.materials.add(m));
-    else resources.materials.add(node.material);
+    const materials = Array.isArray(node.material) ? node.material : [node.material];
+    for (const material of materials) {
+      if (material && !glbOwnedMaterials.has(material)) resources.materials.add(material);
+    }
   });
   previousZoneResources = resources;
 }

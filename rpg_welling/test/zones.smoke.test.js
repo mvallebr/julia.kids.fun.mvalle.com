@@ -417,3 +417,45 @@ test('o modelo do teste reproduz o que produção renderiza (pivô no ponto)', (
       'modo pivot mantém o pé no ponto declarado');
   }
 });
+
+// ── dívida do roadmap 3.3: o teardown da zona não descarta o que é do cache ──
+// O mesmo modelo 3D é usado por mais de uma zona, e `stashZoneResources`
+// descartava todo material da cena anterior — inclusive os que o cache de GLB
+// ainda ia reusar. Ninguém quebrou por causa disso, e o roadmap mandava não mexer
+// até os personagens da Ivy e do Oakley virarem instanciados de verdade. A
+// condição nunca foi a instanciação: era o cache. Este teste trava a garantia.
+test('material compartilhado com o cache de GLB sobrevive à troca de zona', () => {
+  const scene = new THREE.Scene();
+  scene.userData.zone = { colliders: [], interactables: [], bounds: { minX: -5, maxX: 5, minZ: -5, maxZ: 5 } };
+
+  const glbMaterial = new THREE.MeshLambertMaterial({ color: 0x445566 });
+  const glbGeometry = new THREE.BoxGeometry(1, 1, 1);
+  const glbMesh = new THREE.Mesh(glbGeometry, glbMaterial);
+  // a zona "usa" o modelo: clona a malha, como makeKid e a vegetacao fazem
+  scene.add(glbMesh, new THREE.Mesh(glbGeometry, glbMaterial).clone());
+
+  const zoneOnlyMaterial = new THREE.MeshLambertMaterial({ color: 0x889900 });
+  scene.add(new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), zoneOnlyMaterial));
+
+  // 1) registra a posse, como o loader faz ao carregar
+  world.__test__.registerGlbOwnership(glbMesh);
+
+  // 2) conta quem foi descartado na troca seguinte
+  let glbDisposed = 0;
+  let zoneDisposed = 0;
+  const glbDispose = glbMaterial.dispose.bind(glbMaterial);
+  const zoneDispose = zoneOnlyMaterial.dispose.bind(zoneOnlyMaterial);
+  glbMaterial.dispose = () => { glbDisposed += 1; glbDispose(); };
+  zoneOnlyMaterial.dispose = () => { zoneDisposed += 1; zoneDispose(); };
+
+  world.stashZoneResources(scene);
+  world.stashZoneResources(scene);
+
+  glbMaterial.dispose = glbDispose;
+  zoneOnlyMaterial.dispose = zoneDispose;
+
+  // A primeira chamada só ARMA o descarte da zona que vem a seguir; a segunda é
+  // a que descarta. Por isso 1, e não 2.
+  assert.equal(zoneDisposed, 1, 'material da zona tem de ser descartado na troca seguinte');
+  assert.equal(glbDisposed, 0, 'material do cache de GLB nao pode ser descartado');
+});
