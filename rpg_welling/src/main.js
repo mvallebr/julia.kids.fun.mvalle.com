@@ -2723,6 +2723,11 @@ window.__rpgWelling = {
     // QA de cena viva: inventário de meshes por região (o que é isso na frente
     // da câmera?) sem instrumentar o jogo. Somente leitura.
     scene: () => scene,
+    // A câmera NÃO é filha da cena no three.js, então `scene()` não a encontra.
+    // Sem esta referência não dá para projetar malhas na tela — que é como o
+    // QA responde "o que está ocupando o topo do quadro?" (item 4.2 do
+    // roadmap, a faixa preta sobre a escola). Somente leitura.
+    camera: () => camera,
   }),
   interact: (id) => interact(id),
   kids: () => [playerObj, companionObj].map((o) => o && ({

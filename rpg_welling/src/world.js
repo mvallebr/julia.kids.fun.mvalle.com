@@ -1491,10 +1491,44 @@ function updatePulses(zone, t) {
   }
 }
 
+// Feixe de luz que entra pela janela.
+//
+// O que o fazia parecer um "plano fantasma" de aresta dura (item 4.3 do
+// roadmap, visto na escola E na sala de aula) era a combinação de três
+// decisões que interagem mal: ConeGeometry ABERTO (sem tampa), DoubleSide e
+// AdditiveBlending. Com as duas faces somando, cada pixel da SILHUETA é
+// desenhado duas vezes — as faces ficam quase de perfil e se sobrepõem na tela
+// —, e a aresta do triângulo acende como um vinco claro. Não era o fader de
+// oclusão: o material já nascia translúcido no build.
+//
+// O conserto é uma face só (BackSide = parede interna do cone, que é o
+// truque padrão para volume) e queda de opacidade ao longo da altura, para o
+// feixe nascer na janela e se dissipar antes de encostar no chão. Sem a
+// gradiente o cone ficaria um triângulo chapado, só que mais fraco.
 function lightShaft(parent, x, y, z, { radius = 1.5, height = 11, tilt = 0.2, opacity = 0.1, color = 0xffe2a8 } = {}) {
+  if (!lightShaft.texture) {
+    // alphaMap: branco = opaco, preto = invisível. O canvas tem flipY ligado,
+    // então a linha 0 (topo) cai em v=1, que é o TOPO do cone, na janela.
+    lightShaft.texture = canvasTexture(8, 128, (ctx, w, h) => {
+      const g = ctx.createLinearGradient(0, 0, 0, h);
+      g.addColorStop(0, 'rgba(255,255,255,0.95)'); // na janela: quase opaco
+      g.addColorStop(0.45, 'rgba(255,255,255,0.28)');
+      g.addColorStop(1, 'rgba(255,255,255,0)');    // no chão: some
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, w, h);
+    });
+  }
   const shaft = new THREE.Mesh(
     new THREE.ConeGeometry(radius, height, 14, 1, true),
-    new THREE.MeshBasicMaterial({ color, transparent: true, opacity, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+    new THREE.MeshBasicMaterial({
+      color,
+      transparent: true,
+      opacity,
+      side: THREE.BackSide,
+      depthWrite: false,
+      blending: THREE.AdditiveBlending,
+      alphaMap: lightShaft.texture,
+    })
   );
   shaft.position.set(x, y, z);
   shaft.rotation.z = tilt;

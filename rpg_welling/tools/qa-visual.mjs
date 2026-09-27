@@ -272,6 +272,131 @@ const BETWEEN = `(() => {
  } catch (err) { return { error: String(err && err.message || err) }; }
 })()`;
 
+// Malhas TRANSLÚCIDAS que não vêm do fader de oclusão. É o diagnóstico do
+// item 4.3 do roadmap — o "plano fantasma" que cobre um terço da tela na
+// escola e reaparece em frente ao quadro-negro da sala de aula. Se a
+// translucidez está no material de origem (opacity baixo, depthWrite off) e
+// não em `userData.occlusionFade`, o fader é inocente: é material mal
+// configurado, e o conserto é em world.js, não no fader.
+const GHOSTS = `(() => {
+ try {
+  const R = window.__rpgWelling;
+  const scene = R.debug().scene();
+  if (!scene) return null;
+  const out = [];
+  const e0 = scene.matrixWorld.elements;
+  scene.updateMatrixWorld(true);
+  scene.traverse((o) => {
+    if (!o.isMesh || !o.visible || !o.material) return;
+    if (o.userData && o.userData.occlusionFade) return; // fantasma do fader: esperado
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    for (const m of mats) {
+      if (!m || !m.transparent) continue;
+      if ((m.opacity ?? 1) >= 0.999) continue; // transparente e opaco = normal
+      if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+      const bb = o.geometry.boundingBox;
+      const el = o.matrixWorld.elements;
+      let minX = Infinity, minY = Infinity, minZ = Infinity;
+      let maxX = -Infinity, maxY = -Infinity, maxZ = -Infinity;
+      for (let i = 0; i < 8; i++) {
+        const x = (i & 1) ? bb.max.x : bb.min.x;
+        const y = (i & 2) ? bb.max.y : bb.min.y;
+        const z = (i & 4) ? bb.max.z : bb.min.z;
+        const wx = el[0] * x + el[4] * y + el[8] * z + el[12];
+        const wy = el[1] * x + el[5] * y + el[9] * z + el[13];
+        const wz = el[2] * x + el[6] * y + el[10] * z + el[14];
+        if (wx < minX) minX = wx; if (wx > maxX) maxX = wx;
+        if (wy < minY) minY = wy; if (wy > maxY) maxY = wy;
+        if (wz < minZ) minZ = wz; if (wz > maxZ) maxZ = wz;
+      }
+      if (![minX, minY, minZ, maxX, maxY, maxZ].every(Number.isFinite)) continue;
+      out.push({
+        mesh: o.name || o.type,
+        mat: m.name || m.type,
+        opacity: +(m.opacity ?? 1).toFixed(3),
+        depthWrite: m.depthWrite,
+        blending: m.blending,
+        hasMap: Boolean(m.map),
+        instanced: Boolean(o.isInstancedMesh),
+        size: [maxX - minX, maxY - minY, maxZ - minZ].map((n) => +n.toFixed(1)),
+        center: [+((minX + maxX) / 2).toFixed(1), +((minY + maxY) / 2).toFixed(1), +((minZ + maxZ) / 2).toFixed(1)],
+        // área projetada: plano grande e fino é exatamente o "fantasma de tela"
+        footprint: +((maxX - minX) * (maxY - minY)).toFixed(0),
+      });
+      break; // uma entrada por material já basta para o diagnóstico
+    }
+  });
+  out.sort((a, b) => b.footprint - a.footprint);
+  return { count: out.length, biggest: out.slice(0, 10) };
+ } catch (err) { return { error: String(err && err.message || err) }; }
+})()`;
+
+// Quais malhas cobrem a parte de cima e a de baixo do quadro. É o
+// diagnóstico do 4.2 (faixa preta no topo da escola, vazio pálido embaixo) e
+// da sala de aula (fundo escuro nos 25% de baixo): o `between` não acha nada
+// disso, porque essas faixas estão ACIMA e ABAIXO do segmento câmera→menina.
+//
+// A projeção usa um Vector3 emprestado de algum objeto da cena e os métodos
+// reais do three (applyMatrix4/project), então continua sem depender de THREE
+// estar no escopo global. NDC vai de -1 (baixo/esquerda) a +1 (topo/direita).
+const SCREEN = `(() => {
+ try {
+  const R = window.__rpgWelling;
+  const scene = R.debug().scene();
+  if (!scene) return null;
+  // a câmera não é filha da cena no three.js; o handle de QA a expõe
+  const cam = R.debug().camera();
+  if (!cam) return { error: 'handle de QA sem camera()' };
+  cam.updateMatrixWorld(true);
+  const probe = cam.position.clone(); // Vector3 de verdade, emprestado
+  scene.updateMatrixWorld(true);
+
+  const top = [], bottom = [];
+  scene.traverse((o) => {
+    if (!o.isMesh || !o.visible) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    const bb = o.geometry.boundingBox;
+    if (!bb) return;
+    let minY = Infinity, maxY = -Infinity, minX = Infinity, maxX = -Infinity, behind = 0;
+    for (let i = 0; i < 8; i++) {
+      probe.set((i & 1) ? bb.max.x : bb.min.x, (i & 2) ? bb.max.y : bb.min.y, (i & 4) ? bb.max.z : bb.min.z)
+        .applyMatrix4(o.matrixWorld).project(cam);
+      // w <= 0 significa ponto ATRÁS do plano near: não projeta, ignora
+      if (!Number.isFinite(probe.x) || !Number.isFinite(probe.y)) { behind = 1; break; }
+      if (probe.y < minY) minY = probe.y;
+      if (probe.y > maxY) maxY = probe.y;
+      if (probe.x < minX) minX = probe.x;
+      if (probe.x > maxX) maxX = probe.x;
+    }
+    if (behind) return;
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    const rad = o.geometry.boundingSphere?.radius ?? 0;
+    const mat0 = Array.isArray(o.material) ? o.material[0] : o.material;
+    const rec = {
+      mesh: o.name || o.type,
+      geo: o.geometry.type,
+      mat: mat0?.name || mat0?.type || '?',
+      color: '#' + (mat0?.color?.getHexString?.() ?? '??'),
+      opacity: mat0?.opacity ?? 1,
+      transparent: Boolean(mat0?.transparent),
+      radius: +rad.toFixed(1),
+      // tamanho aparente: o que o fader chama de "grande demais" (céu/foto de
+      // fundo) e o que é estrutura de verdade
+      fundo: rad > 30,
+      ndcX: [+minX.toFixed(2), +maxX.toFixed(2)],
+      ndcY: [+minY.toFixed(2), +maxY.toFixed(2)],
+    };
+    // cobre a faixa de cima do quadro (ndcY > 0.75) ou a de baixo (< -0.6)
+    if (maxY > 0.75 && minX < 0.9 && maxX > -0.9) top.push(rec);
+    if (minY < -0.6 && minX < 0.9 && maxX > -0.9) bottom.push(rec);
+  });
+  // fundo (céu, foto panorâmica) vem primeiro: são eles que enchem a faixa
+  top.sort((a, b) => (b.fundo - a.fundo) || (b.ndcY[1] - a.ndcY[1]));
+  bottom.sort((a, b) => (b.fundo - a.fundo) || (a.ndcY[0] - b.ndcY[0]));
+  return { topBand: top.slice(0, 10), bottomBand: bottom.slice(0, 10) };
+ } catch (err) { return { error: String(err && err.message || err) }; }
+})()`;
+
 // ── main ────────────────────────────────────────────────────────────────────
 mkdirSync(outDir, { recursive: true });
 const target = await cdpTarget();
@@ -303,8 +428,10 @@ for (const zone of zones) {
   await s.shot(file);
   const diag = booted ? await s.eval(DIAG) : { error: 'boot não completou' };
   const between = booted ? await s.eval(BETWEEN) : null;
+  const ghosts = booted ? await s.eval(GHOSTS) : null;
+  const screen = booted ? await s.eval(SCREEN) : null;
 
-  const entry = { zone, booted, url, png: file, diag, between, console: s.logs.slice(0, 10) };
+  const entry = { zone, booted, url, png: file, diag, between, ghosts, screen, console: s.logs.slice(0, 10) };
   report.push(entry);
   if (!booted) failures += 1;
   process.stdout.write(`  ${booted ? '✓' : '✗'} ${zone.padEnd(11)} ${file}\n`);
