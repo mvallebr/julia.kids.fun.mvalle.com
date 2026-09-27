@@ -2489,6 +2489,9 @@ export function buildSchool(scene) {
   addInteract('umbrellaSpot', 11.0, 2.0, 1.5);
   addInteract('playground', 9.4, -1.2, 2.0);
   addInteract('wordsSchool', 10.6, 0.6, 1.5);
+  addInteract('cloakroom', 10.6, -2.0, 1.4);
+  addInteract('lostProperty', 10.6, -4.5, 1.4);
+  addInteract('goalSpot', 10.6, -7.0, 1.4);
   // A criança fala a palavra em inglês neste ponto ao lado do parquinho.
   addInteract('listenSchool', 8.0, -4.8, 1.5);
 
@@ -3003,6 +3006,13 @@ export function buildHighStreet(scene) {
   scene.add(bakeryCounter);
   addInteract('orderBun', -2.2, -5.2, 1.6);
   addInteract('wordsHighStreet', 1.8, -4.0, 1.4);
+  // 11 ancoras novas de vocabulario (rodada 4, 1.2): as 45 glosas que existiam
+  // no diario e nao tinham caminho. Todas perto da ancora antiga desta zona,
+  // que ja se sabe alcancavel, para nenhuma cair dentro de colisor.
+  addInteract('bakeryWindow', 0.6, -6.5, 1.4);
+  addInteract('stationForecourt', 1.8, -1.5, 1.4);
+  addInteract('noticeboard', 0.6, 1.5, 1.4);
+  addInteract('crossing', 1.8, 4.5, 1.4);
 
   // ponto de conversa do padeiro
   addInteract('baker', 2.2, -6, 1.7);
@@ -3109,6 +3119,7 @@ export function buildAcademy(scene) {
   // página escondida junto à torre
   addInteract('clueScroll', 4.2, -8.6, 1.3);
   addInteract('wordsAcademy', -4.0, -9.4, 1.4);
+  addInteract('duelArena', -4.0, -11.0, 1.4);
   glowSprite(scene, zone, 0xfff3b0, 0.8, 4.2, 1.0, -8.6, { opacity: 0.4, amp: 0.2, speed: 2.4 });
 
   zone.update = (dt, t) => {
@@ -3204,6 +3215,8 @@ export function buildClassroom(scene) {
   scene.add(chalk);
   addInteract('blackboard', 0, -7.2, 2.0);
   addInteract('wordsClassroom', -3.4, -5.0, 1.4);
+  addInteract('blackboard', -3.4, -6.8, 1.4);
+  addInteract('endOfLesson', -3.4, -3.2, 1.4);
 
   // mesa da professora + giz
   const teacherDesk = new THREE.Mesh(new THREE.BoxGeometry(2.2, 0.85, 0.9), mat(0x6b4a2a));
@@ -3661,6 +3674,8 @@ export function buildWoods(scene) {
   zone.colliders.push(zone.pondCollider);
   addInteract('pond', -8.6, 26.2, 2.2);
   addInteract('wordsWoods', -1.4, 27.5, 1.4);
+  addInteract('creekBank', -1.4, 25.0, 1.4);
+  addInteract('deepWoods', -1.4, 22.5, 1.4);
 
   // ── Green Chain Walk / Capital Ring: postes de trilha ao longo do caminho ─
   signpost(scene, 3.6, 12);

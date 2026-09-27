@@ -94,6 +94,196 @@ export const WORDS_SPOTS = Object.freeze([
       wordEntry('hero', '🦸'),
     ]),
   }),
+  // ── rodada 4: as 45 glosas que existiam no diário mas não tinham caminho ──
+  // Em 27/09 um rastreio palavra por palavra mostrou 171 glosas no GLOSSES, 126
+  // ligadas a algum lugar do conteúdo e 45 órfãs: palavras que a Julia
+  // "tem" no diário mas nunca encontra jogando. Eram temas inteiros —
+  // comida, roupa, cor, transporte, emoção, verbo, adjetivo — sem uma única
+  // palavra ancorada. Estas 11 âncoras cobrem todas as 45 sem repetir nenhuma.
+  Object.freeze({
+    id: 'bakeryWindow',
+    title: Object.freeze({
+      pt: 'Na montra da padaria',
+      en: 'In the bakery window',
+      es: 'En el escaparate de la panadería',
+    }),
+    emoji: '🥛',
+    words: Object.freeze([
+      wordEntry('cheese', '🧀'),
+      wordEntry('milk', '🥛'),
+      wordEntry('egg', '🥚'),
+      wordEntry('rice', '🍚'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'stationForecourt',
+    title: Object.freeze({
+      pt: 'Em frente à estação',
+      en: 'Outside the station',
+      es: 'Delante de la estación',
+    }),
+    emoji: '🚉',
+    words: Object.freeze([
+      wordEntry('train', '🚂'),
+      wordEntry('taxi', '🚕'),
+      wordEntry('car', '🚗'),
+      wordEntry('truck', '🚚'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'noticeboard',
+    title: Object.freeze({
+      pt: 'No mural de avisos',
+      en: 'At the noticeboard',
+      es: 'En el tablón de anuncios',
+    }),
+    emoji: '🗺️',
+    words: Object.freeze([
+      wordEntry('boat', '⛵'),
+      wordEntry('plane', '✈️'),
+      wordEntry('restaurant', '🍽️'),
+      wordEntry('hospital', '🏥'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'crossing',
+    title: Object.freeze({
+      pt: 'No meio da rua',
+      en: 'In the middle of the street',
+      es: 'En medio de la calle',
+    }),
+    emoji: '🚶',
+    words: Object.freeze([
+      wordEntry('walk', '🚶'),
+      wordEntry('go', '➡️'),
+      wordEntry('come', '⬅️'),
+      wordEntry('move', '🔀'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'cloakroom',
+    title: Object.freeze({
+      pt: 'No cacifo da escola',
+      en: 'At the school cloakroom',
+      es: 'En el guardarropa de la escuela',
+    }),
+    emoji: '🧥',
+    words: Object.freeze([
+      wordEntry('shirt', '👕'),
+      wordEntry('dress', '👗'),
+      wordEntry('shoes', '👟'),
+      wordEntry('socks', '🧦'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'lostProperty',
+    title: Object.freeze({
+      pt: 'No objeto perdido',
+      en: 'At lost property',
+      es: 'En objetos perdidos',
+    }),
+    emoji: '🧦',
+    words: Object.freeze([
+      wordEntry('coat', '🧥'),
+      wordEntry('clean', '✨'),
+      wordEntry('new', '🆕'),
+      wordEntry('one', '1️⃣'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'blackboard',
+    title: Object.freeze({
+      pt: 'No quadro-negro',
+      en: 'At the blackboard',
+      es: 'En la pizarra',
+    }),
+    emoji: '🎨',
+    words: Object.freeze([
+      wordEntry('green', '🟢'),
+      wordEntry('black', '⚫'),
+      wordEntry('white', '⚪'),
+      wordEntry('two', '2️⃣'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'endOfLesson',
+    title: Object.freeze({
+      pt: 'No fim da aula',
+      en: 'At the end of the lesson',
+      es: 'Al final de la clase',
+    }),
+    emoji: '😴',
+    words: Object.freeze([
+      wordEntry('tired', '😴'),
+      wordEntry('scared', '😨'),
+      wordEntry('hungry', '🍽️'),
+      wordEntry('angry', '😠'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'creekBank',
+    title: Object.freeze({
+      pt: 'À beira do riacho',
+      en: 'At the creek bank',
+      es: 'En la orilla del arroyo',
+    }),
+    emoji: '🌿',
+    words: Object.freeze([
+      wordEntry('flower', '🌸'),
+      wordEntry('grass', '🌱'),
+      wordEntry('stream', '🏞️'),
+      wordEntry('long', '📏'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'deepWoods',
+    title: Object.freeze({
+      pt: 'No fundo do bosque',
+      en: 'Deep in the woods',
+      es: 'En el fondo del bosque',
+    }),
+    emoji: '🐉',
+    words: Object.freeze([
+      wordEntry('dragon', '🐉'),
+      wordEntry('wand', '🪄'),
+      wordEntry('big', '🐘'),
+      wordEntry('small', '🐜'),
+    ]),
+  }),
+  Object.freeze({
+    // 'excited' foi a ultima orfa que sobrou depois das 11 anteriores, e o
+    // tema pede o gol. goal/kick/ball ja eram alcancaveis pelo minigame de
+    // penalties — aqui a menina os encontra pelo outro lado, no vocabulario do
+    // cenario. Reforco de contexto, e nao palavra repetida dentro dos spots.
+    id: 'goalSpot',
+    title: Object.freeze({
+      pt: 'No gol do campo',
+      en: 'At the goal on the pitch',
+      es: 'En la portería del campo',
+    }),
+    emoji: '🥅',
+    words: Object.freeze([
+      wordEntry('excited', '🤩'),
+      wordEntry('goal', '🥅'),
+      wordEntry('kick', '🦵'),
+      wordEntry('ball', '⚽'),
+    ]),
+  }),
+  Object.freeze({
+    id: 'duelArena',
+    title: Object.freeze({
+      pt: 'Na arena do duelo',
+      en: 'On the duelling floor',
+      es: 'En la arena de duelo',
+    }),
+    emoji: '⚔️',
+    words: Object.freeze([
+      wordEntry('fast', '⚡'),
+      wordEntry('slow', '🐌'),
+      wordEntry('happy', '😄'),
+      wordEntry('sad', '😢'),
+    ]),
+  }),
 ]);
 
 const SPOTS_BY_ID = new Map(WORDS_SPOTS.map((spot) => [spot.id, spot]));

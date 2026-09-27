@@ -27,8 +27,14 @@ function buttons(root) {
   return descendants(root).filter((element) => element.tagName === 'BUTTON');
 }
 
-test('spotById encontra as cinco zonas e devolve null para id desconhecido', () => {
-  assert.deepEqual(WORDS_SPOTS.map((spot) => spot.id), ['school', 'woods', 'highstreet', 'classroom', 'academy']);
+test('spotById encontra todas as zonas e devolve null para id desconhecido', () => {
+  // As cinco zonas originais PRECISAM existir e vir primeiro (main.js mapeia
+  // por id e o QA usa esses nomes), mas a lista cresceu na rodada 4 e o
+  // teste não deve fixar a contagem: a regra que importa é "todo spot da
+  // lista volta na busca" e "nada além disso aparece".
+  const ids = WORDS_SPOTS.map((spot) => spot.id);
+  assert.deepEqual(ids.slice(0, 5), ['school', 'woods', 'highstreet', 'classroom', 'academy']);
+  assert.equal(new Set(ids).size, ids.length, 'id de spot tem de ser único');
   for (const spot of WORDS_SPOTS) assert.equal(spotById(spot.id), spot);
   assert.equal(spotById('unknown'), null);
   assert.equal(spotById(undefined), null);
@@ -414,10 +420,19 @@ test('duas instâncias do mesmo spot isolam estado e usam IDs de tradução dist
   second.destroy();
 });
 
-test('todas as 20 palavras têm glosa direta não vazia em pt, en e es', () => {
+test('toda palavra de spot tem glosa direta não vazia em pt, en e es, e nenhuma repete', () => {
+  // A contagem saiu de propósito: ela valia 20 enquanto havia 5 spots e
+  // quebrava a cada palavra nova. O que precisa valer é a REGRA — toda
+  // palavra ancorada tem glosa nos três idiomas e nenhuma se repete, senão a
+  // menina encontraria a mesma palavra em dois lugares e o painel perderia o
+  // sentido de "descobri isto aqui".
   const words = WORDS_SPOTS.flatMap((spot) => spot.words);
-  assert.equal(words.length, 20);
-  assert.equal(new Set(words.map((word) => word.key)).size, 20);
+  assert.equal(words.length, WORDS_SPOTS.length * 4, 'cada spot tem exatamente 4 palavras');
+  assert.equal(
+    new Set(words.map((word) => word.key)).size,
+    words.length,
+    'nenhuma palavra pode aparecer em dois spots',
+  );
 
   for (const word of words) {
     for (const language of ['pt', 'en', 'es']) {
