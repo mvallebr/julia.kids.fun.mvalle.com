@@ -33,6 +33,7 @@ import {
   stoneTexture,
   tilesTexture,
   tuftTexture,
+  wildflowerTexture,
   wall,
   pavementTexture,
   asphaltTexture,
@@ -2079,7 +2080,7 @@ export function buildHighStreet(scene) {
   const zone = {
     name: 'highstreet',
     spawn: [0, 12.4],
-    bounds: { minX: -7, maxX: 7, minZ: -16, maxZ: 16 },
+    bounds: { minX: -10, maxX: 10, minZ: -16, maxZ: 16 },
     colliders: [],
     interactables: [],
     hemi: [0xfff2d9, 0x5a5a6e, 1.2],
@@ -2130,7 +2131,7 @@ export function buildHighStreet(scene) {
   // calçada acabava em z +17, então a faixa de baixo do quadro e as bordas
   // laterais mostravam a cor da névoa por baixo. Agora cobre x ±11 e z −24 a
   // +32. O repeat acompanha (7 × 20, ≈ os mesmos 3 × 2,8 m de laje).
-  const PAVE_W = 22;
+  const PAVE_W = 20;
   const PAVE_D = 56;
   // Textura de LAJES, não a pedra genérica: a junta é o que dá escala, e sem
   // ela a calçada lia como um lençol de cor. A paleta é a mesma da rua
@@ -2162,12 +2163,16 @@ export function buildHighStreet(scene) {
   // mesma extensão da calçada, e pelo mesmo motivo: a pista acabava em z +18
   // e a câmera ia para z ~22,4. Repeat 4 × 19 ≈ os mesmos 2,25 × 3 m.
   const ROAD_D = 56;
+  // 16 m de pista: 2 faixas de 3,5 + recuo de 2,5 para carro estacionado de cada
+  // lado. Antes eram 9 m e as fachadas ficavam DENTRO da pista (x ±4 numa rua
+  // que ia a ±4,5), sobrando um calcadao vazio de 7 m de cada lado.
+  const ROAD_W = 14;
   // Asfalto com agregado e faixas de desgaste, no lugar da pedra pintada de
   // cinza por cima — que produzia uma pista com cara de calçada.
   const roadTexRaw = asphaltTexture();
   roadTexRaw.texture.wrapS = roadTexRaw.texture.wrapT = THREE.RepeatWrapping;
   roadTexRaw.texture.repeat.set(4, 19);
-  const road = new THREE.Mesh(new THREE.PlaneGeometry(9, ROAD_D), pbrFrom(roadTexRaw, [4, 19], 1.5, [0.7, 1.0]));
+  const road = new THREE.Mesh(new THREE.PlaneGeometry(ROAD_W, ROAD_D), pbrFrom(roadTexRaw, [4, 19], 1.5, [0.7, 1.0]));
   road.rotation.x = -Math.PI / 2;
   road.position.set(0, 0, 4);
   // Sem tinta por cima: antes a pista era pedra tingida de cinza por cima, e
@@ -2229,20 +2234,20 @@ export function buildHighStreet(scene) {
   }
 
   // ── lado oeste (indo para o Welling Corner) ──
-  shopFront({ x: -4.0, z: -11.75, w: 4.5, h: 5.8, body: 0xc9b18a, sign: 'WELLING LIBRARY', signBg: '#1f4e79', side: -1 });
-  shopFront({ x: -4.0, z: -6.75, w: 5.5, h: 5.0, body: 0xb56a4a, sign: "CRUMB'S BAKERY", signBg: '#7a3d1f', signFg: '#ffe2b0', side: -1, awning: 0xf2c14e, doorZ: -5.4 });
-  shopFront({ x: -4.0, z: -1.25, w: 5.5, h: 5.4, body: 0x8a4a3a, sign: 'WELLING POST OFFICE', signBg: '#7a1f2b', side: -1, doorZ: -0.4 });
-  shopFront({ x: -4.0, z: 4.25, w: 5.5, h: 6.2, body: 0xe8d9b0, sign: 'THE ROSE AND CROWN', signBg: '#1f5a33', signFg: '#f2c14e', side: -1, doorZ: 3.6 });
+  shopFront({ x: -10.0, z: -11.75, w: 4.5, h: 5.8, body: 0xc9b18a, sign: 'WELLING LIBRARY', signBg: '#1f4e79', side: -1 });
+  shopFront({ x: -10.0, z: -6.75, w: 5.5, h: 5.0, body: 0xb56a4a, sign: "CRUMB'S BAKERY", signBg: '#7a3d1f', signFg: '#ffe2b0', side: -1, awning: 0xf2c14e, doorZ: -5.4 });
+  shopFront({ x: -10.0, z: -1.25, w: 5.5, h: 5.4, body: 0x8a4a3a, sign: 'WELLING POST OFFICE', signBg: '#7a1f2b', side: -1, doorZ: -0.4 });
+  shopFront({ x: -10.0, z: 4.25, w: 5.5, h: 6.2, body: 0xe8d9b0, sign: 'THE ROSE AND CROWN', signBg: '#1f5a33', signFg: '#f2c14e', side: -1, doorZ: 3.6 });
 
   // ── lado leste — com o BECO da academia (5.9, -3) entre os dois terraços ──
-  shopFront({ x: 4.0, z: -8.8, w: 10.4, h: 5.4, body: 0x5a7a9e, sign: 'BOOKSHOP', signBg: '#2a4a6e', side: 1, doorZ: -5.6 });
-  shopFront({ x: 4.0, z: -0.05, w: 4.9, h: 4.8, body: 0x9e5a7a, sign: 'TEA ROOM', signBg: '#5a2a44', side: 1, awning: 0xc9d8e8, doorZ: -0.4 });
-  shopFront({ x: 4.0, z: 5.25, w: 5.5, h: 5.0, body: 0x7a2a30, sign: 'COSTA COFFEE', signBg: '#3a0d12', side: 1, awning: 0x8a2a30, doorZ: 5.2 });
+  shopFront({ x: 10.0, z: -8.8, w: 10.4, h: 5.4, body: 0x5a7a9e, sign: 'BOOKSHOP', signBg: '#2a4a6e', side: 1, doorZ: -5.6 });
+  shopFront({ x: 10.0, z: -0.05, w: 4.9, h: 4.8, body: 0x9e5a7a, sign: 'TEA ROOM', signBg: '#5a2a44', side: 1, awning: 0xc9d8e8, doorZ: -0.4 });
+  shopFront({ x: 10.0, z: 5.25, w: 5.5, h: 5.0, body: 0x7a2a30, sign: 'COSTA COFFEE', signBg: '#3a0d12', side: 1, awning: 0x8a2a30, doorZ: 5.2 });
   // estação de 1895 (Bexleyheath line): corpo mais alto, copa e relógio
-  shopFront({ x: 4.0, z: 11, w: 6, h: 6.4, body: 0x2a4a70, sign: 'WELLING STATION', signBg: '#12325a', side: 1, doorZ: 11 });
+  shopFront({ x: 10.0, z: 11, w: 6, h: 6.4, body: 0x2a4a70, sign: 'WELLING STATION', signBg: '#12325a', side: 1, doorZ: 11 });
   {
     const canopy = new THREE.Mesh(new THREE.BoxGeometry(1.1, 0.08, 4.6), mat(0x1c2a52));
-    canopy.position.set(3.6, 3.1, 11);
+    canopy.position.set(7.6, 3.1, 11);
     canopy.rotation.z = 0.1;
     canopy.castShadow = true;
     scene.add(canopy);
@@ -2252,7 +2257,7 @@ export function buildHighStreet(scene) {
       scene.add(pole);
     }
     const clock = new THREE.Mesh(new THREE.CircleGeometry(0.34, 20), mat(0xfff2d9));
-    clock.position.set(3.97, 4.6, 11);
+    clock.position.set(7.97, 4.6, 11);
     clock.rotation.y = -Math.PI / 2;
     scene.add(clock);
     const rim = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.05, 8, 20), mat(0x1c2a52));
@@ -2264,17 +2269,17 @@ export function buildHighStreet(scene) {
   // pub com placa pendurada (o Rose and Crown da foto de 1906)
   {
     const bracket = new THREE.Mesh(new THREE.BoxGeometry(0.85, 0.06, 0.06), mat(0x3a2a20));
-    bracket.position.set(-3.6, 3.0, 4.25);
+    bracket.position.set(-7.6, 3.0, 4.25);
     scene.add(bracket);
     const board = fasciaSign('ROSE & CROWN', { w: 1.15, h: 0.55, bg: '#1f5a33', fg: '#f2c14e' });
     board.material.side = THREE.DoubleSide;
-    board.position.set(-3.25, 2.55, 4.25);
+    board.position.set(-7.25, 2.55, 4.25);
     board.rotation.y = Math.PI / 2;
     scene.add(board);
     for (const bz of [3.6, 4.9]) {
       const basket = new THREE.Mesh(new THREE.SphereGeometry(0.17, 10, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat(0x4a3626));
       basket.rotation.x = Math.PI;
-      basket.position.set(-3.85, 2.62, bz);
+      basket.position.set(-7.85, 2.62, bz);
       scene.add(basket);
       for (let f = 0; f < 3; f += 1) {
         const fl = new THREE.Mesh(new THREE.SphereGeometry(0.07, 8, 6), mat([0xc0392b, 0xf2c14e, 0xe86a9a][f]));
@@ -2283,6 +2288,282 @@ export function buildHighStreet(scene) {
       }
     }
   }
+
+  // ── a rua como é de verdade (fotos da High Street, 2026-09-27) ─────────────
+  // Antes a pista tinha 9 m e as fachadas ficavam a x ±4 — ou seja, DENTRO da
+  // pista — sobrando um calçadao vazio de 7 m para cada lado. Agora são 14 m de
+  // pista, 3 m de calçada e a fachada na guia. O que faltava para a rua virar
+  // rua era o que as fotos mostram e o jogo não tinha: GUIA, carro e ônibus.
+  const KERB_X = 7;        // a guia fica onde a pista acaba
+  const LANE_X = 3.4;      // eixo de rolamento das faixas
+  const PARK_X = 5.8;      // recuo de estacionamento
+
+  // guia: um fio de pedra no limite pista/calçada. É uma tira fina, mas é ela
+  // que separa visualmente "calçada" de "rua" — sem ela os dois planos de
+  // mesmo tom se fundem num lençol só.
+  for (const side of [-1, 1]) {
+    const kerb = new THREE.Mesh(new THREE.BoxGeometry(0.28, 0.16, PAVE_D - 6), mat(0xb9b2a4));
+    kerb.position.set(side * KERB_X, 0.08, 4);
+    kerb.castShadow = true;
+    kerb.receiveShadow = true;
+    scene.add(kerb);
+    // SEM COLISOR, de propósito: a guia tem 16 cm de altura e a menina sobe
+    // nela sem esforço. Dar colisor de altura cheia a um fio de pedra atravessando
+    // a rua inteira a transformava numa parede invisivel, e a_HIGH STREET_
+    // virava um corredor de calçada onde ela não conseguia atravessar.
+  }
+
+  // ── o carro que a rua estava com cara de baú ──────────────────────────────────
+  // A primeira versão era uma caixa colorida com outra preta em cima, do mesmo
+  // tamanho: dois blocos empilhados. Estreitar a caixa de cima não resolveu,
+  // porque um cubo estreito em cima de um cubo largo ainda lê como dois cubos.
+  // O que faz o olho ler "carro" são DUAS coisas que a caixa não tem: a cabine
+  // afunila para o TOPO (teto mais estreito que o estrado das portas) e ela
+  // recua dos extremos, deixando capô e porta-malas à mostra. Por isso a cabine
+  // virou tronco de pirâmide — `tronco(0.88, 0.55)` afunila 12% na largura e
+  // 45% no comprimento, e o comprimento é o eixo que importa: é ele que libera
+  // o capô.
+  const ACHATADO = Math.SQRT1_2;   // cilindro de raio 0,5 com 4 lados tem 0,707 de lado
+
+  // tronco de pirâmide de base unitária, afunilado em X e Z no anel de cima.
+  // Não-indexado no fim para a face ficar CRISP: com vértices compartilhados o
+  // `computeVertexNormals` suaviza a quina e o tronco vira uma borracha.
+  const tronco = (apX, apZ) => {
+    const geo = new THREE.CylinderGeometry(0.5, 0.5, 1, 4, 1);
+    geo.rotateY(Math.PI / 4);       // faces paralelas aos eixos, não nas diagonais
+    const p = geo.attributes.position;
+    for (let i = 0; i < p.count; i += 1) {
+      if (p.getY(i) > 0) {          // só o anel de cima afunila
+        p.setX(i, p.getX(i) * apX);
+        p.setZ(i, p.getZ(i) * apZ);
+      }
+    }
+    const plano = geo.toNonIndexed();
+    plano.computeVertexNormals();
+    geo.dispose();
+    return plano;
+  };
+
+  const carro = (x, z, ry, cor, variante = 'carro') => {
+    const bus = variante === 'bus';
+    const g = new THREE.Group();
+    const comp = bus ? 9.2 : 4.05;   // comprimento
+    const larg = bus ? 2.4 : 1.74;   // largura
+    const base = bus ? 0.34 : 0.30;  // altura do rodado: a lataria nasce nele
+
+    if (bus) {
+      // o ônibus é a silhueta mais reconhecida da rua inglesa: dois pisos,
+      // corpo longo, vidro contínuo e a faixa branca da companhia
+      const corpoAlt = 1.15;
+      const corpo = new THREE.Mesh(new THREE.BoxGeometry(larg, corpoAlt, comp), mat(cor));
+      corpo.position.y = base + corpoAlt / 2;
+      corpo.castShadow = true;
+      corpo.receiveShadow = true;
+      g.add(corpo);
+      const piso = new THREE.Mesh(new THREE.BoxGeometry(larg * 0.98, 1.0, comp * 0.9), mat(cor));
+      piso.position.y = corpo.position.y + corpoAlt / 2 + 0.5;
+      piso.castShadow = true;
+      g.add(piso);
+      const janela = new THREE.Mesh(new THREE.BoxGeometry(larg * 0.99, 0.45, comp * 0.84), mat(0x111c26));
+      janela.position.set(0, piso.position.y + 0.12, 0);
+      g.add(janela);
+      const faixa = new THREE.Mesh(new THREE.BoxGeometry(larg * 1.01, 0.12, comp * 0.72), mat(0xf2efe6));
+      faixa.position.set(0, corpo.position.y - corpoAlt * 0.3, 0);
+      g.add(faixa);
+      // seis rodas: sem elas o ônibus boiava 34 cm acima do asfalto
+      for (const wz of [-comp * 0.31, 0, comp * 0.31]) {
+        for (const wx of [-larg * 0.46, larg * 0.46]) {
+          const roda = new THREE.Mesh(new THREE.CylinderGeometry(0.34, 0.34, 0.24, 12), mat(0x15171a));
+          roda.rotation.z = Math.PI / 2;
+          roda.position.set(wx, base, wz);
+          roda.castShadow = true;
+          g.add(roda);
+        }
+      }
+    } else {
+      const altCorpo = 0.62;
+      const corpo = new THREE.Mesh(new THREE.BoxGeometry(larg, altCorpo, comp), mat(cor));
+      corpo.position.y = base + altCorpo / 2;
+      corpo.castShadow = true;
+      corpo.receiveShadow = true;
+      g.add(corpo);
+      // soleira: a fresta escura entre a lataria e o chão é o que dá peso ao
+      // carro. Sem ela a caixa parece apoiada em nada, por mais baixa que esté.
+      const soleira = new THREE.Mesh(new THREE.BoxGeometry(larg * 1.01, 0.2, comp * 0.99), mat(0x1b1d20));
+      soleira.position.y = base - 0.02;
+      soleira.castShadow = true;
+      g.add(soleira);
+
+      const APX = 0.88, APZ = 0.55;  // quanto o teto é menor que o estrado
+      const cabineH = 0.5;
+      const cabineX = larg * 0.8;
+      const cabineZ = comp * 0.52;
+      const cabineY = corpo.position.y + altCorpo / 2;   // 0,91
+      const cabine = new THREE.Mesh(tronco(APX, APZ), mat(cor));
+      cabine.scale.set(cabineX / ACHATADO, cabineH, cabineZ / ACHATADO);
+      cabine.position.set(0, cabineY + cabineH / 2, -comp * 0.05);
+      cabine.castShadow = true;
+      g.add(cabine);
+
+      // vidro: uma FAIXA escura atravessando a cabine na MESMA rampa de
+      // afunilamento, e não uma caixa preta em cima. Faixa com cor do corpo em
+      // volta é o que o olho lê como teto entre vidros — o vidro inteiro preto
+      // é o que produzia a leitura de baú. A faixa começa em 30% da altura (a
+      // base do vidro é a linha da cintura do carro) e sobe até quase o teto.
+      const T0 = 0.3, T1 = 0.94;
+      const fx0 = 1 - (1 - APX) * T0, fx1 = 1 - (1 - APX) * T1;
+      const fz0 = 1 - (1 - APZ) * T0, fz1 = 1 - (1 - APZ) * T1;
+      const vidro = new THREE.Mesh(tronco(fx1 / fx0, fz1 / fz0), mat(0x16222d));
+      // 1,03% maior que a cabine: o vidro contorna a lataria em vez de
+      // atravessá-la, e o degrau de 2 cm é o que desenha a moldura.
+      vidro.scale.set(
+        (cabineX * fx0 * 1.03) / ACHATADO,
+        cabineH * (T1 - T0),
+        (cabineZ * fz0 * 1.03) / ACHATADO,
+      );
+      vidro.position.set(0, cabineY + cabineH * (T0 + T1) / 2, -comp * 0.05);
+      g.add(vidro);
+
+      // rodas acesas dentro da lataria, não grudadas nela
+      for (const wz of [-comp * 0.31, comp * 0.31]) {
+        for (const wx of [-larg * 0.46, larg * 0.46]) {
+          const roda = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.3, 0.2, 12), mat(0x15171a));
+          roda.rotation.z = Math.PI / 2;
+          roda.position.set(wx, base, wz);
+          roda.castShadow = true;
+          g.add(roda);
+        }
+      }
+      // frente e traseira em cores diferentes: sem isso o carro é simétrico e
+      // não dá para saber para que lado ele está virado
+      for (const wx of [-larg * 0.3, larg * 0.3]) {
+        const farol = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.06), mat(0xf5efd0));
+        farol.position.set(wx, 0.62, comp / 2 + 0.02);
+        g.add(farol);
+        const lanterna = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.14, 0.06), mat(0xb03024));
+        lanterna.position.set(wx, 0.62, -comp / 2 - 0.02);
+        g.add(lanterna);
+      }
+    }
+    g.position.set(x, 0, z);
+    g.rotation.y = ry;
+    scene.add(g);
+    addCollider(x, z, larg * 0.6, comp * 0.48);
+    return g;
+  };
+
+  // o recuo de estacionamento: fileira de carros encostada na guia, como nas
+  // fotos. Fica dos dois lados, que é o que a rua real faz.
+  const parked = [
+    [-PARK_X, -12.4, 0xd94a3a], [-PARK_X, -9.6, 0x2b3a4a], [-PARK_X, -6.8, 0xc8ccd2],
+    [-PARK_X, 1.2, 0x3a5a3a], [-PARK_X, 3.9, 0x8a1f2f], [-PARK_X, 6.6, 0x2f4a6a],
+    [PARK_X, -11.2, 0xb8bcc2], [PARK_X, -8.4, 0x1f2a38], [PARK_X, 0.2, 0xd9a02a],
+    [PARK_X, 2.9, 0x5a3a6a], [PARK_X, 5.6, 0x2f5a4a], [PARK_X, 9.4, 0xc4c8cc],
+  ];
+  for (const [px, pz, cor] of parked) carro(px, pz, 0, cor);
+
+  // o ônibus vermelho na faixa, parado no ponto — é a imagem que primeiro
+  // identifica uma rua inglesa
+  carro(-LANE_X, -0.6, 0, 0xc4162c, 'bus');
+
+  // ── a Upper Wickham Lane cruzando a High Street ───────────────────────────
+  // No aerial a Upper Wickham Lane corta a High Street e é ali que fica a
+  // Academia, no quarteirão. No jogo já existia um BECO em (5,9 − 3) — este é
+  // ele, agora com nome e com a rua de verdade atravessando.
+  const WICKHAM_W = 5.2;   // largura da via transversal
+  const WICKHAM_Z = 7.4;
+  {
+    // A transversal é ASFALTO atravessando a High Street, não calçada. O
+    // comentário aqui dizia asfalto e o código pintava `stoneTexture()` — e na
+    // captura a Upper Wickham Lane saía como uma faixa clara de pedra cruzando
+    // a pista escura, que lia como praça/laçuna, não como rua. Duas ruas que se
+    // cruzam têm o mesmo chão; a diferença entre elas é a faixa e a rotulinha.
+    const via = new THREE.Mesh(new THREE.PlaneGeometry(22, WICKHAM_W), pbrFrom(asphaltTexture(), [5, 1.4], 1.5, [0.7, 1.0]));
+    via.rotation.x = -Math.PI / 2;
+    via.position.set(0, 0.01, WICKHAM_Z);
+    via.receiveShadow = true;
+    scene.add(via);
+    // faixas de pedestres dos dois lados do cruzamento
+    for (const cz of [WICKHAM_Z - WICKHAM_W / 2 - 1.1, WICKHAM_Z + WICKHAM_W / 2 + 1.1]) {
+      for (let i = 0; i < 6; i += 1) {
+        const barra = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.02, 1.8), mat(0xf2efe6));
+        barra.position.set(-5.2 + i * 0.95, 0.03, cz);
+        scene.add(barra);
+      }
+    }
+    // rotulas nos quatro cantos
+    for (const [sx, sz] of [[-1, -1], [-1, 1], [1, -1], [1, 1]]) {
+      const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 3.4, 8), mat(0x2f2f33));
+      poste.position.set(sx * 8.4, 1.7, WICKHAM_Z + sz * (WICKHAM_W / 2 + 1.4));
+      poste.castShadow = true;
+      scene.add(poste);
+      const luz = new THREE.Mesh(new THREE.SphereGeometry(0.19, 10, 7), mat(0x2b2b2b));
+      luz.position.set(sx * 8.4, 3.45, WICKHAM_Z + sz * (WICKHAM_W / 2 + 1.4));
+      scene.add(luz);
+    }
+  }
+
+  // ── a linha central da rua ─────────────────────────────────────────────────
+  // Não é enfeite. Sem ela a metade de baixo do quadro — a faixa onde a câmera
+  // abre ~10 m atrás da menina — era um retângulo de asfalto sem uma única
+  // referência, e o olho não tinha com que medir que aquilo era uma RUA e não
+  // um chão qualquer. A tracejada também é o que dá profundidade: o traço que
+  // corre para o horizonte é o que puxa a rua para longe em vez de deixá-la
+  // chapada. Fica DEPOIS do bloco da transversal porque usa WICKHAM_Z para abrir
+  // o vão — antes disso o `const` ainda não existia e isso virava ReferenceError.
+  {
+    // vão de 2,6 m além das bordas da transversal: linha pintada atravessando o
+    // cruzamento é errado na rua real e na tela lê como erro
+    const vao = WICKHAM_W / 2 + 2.6;
+    for (let pz = -20; pz < 30; pz += 3.4) {
+      if (Math.abs(pz - WICKHAM_Z) < vao) continue;
+      const tracejado = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.02, 1.7), mat(0xe8e4d6));
+      tracejado.position.set(0, 0.02, pz);
+      tracejado.receiveShadow = true;
+      scene.add(tracejado);
+    }
+  }
+
+  // ── o Lidl no quarteirão ─────────────────────────────────────────────────
+  // A loja grande da esquina: volume baixo e largo, fachada de vidro escuro e o
+  // letreiro amarelo e vermelho. Fica no bloco OESTE depois do cruzamento, que
+  // e o único terreno livre dos dois lados — do lado leste o bookshop ocupa
+  // z −14 a −3,6, e a primeira versão do Lidl foi parar em cima dele.
+  {
+    const lx = -10.0, lz = 10.6;   // na guia, bloco oeste
+    const corpo = new THREE.Mesh(new THREE.BoxGeometry(9.5, 4.6, 10.5), mat(0xd8d4c8));
+    corpo.position.set(lx - 4.9, 2.3, lz);
+    corpo.castShadow = true;
+    corpo.receiveShadow = true;
+    scene.add(corpo);
+    addCollider(lx - 4.9, lz, 4.75, 5.25);
+    const telhado = new THREE.Mesh(new THREE.BoxGeometry(9.9, 0.5, 10.9), mat(0x4a4d52));
+    telhado.position.set(lx - 4.9, 4.75, lz);
+    telhado.castShadow = true;
+    scene.add(telhado);
+    // fachada de vidro escuro: e o que faz reconhecer um supermercado
+    for (let i = 0; i < 6; i += 1) {
+      const painel = new THREE.Mesh(new THREE.BoxGeometry(0.12, 2.5, 1.2), mat(0x2c3a44));
+      painel.position.set(lx + 0.14, 1.5, lz - 4.0 + i * 1.6);
+      scene.add(painel);
+    }
+    // letreiro amarelo com faixa vermelha, COLADO na fachada — a primeira
+    // versao flutuava 4,7 m na frente do volume e lia como plaquete solto
+    const placa = fasciaSign('LIDL', { w: 2.8, h: 0.8, bg: '#f7c600', fg: '#d2212b' });
+    placa.material.side = THREE.DoubleSide;
+    placa.position.set(lx + 0.1, 3.8, lz + 2.4);
+    placa.rotation.y = Math.PI / 2;
+    scene.add(placa);
+    const entrada = new THREE.Mesh(new THREE.BoxGeometry(1.2, 2.6, 3.4), mat(0x39434b));
+    entrada.position.set(lx + 0.2, 1.3, lz - 1.6);
+    scene.add(entrada);
+    const totem = new THREE.Mesh(new THREE.BoxGeometry(0.5, 3.1, 0.5), mat(0xf7c600));
+    totem.position.set(lx + 1.4, 1.55, lz - 5.2);
+    totem.castShadow = true;
+    scene.add(totem);
+    addCollider(lx + 1.4, lz - 5.2, 0.3, 0.3);
+  }
+
 
   // ── mobiliário de calçamento e vida na rua (rodada 8) ─────────────────────
   // A rua já tinha caixa de correio, cabine K6, postes e faixa de pedestres:
@@ -2443,39 +2724,39 @@ export function buildHighStreet(scene) {
   // caixa de correio real (Royal Mail) em frente ao Post Office
   {
     const pillar = new THREE.Mesh(new THREE.CylinderGeometry(0.26, 0.28, 1.15, 12), mat(0xb3202a));
-    pillar.position.set(-3.3, 0.57, 1.3);
+    pillar.position.set(-7.3, 0.57, 1.3);
     pillar.castShadow = true;
     scene.add(pillar);
     const cap = new THREE.Mesh(new THREE.SphereGeometry(0.26, 12, 6, 0, Math.PI * 2, 0, Math.PI / 2), mat(0xb3202a));
-    cap.position.set(-3.3, 1.14, 1.3);
+    cap.position.set(-7.3, 1.14, 1.3);
     scene.add(cap);
     const slot = new THREE.Mesh(new THREE.BoxGeometry(0.32, 0.05, 0.05), mat(0x1a1a22));
-    slot.position.set(-3.04, 0.92, 1.3);
+    slot.position.set(-8.37, 0.92, 1.3);
     scene.add(slot);
     addCollider(-3.3, 1.3, 0.32, 0.32);
   }
   // cabine telefônica vermelha (K6) em frente ao Costa
   {
     const base = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.55, 0.8), mat(0xb3202a));
-    base.position.set(3.4, 0.28, 7.1);
+    base.position.set(7.4, 0.28, 7.1);
     base.castShadow = true;
     scene.add(base);
     // faixa de vidro SOBRESSALENTE da caixa vermelha (a K6 é uma lanterna)
     const glass = new THREE.Mesh(new THREE.BoxGeometry(0.86, 1.35, 0.86), mat(0x9fc5e8));
-    glass.position.set(3.4, 1.22, 7.1);
+    glass.position.set(7.4, 1.22, 7.1);
     scene.add(glass);
     const band = new THREE.Mesh(new THREE.BoxGeometry(0.88, 0.14, 0.88), mat(0xf2ede0));
-    band.position.set(3.4, 1.98, 7.1);
+    band.position.set(7.4, 1.98, 7.1);
     scene.add(band);
     const top = new THREE.Mesh(new THREE.BoxGeometry(0.86, 0.4, 0.86), mat(0xb3202a));
-    top.position.set(3.4, 2.25, 7.1);
+    top.position.set(7.4, 2.25, 7.1);
     scene.add(top);
     addCollider(3.4, 7.1, 0.48, 0.48);
   }
   // postes de mão do Welling Corner (HIGH ST / BELLEGROVE RD / STATION RD)
   {
     const post = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 2.5, 8), mat(0xf2ede0));
-    post.position.set(-2.6, 1.25, 9.8);
+    post.position.set(-8.23, 1.25, 9.8);
     post.castShadow = true;
     scene.add(post);
     const arms = [['HIGH ST', 0.5, 2.25], ['BELLEGROVE RD', -1.1, 2.0], ['STATION RD', 2.3, 1.75]];
@@ -2492,7 +2773,7 @@ export function buildHighStreet(scene) {
   {
     const board = fasciaSign('WELCOME TO WELLING', { w: 2.4, h: 0.5, bg: '#1f5a33', fg: '#fff6dd' });
     board.material.side = THREE.DoubleSide; // quem chega pelo norte lê o verso (placa de rua real)
-    board.position.set(2.7, 1.55, -15.0);
+    board.position.set(8.26, 1.55, -15.0);
     board.rotation.y = Math.PI;
     scene.add(board);
     for (const px of [1.75, 3.65]) {
@@ -2583,14 +2864,14 @@ export function buildHighStreet(scene) {
   bakeryCounter.position.set(-2.2, 0.45, -5.9);
   scene.add(bakeryCounter);
   addInteract('orderBun', -2.2, -5.2, 1.6);
-  addInteract('wordsHighStreet', 1.8, -4.0, 1.4);
+  addInteract('wordsHighStreet', 8.6, -4.0, 1.4);
   // 11 ancoras novas de vocabulario (rodada 4, 1.2): as 45 glosas que existiam
   // no diario e nao tinham caminho. Todas perto da ancora antiga desta zona,
   // que ja se sabe alcancavel, para nenhuma cair dentro de colisor.
-  addInteract('bakeryWindow', 0.6, -6.5, 1.4);
-  addInteract('stationForecourt', 1.8, -1.5, 1.4);
-  addInteract('noticeboard', 0.6, 1.5, 1.4);
-  addInteract('crossing', 1.8, 4.5, 1.4);
+  addInteract('bakeryWindow', -8.6, -6.5, 1.4);
+  addInteract('stationForecourt', 8.6, 11.0, 1.4);
+  addInteract('noticeboard', 8.6, 5.25, 1.4);
+  addInteract('crossing', -8.6, 7.4, 1.4);
 
   // ponto de conversa do padeiro
   addInteract('baker', 2.2, -6, 1.7);
@@ -3178,6 +3459,33 @@ export function buildWoods(scene) {
     addCollider(scene, tx, tz, 0.5, 0.5);
   }
   addInteract('woodCafe', 8.6, 16.4, 2.2);
+
+  // ── a campina do café (geografia real) ─────────────────────────────────────
+  // Oxleas Wood Café não fica dentro da mata fechada: fica nas Oxleas Meadows,
+  // na borda do bosque, e quem vai lá vê campina dos dois lados. A cena já
+  // era aberta — as árvores da mata são só a treeline do perímetro — mas o
+  // CHÃO era o mesmo tufó verde do resto do bosque, e sem isso a clareira lia
+  // como falta de mata em vez de prado. As flores silvestres são o que separa
+  // as duas leituras, e são o que a reserva natural é conhecida por ter.
+  {
+    const florTex = wildflowerTexture();
+    for (let i = 0; i < 72; i += 1) {
+      // anel em volta do café e das mesas, sem entrar em cima deles
+      const fx = 5.5 + Math.random() * 8.8;
+      const fz = 10.5 + Math.random() * 15;
+      if (Math.hypot(fx - 10.5, fz - 18.5) < 3.2) continue;         // o prédio
+      if ([[8.2, 15.4], [11.4, 14.6], [9.2, 13.2]].some(([tx, tz]) => Math.hypot(fx - tx, fz - tz) < 1.4)) continue;
+      const flor = spritePlane(florTex, 0.56 + Math.random() * 0.38);
+      flor.position.set(fx, 0.26, fz);
+      flor.rotation.y = Math.random() * Math.PI;
+      scene.add(flor);
+    }
+    // NÃO entrou placa "OXLEAS MEADOWS" aqui. A primeira versão tinha uma, e na
+    // captura ela virou um ovo preto ilegível no meio do prado — `makeLabelSprite`
+    // desenha a arte numa tela pequena e o sprite não cresce junto, então a 16 m
+    // ela sai borrada e mancha a clareira. O café já tem a placa dele, e quem
+    // precisa saber que o lugar se chama Oxleas Meadows descobre pelas flores.
+  }
 
   // ── Severndroog Castle (real: folia do século XV em Castle Wood, com tearoom
   //    e plataforma de vista). Aqui: uma ruína de pedra com mirante. ───────

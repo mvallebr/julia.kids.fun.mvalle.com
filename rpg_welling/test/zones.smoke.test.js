@@ -37,9 +37,9 @@ const EXPECTED_COLLIDERS = {
     bounds: [
       // terraço oeste: fachada da padaria do Crumb (o "bloqueador representativo"
       // da antiga BAKERY, agora fachada contínua da High Street real)
-      { minX: -6.8, maxX: -4.0, minZ: -9.5, maxZ: -4.0 },
+      { minX: -12.8, maxX: -10.0, minZ: -9.5, maxZ: -4.0 },
       // terraço leste: bookshop, com o BECO da academia (5.9, -3) livre depois
-      { minX: 4.0, maxX: 6.8, minZ: -14, maxZ: -3.6 },
+      { minX: 10.0, maxX: 12.8, minZ: -14, maxZ: -3.6 },
       // caixa de correio real da Royal Mail em frente ao Post Office
       { minX: -3.62, maxX: -2.98, minZ: 0.98, maxZ: 1.62 },
       // banco com a página escondida (clueBench) continua bloqueando

@@ -270,30 +270,37 @@ export function pavementTexture() {
   });
 }
 
-// Asfalto: agregado escuro e quente, com faixas de desgaste mais claras no
+// Asfalto: agregado escuro e neutro, com faixas de desgaste mais claras no
 // meio da faixa de rolamento — é o que dá a sensação de rua usada.
 export function asphaltTexture() {
   return canvasWithRaw(512, 512, (ctx) => {
     // A base é o valor final, não um ponto de partida tingido: a primeira
     // versão usou #4c463c COM uma tinta 0x9a9aa8 por cima e a pista saiu quase
     // preta; a segunda usou #7a7264 sem tinta e a pista ficou da mesma cor da
-    // calçada, perdendo o contraste que faz uma rua ler como rua.
-    // #5f5748 é o meio do caminho: asfalto quente, claramente mais escuro que a
-    // laje, sem virar buraco.
-    ctx.fillStyle = '#5f5748';
+    // calçada, perdendo o contraste que faz uma rua ler como rua. A terceira
+    // acertou o valor (#5f5748) mas errou o MATIZ: a zona tem sol quente
+    // (0xffe2b0 a 1,8), e um tom quente já no albedo vira terra batida na tela
+    // — a pista inteira lia como chão de terra, não como rua. Asphalt é
+    // NEUTRO com leve viés frio; é a luz quente da zona que o deixa amarelado
+    // na captura, e é esse amarelado que está certo.
+    ctx.fillStyle = '#4c4d52';
     ctx.fillRect(0, 0, 512, 512);
     // desgaste: duas faixas verticais mais claras (as rodas)
     for (const x of [96, 320]) {
       const wear = ctx.createLinearGradient(x, 0, x + 96, 0);
-      wear.addColorStop(0, 'rgba(120, 112, 98, 0)');
-      wear.addColorStop(0.5, 'rgba(120, 112, 98, .16)');
-      wear.addColorStop(1, 'rgba(120, 112, 98, 0)');
+      wear.addColorStop(0, 'rgba(128, 129, 134, 0)');
+      wear.addColorStop(0.5, 'rgba(128, 129, 134, .16)');
+      wear.addColorStop(1, 'rgba(128, 129, 134, 0)');
       ctx.fillStyle = wear;
       ctx.fillRect(x, 0, 96, 512);
     }
+    // agregado: cinza com espalhamento aleatório entre os três canais. Com o
+    // tom fixo quente (r > g > b) o cimento lia como poeira, mesmo em cima de
+    // uma base correta.
     for (let i = 0; i < 5200; i += 1) {
       const tone = 70 + Math.random() * 100;
-      ctx.fillStyle = `rgba(${tone | 0}, ${(tone * 0.95) | 0}, ${(tone * 0.86) | 0}, .3)`;
+      const j = (Math.random() - 0.5) * 14;   // desvio de cinza, não de matiz
+      ctx.fillStyle = `rgba(${tone + j | 0}, ${tone | 0}, ${tone - j * 0.4 | 0}, .3)`;
       ctx.fillRect(Math.random() * 512, Math.random() * 512, 1 + Math.random() * 2, 1 + Math.random() * 2);
     }
   });
@@ -457,6 +464,47 @@ export function ivyTexture() {
       ctx.fillStyle = 'rgba(200, 240, 160, .25)';
       ctx.beginPath();
       ctx.ellipse(x - r * 0.25, y - r * 0.25, r * 0.4, r * 0.28, 0, 0, 7);
+      ctx.fill();
+    }
+  });
+}
+
+// Flores de campina: as Oxleas Meadows são reserva natural local conhecida
+// pelas flores silvestres, e é por isso que o café real fica num PRADO e não
+// dentro da mata fechada. A mesma palha e as mesmas folhas do tufo, com as
+// cores de flor por cima — a diferença entre "chão de bosque" e "campina" é
+// essa camada, e sem ela a clareira do café lia como falta de mata.
+export function wildflowerTexture() {
+  return canvasTexture(128, 128, (ctx) => {
+    ctx.clearRect(0, 0, 128, 128);
+    for (let i = 0; i < 8; i += 1) {
+      const x = 18 + Math.random() * 92;
+      const top = 16 + Math.random() * 26;
+      const lean = (Math.random() - 0.5) * 26;
+      ctx.strokeStyle = Math.random() > 0.5 ? '#4d8f45' : '#67a851';
+      ctx.lineWidth = 4;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(x, 124);
+      ctx.quadraticCurveTo(x + lean, 70, x + lean * 1.6, top);
+      ctx.stroke();
+      // corola: 5 pétalas em torno de um miolo escuro. Pétalas em leque fixo
+      // (5 arcos) leem como flor; um círculo chapado lê como botão.
+      const cor = ['#e8dc52', '#e0709a', '#dfe6f2', '#e0a33a'][(Math.random() * 4) | 0];
+      for (let p = 0; p < 5; p += 1) {
+        const ang = (p / 5) * Math.PI * 2 + Math.random() * 0.3;
+        ctx.fillStyle = cor;
+        ctx.beginPath();
+        ctx.ellipse(
+          x + lean * 1.6 + Math.cos(ang) * 4.2,
+          top + Math.sin(ang) * 4.2,
+          3.6, 2.6, ang, 0, 7,
+        );
+        ctx.fill();
+      }
+      ctx.fillStyle = '#8a6a1e';
+      ctx.beginPath();
+      ctx.arc(x + lean * 1.6, top, 2.1, 0, 7);
       ctx.fill();
     }
   });
