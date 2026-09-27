@@ -1,16 +1,17 @@
 # Roadmap — RPG Welling
 
 Status deste arquivo: **vivo**. Atualizado em 2026-09-27 depois da rodada 6
-"muro, glosas órfãs, modularização, recompensas roláveis e opções" (live
-`?v=20260927m`, **386 testes**).
+"Capítulo 3, recompensas roláveis, opções e modularização em 3 fatias" (live
+`?v=20260927p`, **403 testes**).
 
 A rodada 4 nasceu do `tools/qa-visual.mjs` (4.6) e andar sobre ele. Tudo o que
 ela mediu virou item: o chão que não alcançava a câmera (4.7), o telhado que
 tarpava a tela (4.2) e a mata escura (4.4). A rodada 5 fechou o que restava
 dela (4.5), resolveu o 1.2 de verdade — as 45 glosas que o diário prometia e
-o mundo não entregava — e deu a primeira fatia do 0.3. A rodada 6 deu a
-segunda fatia do 0.3 (céu fora do world.js), o 1.1 rolável de verdade e o
-3.5 com som e idioma no painel.
+o mundo não entregava — e deu a primeira fatia do 0.3. A rodada 6 fechou a Fase 1 e a Fase 4: Capítulo 3, o 1.1 rolável de verdade, o
+3.5 com som e idioma no painel, e as três fatias do 0.3 — o jogo saiu de
+`world.js` com 6.623 linhas em três arquivos para três módulos com rede de
+segurança.
 
 Este é o plano de evolução do jogo da Julia. Ele existe para que qualquer sessão
 futura saiba o que já foi feito, o que está em andamento e o que é próximo —
@@ -72,7 +73,7 @@ qualquer item de conteúdo é uma roleta de regressão silenciosa.
 |---|---|---|---|
 | 0.1 | Teste de fumaça de boot: as 5 zonas constroem sem lançar | M | **entregue** |
 | 0.2 | Cache do service worker versionado pelo hash do bundle | P | **entregue (o que dá para fazer sem build no deploy)** — `sw.js` + `sw-cache-name.js` com namespace por `?v=`, nome ativo persistido em cache de metadados, rotação na navegação HTML, limpeza só depois de provar HTML + bundle da MESMA versão, fallback para reservas antigas completas, manifesto e fontes num cache compartilhado persistente, isolamento total dos outros jogos (network-only) e política de MIME/escopo para tudo que entra no cache. O `?v=` continua **manual** por escolha: `index.html` estático no GitHub Pages não roda build, então derivar o hash do bundle no deploy exigiria mudar o pipeline — ver "Sobre 0.2" |
-| 0.3 | Quebrar `world.js` e `main.js` em módulos (destrava o paralelismo) | G | **parcial (2 de 3 fatias)** — `world.js` saiu de 3.747 para **3.079 linhas**. Fatia 1, `src/textures.js` (500 linhas): os 26 geradores de textura, materiais e primitivas de cena — a única que é folha de verdade, sem estado e sem conhecer zona. Fatia 2, `src/sky.js` (244 linhas): `skyDome`, `skyGlow`, `photoBand` e `lightShaft` — era o candidato mais difícil, porque `skyDome` e `photoBand` leem `zone.fog` e montam nuvem e skyline; continuam como funções puras que recebem a zona, só deixaram de dividir módulo com as 3.079 linhas de construção de cena. **Duas armadilhas que o teste de fumaça pegou e que valem mais que o código:** (a) `mat()` não era folha como parecia, fechava em `matCache` declarado 450 linhas *depois*, dentro do `makeKid` — no mesmo módulo funcionava, separados os dois não se falam, e o erro é **silencioso**: nenhum teste falha, a cena só fica mais lenta. (b) `skyDome` usa `cssColor`, que foi parar no módulo anterior na fatia 1. **Falta a fatia 3:** `main.js` (2.728 linhas), intocado de propósito — é o arquivo de maior risco da lista e precisa de sessão com gente olhando |
+| 0.3 | Quebrar `world.js` e `main.js` em módulos (destrava o paralelismo) | G | **3 de 3 fatias — o plano fechou** — `world.js` saiu de 3.747 para **3.079** (`src/textures.js` com 26 geradores/materiais/primitivas, `src/sky.js` com céu, foto panorâmica e feixe) e o `main.js` de 2.876 para **2.785**. As fatias do main.js foram escolhidas por serem as de **risco quase zero e ganho alto**: os rótulos trilíngues de interação, objetivo e zona (73 linhas de dado puro) foram para o `i18n.js`, que é onde dado de interface já morava; e a **colisão** virou `src/collision.js`. A segunda foi a que mais valeu, por um motivo que não é tamanho: `moveWithCollision` **fechava no `zone` do módulo** e por isso estava entre as razões de o main.js figurar como "sem nenhum teste" no diagnóstico da fase 0. Com a zona virando parâmetro, a lógica de deslizar no canto ficou pura e ganhou **10 testes** — inclusive a checagem de que a zona não é mutada. **Três armadilhas que os testes pegaram:** (a) `mat()` fechava em `matCache` declarado 450 linhas depois; (b) `skyDome` usava `cssColor`, que tinha ido para o módulo anterior; (c) `emptyState()` tinha um literal de settings enquanto `normalizeState()` usava `normalizeSettings()` — duas fontes de verdade que divergiram no primeiro campo novo. (a) é a mais perigosa das três: **não quebra teste nenhum**, a cena só fica mais lenta. O que sobra não é fatia de código, é decisão: `main.js` ainda é o maior arquivo do jogo, e quebrá-lo em `hud.js`/`dialogue.js`/`interactions.js` é o próximo passo natural |
 | 0.4 | CI: `npm ci && npm run build && npm test` + grep de CJK | P | **entregue** — `.github/workflows/ci.yml`, Node 20.19.4, e `git diff --exit-code -- lib/bundle.js` |
 
 Sobre 0.1: o teste roda em Node, onde não existe `document` nem canvas, com um

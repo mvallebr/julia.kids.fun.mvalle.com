@@ -361,3 +361,84 @@ export function lang(value, language = 'pt') {
   if (value && typeof value === 'object') return value[language] ?? value.pt ?? value.en ?? '';
   return value ?? '';
 }
+
+// ── rótulos de interação, objetivos e zonas (trilíngue) ─────────────────────
+// Dado de interface que o main.js consumia: são tabelas { pt, en, es }, o
+// mesmo formato de PT/EN/ES, então morei para o módulo de i18n em vez de
+// ficarem no meio da lógica (roadmap 0.3, fatia 3). PROMPTS é o rótulo do
+// botão flutuante de interação; OBJECTIVE_KEYS liga o objetivo ao texto da HUD;
+// ZONE_NAMES é o nome da zona no aviso de troca.
+export const PROMPTS = {
+  finch: { pt: '🗣️ Falar com o Sr. Finch', en: '🗣️ Talk to Mr Finch', es: '🗣️ Hablar con el Sr. Finch' },
+  page: { pt: '🗣️ Falar com a Sra. Page', en: '🗣️ Talk to Ms Page', es: '🗣️ Hablar con la Sra. Page' },
+  board: { pt: '🔍 Olhar o mural', en: '🔍 Look at the board', es: '🔍 Mirar el mural' },
+  signTree: { pt: '🔍 Olhar a árvore dourada', en: '🔍 Look at the golden tree', es: '🔍 Mirar el árbol dorado' },
+  pieceShelf: { pt: '🔍 Procurar na estante', en: '🔍 Search the shelf', es: '🔍 Buscar en el estante' },
+  pieceTrolley: { pt: '🔍 Procurar no carrinho', en: '🔍 Search the trolley', es: '🔍 Buscar en el carrito' },
+  clueTable: { pt: '🔍 Olhar embaixo da mesa', en: '🔍 Look under the table', es: '🔍 Mirar bajo la mesa' },
+  clueOak: { pt: '🔍 Olhar o carvalho', en: '🔍 Look at the oak', es: '🔍 Mirar el roble' },
+  ivyDoor: { pt: '🌳 Porta de heras', en: '🌳 Ivy door', es: '🌳 Puerta de hiedra' },
+  marker: { pt: '🔍 Ler a pedra antiga', en: '🔍 Read the old stone', es: '🔍 Leer la piedra antigua' },
+  gate: { pt: '🚪 Portão secreto', en: '🚪 Secret gate', es: '🚪 Puerta secreta' },
+  chest: { pt: '🎁 Abrir o baú', en: '🎁 Open the chest', es: '🎁 Abrir el cofre' },
+  blackboard: { pt: '🧮 Aula na lousa', en: '🧮 Blackboard lesson', es: '🧮 Lección en la pizarra' },
+  willow: { pt: '🗣️ Falar com a Prof. Willow', en: '🗣️ Talk to Prof. Willow', es: '🗣️ Hablar con la Prof. Willow' },
+  orderStart: { pt: '🍵 Falar com a Sra. Page (encomenda)', en: '🍵 Talk to Ms Page (errand)', es: '🍵 Hablar con la Sra. Page (encargo)' },
+  orderMint: { pt: '🌿 Colher menta fresca', en: '🌿 Pick fresh mint', es: '🌿 Recoger menta fresca' },
+  orderBun: { pt: '🥐 Pegar o pão de canela', en: '🥐 Get the cinnamon bun', es: '🥐 Tomar el pan de canela' },
+  orderFeather: { pt: '🪶 Pegar a pena azul', en: '🪶 Get the blue feather', es: '🪶 Tomar la pluma azul' },
+  bookshop: { pt: '📚 Olhar a vitrine da bookshop', en: '📚 Look at the bookshop window', es: '📚 Mirar el escaparate' },
+  postOffice: { pt: '✉️ Ver o correio', en: '✉️ Check the post box', es: '✉️ Mirar el buzón' },
+  teaRoom: { pt: '🍵 Ouvir o tea room', en: '🍵 Listen at the tea room', es: '🍵 Escuchar la sala de té' },
+  memoryLibrary: { pt: '🃏 Jogar a Memória da Biblioteca', en: '🃏 Play Library Memory', es: '🃏 Jugar a la Memoria de la Biblioteca' },
+  globe: { pt: '🌍 Ver o globo', en: '🌍 Look at the globe', es: '🌍 Mirar el globo' },
+  clueBench: { pt: '🔍 Olhar o cartaz no banco', en: '🔍 Look at the poster on the bench', es: '🔍 Mirar el cartel del banco' },
+  clueChalk: { pt: '🔍 Olhar a janela', en: '🔍 Look at the window', es: '🔍 Mirar la ventana' },
+  clueScroll: { pt: '🔍 Ler o pergaminho', en: '🔍 Read the scroll', es: '🔍 Leer el pergamino' },
+  baker: { pt: '🗣️ Falar com o padeiro', en: '🗣️ Talk to the baker', es: '🗣️ Hablar con el panadero' },
+  playground: { pt: '🛝 Olhar o parquinho', en: '🛝 Look at the playground', es: '🛝 Mirar el parque infantil' },
+  umbrellaSpot: { pt: '☂️ Pegar o guarda-chuva roxo', en: '☂️ Pick up the purple umbrella', es: '☂️ Recoger el paraguas morado' },
+  garden: { pt: '🥕 Visitar a horta', en: '🥕 Visit the garden', es: '🥕 Visitar la huerto' },
+  sports: { pt: '🏀 Quiz do Welling FC', en: '🏀 Welling FC quiz', es: '🏀 Quiz del Welling FC' },
+  clueTimetable: { pt: '🔍 Ler o tabela de jogos', en: '🔍 Read the games timetable', es: '🔍 Leer la tabla de juegos' },
+  field: { pt: '⚽ Chutar os pênaltis', en: '⚽ Kick the penalties', es: '⚽ Chutar los penaltis' },
+  wordsSchool: { pt: '📚 Palavras do parquinho e da horta', en: '📚 Playground and garden words', es: '📚 Palabras del parque y del huerto' },
+  wordsWoods: { pt: '📚 Palavras da beira da mata', en: '📚 Words by the wood edge', es: '📚 Palabras del borde del bosque' },
+  wordsHighStreet: { pt: '📚 Palavras da High Street', en: '📚 High Street words', es: '📚 Palabras de High Street' },
+  wordsClassroom: { pt: '📚 Palavras da sala de aula', en: '📚 Classroom words', es: '📚 Palabras del salón de clases' },
+  wordsAcademy: { pt: '📚 Palavras da varanda da academia', en: '📚 Academy veranda words', es: '📚 Palabras del pórtico de la academia' },
+  bakeryWindow: { pt: '📚 Palavras da montra', en: '📚 Bakery window words', es: '📚 Palabras del escaparate' },
+  stationForecourt: { pt: '📚 Palavras da estação', en: '📚 Station words', es: '📚 Palabras de la estación' },
+  noticeboard: { pt: '📚 Palavras do mural', en: '📚 Noticeboard words', es: '📚 Palabras del tablón' },
+  crossing: { pt: '📚 Palavras da rua', en: '📚 Street words', es: '📚 Palabras de la calle' },
+  cloakroom: { pt: '📚 Palavras do cacifo', en: '📚 Cloakroom words', es: '📚 Palabras del guardarropa' },
+  lostProperty: { pt: '📚 Palavras do objeto perdido', en: '📚 Lost property words', es: '📚 Palabras de objetos perdidos' },
+  blackboard: { pt: '📚 Palavras do quadro', en: '📚 Blackboard words', es: '📚 Palabras de la pizarra' },
+  endOfLesson: { pt: '📚 Palavras do fim da aula', en: '📚 End of lesson words', es: '📚 Palabras del final de la clase' },
+  creekBank: { pt: '📚 Palavras da beira do riacho', en: '📚 Creek bank words', es: '📚 Palabras de la orilla' },
+  deepWoods: { pt: '📚 Palavras do fundo do bosque', en: '📚 Deep woods words', es: '📚 Palabras del fondo del bosque' },
+  duelArena: { pt: '📚 Palavras da arena', en: '📚 Duel arena words', es: '📚 Palabras de la arena' },
+  goalSpot: { pt: '📚 Palavras do gol', en: '📚 Goal words', es: '📚 Palabras de la portería' },
+  listenSchool: { pt: '🎧 Ouvir e repetir', en: '🎧 Listen and repeat', es: '🎧 Escuchar y repetir' },
+  woodCafe: { pt: '☕ Café no alto da colina', en: '☕ Café on top of the hill', es: '☕ Café en la colina' },
+  severndroog: { pt: '🏰 Visitar o castelo de Severe', en: '🏰 Visit Severndroog Castle', es: '🏰 Visitar el castillo de Severe' },
+  pond: { pt: '🦆 Ver o lago e os patinhos', en: '🦆 See the pond and the ducks', es: '🦆 Ver el estanque y los patos' },
+  greenChain: { pt: '🛤️ Achar a trilha do Green Chain Walk', en: '🛤️ Find the Green Chain Walk', es: '🛤️ Encontrar el sendero Green Chain' },
+  outdoorGym: { pt: '💪 Aquecer na academia ao ar livre', en: '💪 Warm up at the outdoor gym', es: '💪 Calentar en el gimnasio exterior' },
+  raven: { pt: '⚔️ Desafiar a Prof. Raven', en: '⚔️ Challenge Prof. Raven', es: '⚔️ Desafiar a la Prof. Raven' },
+  duel: { pt: '⚔️ Entrar no duelo de feitiços', en: '⚔️ Enter the spell duel', es: '⚔️ Entrar al duelo de hechizos' },
+};
+
+export const OBJECTIVE_KEYS = {
+  talk: 'objTalk', find: 'objFind', assemble: 'objAssemble', toWoods: 'objToWoods',
+  cross: 'objCross', gate: 'objGate', done: 'objDone',
+};
+
+// nomes das zonas exibidos ao entrar (toast flutuante)
+export const ZONE_NAMES = {
+  school: { pt: '🏫 Academia Leigh Stationers', en: "🏫 Leigh Stationers' Primary Academy", es: '🏫 Academia Leigh Stationers' },
+  woods: { pt: '🌳 Oxleas Woods', en: '🌳 Oxleas Woods', es: '🌳 Bosque de Oxleas' },
+  highstreet: { pt: '🏪 High Street', en: '🏪 High Street', es: '🏪 High Street' },
+  academy: { pt: '🏰 Academia Owlburt', en: '🏰 Owlburt Academy', es: '🏰 Academia Owlburt' },
+  classroom: { pt: '🪑 Sala de Aula', en: '🪑 Classroom', es: '🪑 Salón de Clases' },
+};
