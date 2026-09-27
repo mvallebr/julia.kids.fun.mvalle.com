@@ -3073,25 +3073,41 @@ export function buildClassroom(scene) {
   const addInteract = (id, x, z, radius = 1.6) => zone.interactables.push({ id, x, z, radius });
   const addCollider = (x, z, hw, hd) => zone.colliders.push({ minX: x - hw, maxX: x + hw, minZ: z - hd, maxZ: z + hd });
 
-  // piso de madeira + tapete
+  // Piso de madeira + tapete.
+  //
+  // O piso vai 22 m à FRENTE do cômodo (o cômodo vai de z −9 a +9; o plano
+  // cobre −9 a +31). Motivo: a frente da sala é aberta — a saída para a escola
+  // é em z 7,9 — e a câmera fica uns 7 m FORA dela, então o terço de baixo do
+  // quadro caía no nada (fundo 0x2a2430 aparecendo embaixo da tábua). É o
+  // mesmo "mundo acaba na borda" das zonas externas, mas aqui é mais óbvio
+  // porque não há céu ao fundo: só escuro.
+  //
+  // O repeat acompanha o tamanho (4 em 12 m de largura, 9 em 40 m de
+  // profundidade ≈ a mesma densidade de 3 × 4,5 m de tábua do cômodo), senão a
+  // madeira estica no pedaço novo.
+  const FLOOR_DEPTH = 40;
   const floorTexRaw = planksTexture();
   floorTexRaw.texture.wrapS = floorTexRaw.texture.wrapT = THREE.RepeatWrapping;
-  floorTexRaw.texture.repeat.set(4, 4);
-  const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, 18), pbrFrom(floorTexRaw, [4, 4], 1.2, [0.75, 1.0]));
+  floorTexRaw.texture.repeat.set(4, 9);
+  const floor = new THREE.Mesh(new THREE.PlaneGeometry(12, FLOOR_DEPTH), pbrFrom(floorTexRaw, [4, 9], 1.2, [0.75, 1.0]));
   floor.rotation.x = -Math.PI / 2;
+  // desloca para frente: o plano nasce em z −9, igual à borda de trás do cômodo
+  floor.position.set(0, 0, -9 + FLOOR_DEPTH / 2);
   floor.receiveShadow = true;
   scene.add(floor);
 
-  // paredes do cômodo
+  // paredes do cômodo — as laterais acompanham o piso para o cômodo não
+  // terminar no ar quando a câmera recua
   const wallMat = mat(0xc9b896);
   const backWall = new THREE.Mesh(new THREE.BoxGeometry(12, 5, 0.4), wallMat);
   backWall.position.set(0, 2.5, -8.8);
   scene.add(backWall);
   addCollider(0, -8.8, 6, 0.3);
   for (const side of [-1, 1]) {
-    const wall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5, 18), wallMat);
-    wall.position.set(side * 5.8, 2.5, 0);
+    const wall = new THREE.Mesh(new THREE.BoxGeometry(0.4, 5, FLOOR_DEPTH), wallMat);
+    wall.position.set(side * 5.8, 2.5, -9 + FLOOR_DEPTH / 2);
     scene.add(wall);
+    // colisor só cobre o cômodo de verdade (o pedaço novo é só cenário)
     addCollider(side * 5.8, 0, 0.3, 9);
   }
 
