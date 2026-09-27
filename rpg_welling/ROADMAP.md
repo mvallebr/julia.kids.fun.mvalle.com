@@ -212,6 +212,25 @@ Para que vários agentes trabalhando em paralelo não se atropelem:
   O que continua valendo: **um único agente principal por navegador de QA**, e
   ninguém mexe no Chrome que a pessoa está usando. A instância do
   `chrome-devtools-mcp` é do host e não deve ser disputada.
+
+  **Conserto do `chrome-devtools-mcp` (2026-09-27).** Ele falhava em toda
+  chamada com *"The browser is already running for
+  `~/.cache/chrome-devtools-mcp/chrome-profile`"*. Não é falta de Chrome nem
+  config: o puppeteer atrás dele acha um Chrome vivo segurando o perfil e
+  recusa. O navegador órfão veio de uma chamada anterior que o MCP lançou e
+  depois perdeu o controle. O conserto é matar **só o navegador**, sem tocar
+  no servidor MCP:
+
+  ```sh
+  pkill -f "user-data-dir=.*chrome-devtools-[m]cp"   # [m] evita auto-match
+  ```
+
+  O `[m]` não é decoração: sem ele o `pkill -f` casa com a própria linha de
+  comando e mata o shell. Com o navegador fora, a próxima chamada do MCP
+  relança limpo. Vale mais que o driver CDP manual para QA: o MCP dá
+  `evaluate_script` (o `window.__rpgWelling` do README), snapshot da árvore de
+  acessibilidade, console e rede, tudo em chamada nativa.
+
 - **Nenhum agente sobe servidor.** Nenhuma porta compartilhada.
 - **Nenhum agente roda `npm install`** nem mexe em `node_modules`/`package-lock.json`.
 - **Nenhum agente roda `npm run build`** nem edita `lib/bundle.js` — é artefato
