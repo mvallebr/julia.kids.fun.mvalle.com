@@ -437,7 +437,15 @@ for (const zone of zones) {
   process.stdout.write(`  ${booted ? '✓' : '✗'} ${zone.padEnd(11)} ${file}\n`);
 }
 
-console.log('\n' + JSON.stringify({ base, waitedMs: BOOT_WAIT_MS, report }, null, 2));
+// O relatório vai para um arquivo, não só para o stdout. Com as 5 zonas e os
+// diagnósticos de tela o JSON passa de 60 KB, e canalizar tudo aquilo por pipe
+// para um parser é frágil: basta o pipe truncar um pedaço e o `JSON.parse`
+// estoura no consumidor, com a mensagem de erro apontando para o parser e não
+// para o QA. Arquivo é a fonte; o stdout é só o resumo.
+const reportFile = resolve(outDir, 'report.json');
+writeFileSync(reportFile, JSON.stringify({ base, waitedMs: BOOT_WAIT_MS, report }, null, 2));
+console.log('\n' + report.map((e) => `  ${e.booted ? '✓' : '✗'} ${String(e.diag?.zone || e.zone).padEnd(11)} faded=${String(e.diag?.fadedCount ?? '?').padEnd(3)} console=${e.console.length}`).join('\n'));
+console.log(`\nrelatório completo: ${reportFile}`);
 
 s.ws.close();
 if (!keep) {
