@@ -2,21 +2,24 @@
 <!--
   Molde de impressão da Corujinha Pintada, em A4.
 
-  Este molde NAO é mais um desenho vetorial próprio: ele é o MESMO contorno do
-  passo 1 que a criança vê na tela. Antes eram duas corujas diferentes — a da
-  tela era arte gerada por IA e a da folha era vetorial — e o passo 1 mandava
+  Este molde é o desenho a lápis da corujinha, e não uma silhueta: traz o
+  contorno de fora E o de dentro — fileiras de penas, barbas das asas, tufo das
+  orelhas, escamas do rosto, dedos com garras. É assim que uma figura para
+  colorir é: a criança precisa saber onde termina uma pena e começa a outra.
+
+  Antes eram duas corujas diferentes. A da tela era arte gerada por IA e a da
+  folha era um vetorial simples, só com a borda externa, e o passo 1 mandava
   copiar um contorno que não era o da folha impressa.
 
-  Reaproveitar a imagem do passo 1 fecha essa incoerência na raiz: o que sai na
-  impressora e o que aparece no app, sem risco de divergirem de novo. O
-  contorno é linha fina e preta sobre branco, feito para passar a lápis.
+  A figura é gerada, não desenhada à mão aqui: 1152x864, recortada e centrada
+  numa folha A4 com margem para as mãos e a mesa.
 -->
 <svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
      viewBox="0 0 595 842" width="210mm" height="297mm" role="img"
      aria-label="Molde da corujinha para imprimir e pintar">
   <title>Molde da corujinha</title>
-  <desc>Contorno a lápis da corujinha em folha A4, pronto para pintar. Sem texto.</desc>
+  <desc>Corujinha desenhada a lápis, com o contorno interno todo, pronta para pintar em folha A4. Sem texto.</desc>
   <rect x="0" y="0" width="595" height="842" fill="#ffffff"/>
-  <image x="47.5" y="271" width="500" height="375" preserveAspectRatio="xMidYMid meet"
+  <image x="30" y="221" width="535" height="401" preserveAspectRatio="xMidYMid meet"
          xlink:href="owl-outline.png"/>
 </svg>
