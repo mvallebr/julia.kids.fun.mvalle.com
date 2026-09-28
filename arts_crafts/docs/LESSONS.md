@@ -200,6 +200,120 @@ figura que não a dos quadros. Foi o defeito original da coruja e ele não
 voltou sozinho — voltou porque ninguém estava olhando.
 
 
+## 15. Figura grande e centrada fecha; diagrama espalhado não fecha
+
+Esta regra é sobre o **assunto**, não sobre a técnica.
+
+Todos os aprovados são uma figura grande no meio da folha: coruja, balão,
+gato, caçadora, chapéu, peixe, gato astronauta. Sete de sete.
+
+Todos os **diagramas** falharam:
+
+| assunto | candidatos | aprovados |
+|---|---|---|
+| sistema solar | 6 | 0 |
+| anatomia da planta | 3 | 0 |
+| anatomia da abelha | 3 | 0 |
+
+Doze de doze. A falha é sempre a mesma: o medidor devolve áreas de menos de
+3%, porque um diagrama espalha a figura em muitas peças pequenas e nenhuma
+delas chega a ter o tamanho de um corpo.
+
+**Regra.** Tutorial de colorir quer uma FIGURA. Se a ideia é um diagrama com
+muitas peças pequenas, a técnica não é a inundação — é o véu, como o resto do
+app. Não force.
+
+## 16. O prompt fica mais forte quando pede MENOS coisa
+
+A bruxa falhou 3 de 3 pedindo onze peças de uma vez: chapéu, aba, rosto, olhos,
+boca, cabelo, ombros, capa, gola, mãos e vassoura. Pedindo de novo com quatro
+peças, passou.
+
+**Regra.** Peça de três a seis peças grandes. Quando a taxa de aprovação cai, a
+primeira coisa a cortar é a lista de elementos, não a ênfase no traço.
+
+## 17. O ensino mora na tinta, não no texto
+
+O jeito que funciona não é uma explicação fora da imagem: é **cada parte
+pintada ter uma função que o texto conta naquele passo**.
+
+- Peixe: pinta a cauda → "é o que empurra o peixe para a frente".
+- Astronauta: pinta o capacete → "existe porque no espaço não tem ar".
+- Astronauta: pinta a mochila → "é onde fica o ar".
+
+A criança aprende a figura pintando a figura, e a explicação não vira uma
+caixinha de texto fora do caminho.
+
+## 18. Caixa estreita demais pega o vizinho
+
+Três erros em quatro figuras, todos da mesma família:
+
+- **Peixe:** a caixa da "bolha" pegava a barbatana dorsal, e o peixe saía com
+  a barbatana azul.
+- **Caçadora:** a caixa das "luvas" engolia o torso, e a jaqueta saía creme
+  em vez de roxa.
+- **Bruxa:** a caixa da "fivela" pegava o trecho esquerdo da fita, e a fita
+  saía meio dourada.
+
+Nenhum aparece no número: todas as caixas estavam "corretas" e o resultado saiu
+errado. **A caixa só se acerta no olho, depois de derivada.** A cor errada é o
+aviso mais rápido de que uma caixa está larga demais.
+
+## 19. Personagem original, não a marca
+
+O pedido veio com Harry Potter, Hello Kitty e KPop Demon Hunters. São registro
+de terceiros, e o gerador não produz personagem de terceiro com direito: no
+melhor caso sai algo genérico e sem direito.
+
+O que entrou foram as **ideias** com personagens originais: bruxa, heroína
+guerreira, gato no espaço, peixe. É a mesma coisa que a criança gosta, e é
+legítimo.
+
+## 20. Montar é um terceiro padrão, e a mão é a professora
+
+O Robô de Papelão era o pior tutorial do app e o defeito não era o texto: era
+que ele nunca mostrava a construção. Uma foto só, o robô pronto, e sete passos
+que só acendiam partes dele. A criança era mandada "marcar a altura na caixa"
+diante de uma foto de robô — a caixa nunca aparecia.
+
+O que resolve mostra o que nenhuma foto de objeto mostra: **a mão, dentro do
+quadro, fazendo a ação**. O dedo apontando a borda, a mão com a cola em cima da
+junta. Nenhum texto diz *onde* e *como* do jeito que uma mão diz.
+
+São três padrões:
+
+| | como funciona | serve para |
+|---|---|---|
+| véu | 1 foto revelada aos poucos | mostrar o resultado, e só isso |
+| quadros pintados | 1 desenho, pintado | a criança pinta |
+| **fotos por passo** | **1 foto por passo, mão no quadro** | **qualquer montagem** |
+
+E vale o que as fotos de referência têm e o gerador não entrega de graça: o
+trabalho é **imperfeito**. Tinta uneven, cola aparecendo, nome torto. Isso diz
+"dá para fazer assim". Objeto perfeito e profissional assusta criança de 7 anos.
+
+## 21. A folha de instruções resolve a coerência sem imagem de referência
+
+Sete chamadas ao gerador dão sete robôs diferentes, porque o MCP não expõe
+`subject_reference`. Era o dilema: uma imagem mantém a coerência e não mostra
+a construção; sete imagens mostram a construção e perdem a coerência.
+
+A saída é **gerar uma folha com os 8 painéis de uma vez e recortar**. É
+literalmente a mesma figura nas oito fotos, porque é a mesma imagem.
+
+E é preciso **conferir a ordem antes de instalar**. De quatro folhas geradas,
+duas saíram com a ordem trocada: uma tinha o robô já com rosto no quarto quadro
+de oito, e duas das oito etapas pedidas nem apareciam. A boa só apareceu na
+segunda tentativa, e foi aí que a ordem fechou: papelão, marcar, cortar,
+recortar, olhos, fita e botões, montado, pronto.
+
+**Regra.** Recorte e olhe a sequência ANTES de escrever o texto. E escreva o
+texto pela ordem que saiu na imagem, não pela que você tinha planejado — foi o
+que aconteceu aqui, e o texto antigo descrevia etapas que as fotos não
+mostravam.
+
+## Onde a arte vem de
+
 - **Geração:** MiniMax `image-01`, via MCP `mcp__minimax_media_text_to_image`.
   O MCP **não expõe `subject_reference`**, então gerar a mesma figura várias
   vezes não é confiável: cada chamada devolve uma coruja diferente. Por isso a
@@ -221,7 +335,7 @@ voltou sozinho — voltou porque ninguém estava olhando.
 5. `python3 tools/derive-frames.py arte.jpg spec.json saida/` — ele aborta se
    o contorno não fechar, então não dá para pintar errado sem perceber.
 6. **Olhe o quadro final.** Se uma parte visível ficou branca, ela está
-   fragmentada: widen a caixa dela.
+   fragmentada: alargue a caixa dela.
 7. Escreva os passos **a partir das regiões que existem**.
 8. Recorte a figura pela tinta, monte o molde e confira o primeiro quadro, o
    último e a folha impressa: é a mesma figura?
@@ -231,3 +345,14 @@ voltou sozinho — voltou porque ninguém estava olhando.
 Gere três candidatos e meça os três antes de olhar qualquer um deles. A taxa de
 aprovação é de mais ou menos um em três: das seis figuras geradas para o Balão e
 o Gato, quatro não fecharam — duas voltaram sem tinta nenhuma.
+
+## Quando a criança monta, não de Coleção
+
+Este é outro caminho, e é o do Robô de Papelão, do Organizador de Mesa, do
+Labirinto: os 35 tutoriais em que a criança **monta** e não pinta.
+
+1. Gere **uma folha de 8 painéis** com a mão em cada quadro (regra 20).
+2. Recorte e **olhe a ordem** antes de instalar (regra 21).
+3. Escreva o texto pela ordem que saiu, não pela planejada.
+4. Ponha na lista de materiais o que aparece na foto: tesoura, caneta, fita.
+   A lista antiga falava em cola e não em tesoura, e a foto antiga também.
