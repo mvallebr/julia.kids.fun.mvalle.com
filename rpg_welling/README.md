@@ -88,6 +88,15 @@ npm test        # executa a suíte de testes do jogo
 npm run dev     # esbuild --watch
 ```
 
+### Workflows de geração de arte
+
+Arquivos JSON de workflow do ComfyUI específicos deste jogo ficam em
+`tools/comfyui-workflows/`, junto do código e dos dados do projeto.
+O repositório `postward-local-media-gen` continua responsável pelas ferramentas
+reutilizáveis — instalação, adaptadores, fila de GPU e contratos. Só padrões
+sem prompts, assets ou nomes específicos do jogo devem voltar ao toolkit
+compartilhado.
+
 - **Fontes**: `src/` — main.js (loop/HUD/quests), world.js (zonas 3D),
   content.js (história/diálogos), vocab.js (repetição espaçada),
   state.js (save com gerações à prova de abas), audio.js (sfx ambiente
