@@ -11,6 +11,7 @@
 
 import owl from './tutorials/paint-a-cute-owl.js';
 import paintFigure from './tutorials/paint-a-figure.js';
+import paintCharacters from './tutorials/paint-a-characters.js';
 import drawingPainting from './tutorials/drawing-painting.js';
 import paperCard from './tutorials/paper-card.js';
 import recycled from './tutorials/recycled.js';
@@ -23,6 +24,7 @@ import threeD from './tutorials/3d-modelling.js';
 export const TUTORIALS = [
   ...owl,
   ...paintFigure,
+  ...paintCharacters,
   ...drawingPainting,
   ...paperCard,
   ...recycled,

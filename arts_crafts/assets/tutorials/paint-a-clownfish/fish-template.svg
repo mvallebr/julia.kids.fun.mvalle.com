@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Molde de impressão — Peixe-Palhaço.
+
+  É a MESMA figura dos sete passos da lição, e não uma figura parecida: o que a
+  criança imprime é exatamente o que aparece na tela e o que ela vai pintar.
+  Os sete quadros são este mesmo desenho com as áreas sendo pintadas em ordem,
+  e cada área é a região que o próprio lápis fechou — por isso a tinta não
+  vaza do formato.
+
+  A figura nasce como figura para colorir, em contorno de lápis sobre papel
+  branco, com o contorno de fora traçado para que a tinta não escape. A imagem
+  foi recortada pela própria tinta e encaixada na folha com folga para as mãos.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink"
+     viewBox="0 0 595 842" width="210mm" height="297mm" role="img"
+     aria-label="Molde de Peixe-Palhaço para imprimir e pintar">
+  <title>Molde — Peixe-Palhaço</title>
+  <desc>Figura desenhada a lápis, com o contorno de fora e de dentro, pronta para pintar em folha A4. Sem texto.</desc>
+  <rect x="0" y="0" width="595" height="842" fill="#ffffff"/>
+  <image x="45" y="261" width="505" height="320" preserveAspectRatio="xMidYMid meet"
+         xlink:href="outline.png"/>
+</svg>
