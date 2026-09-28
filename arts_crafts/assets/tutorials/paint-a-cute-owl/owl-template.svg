@@ -22,6 +22,6 @@
   <title>Molde da corujinha</title>
   <desc>Corujinha desenhada a lápis, com o contorno interno todo, pronta para pintar em folha A4. Sem texto.</desc>
   <rect x="0" y="0" width="595" height="842" fill="#ffffff"/>
-  <image x="30" y="221" width="535" height="401" preserveAspectRatio="xMidYMid meet"
+  <image x="45" y="82" width="505" height="678" preserveAspectRatio="xMidYMid meet"
          xlink:href="owl-outline.png"/>
 </svg>

@@ -127,7 +127,78 @@ região que não existe, ou o desenho muda ou o passo some — nunca os dois.
 
 ---
 
-## Onde a arte vem de
+## 9. Véu ou inundação? Decide o verbo, não o gosto
+
+Quando estas regras se aplicam é uma pergunta, e a resposta é curta:
+
+- a criança **monta, recorta, cola, molda** → **véu**. Uma imagem base, revelada
+  aos poucos. O objeto aparece conforme as partes ficam prontas.
+- a criança **pinta** → **inundação**. Só ela consegue mostrar um corpo
+  ficando marrom.
+
+O véu escurece e clareia; ele não sabe mostrar uma figura meio pintada, e o
+"fantasma" dos outros tutoriais é a arte final lavada de cinza. Numa lição de
+colorir isso é mentira, e a inundação é a única que ensina.
+
+Hoje são três tutoriais de pintura por inundação — Corujinha Pintada, Balão
+Colorido e Gato Pintado — e 35 de véu. Os três são os únicos em que a criança
+pinta de verdade.
+
+## 10. O medidor é a herança; o pincel é o detalhe
+
+O que vale guardar da Corujinha Pintada não foi o desenho. Foi `check-closed.py`
+responder "isto é pintável?" em um segundo sobre qualquer imagem.
+
+Gerei seis candidatos para duas figuras e **quatro não passaram** (dois voltaram
+sem tinta nenhuma, dois com o contorno aberto). Isso não é azar da primeira
+tentativa: é a taxa normal. O medidor é o que transforma isso de "horas de
+tentativa" em "um segundo por candidato".
+
+## 11. A caixa nomeia, e às vezes também junta
+
+A caixa de região tem duas funções, e a segunda só apareceu fazendo o gato.
+
+1. **Nomear** cada parte — a tinta sempre preenche a área que o lápis fechou.
+2. **Juntar** partes que o desenho fragmentou.
+
+No gato, as listras cruzam o rabo e o dividem em dezenas de lasquinhas de menos
+de 0,2% cada. Nenhuma delas é a "região do rabo". Mas uma caixa que pega o
+rabo inteiro junta todas e pinta de uma cor só. Sem isso o rabo ficaria branco
+e o gato pareceria inacabado.
+
+Regra de mão: se uma parte visível não aparece na lista de regiões, ela está
+fragmentada, e provavelmente precisa de uma caixa maior.
+
+## 12. Meça o centróide, não o palpite
+
+As caixas do balão saíram de um palpite — "sete painéis iguais entre 0.22 e
+0.80" — e duas não pegaram em nada. A mediu: os painéis estão em cx
+0.294 / 0.339 / 0.408 / 0.497 / 0.582 / 0.647 / 0.695, e a trama de baixo se
+separa por **y**, não por x.
+
+Para ver isso, imprima as regiões com centroide e tamanho antes de escrever o
+spec. Custa um segundo e evita um spec inventado.
+
+## 13. A primeira caixa que pega vence
+
+Uma região que caísse em duas caixas entrava nas duas e era pintada duas vezes.
+Agora a atribuição é **primeira casa vence**, e por isso a ordem do spec importa:
+do mais específico (a orelha) para o mais largo (o corpo).
+
+## 14. Quadros próprios também passam pelo validador
+
+A coruja escapou das regras porque usa `framePattern` em vez de véu, e ninguém
+avisou. O que evita a próxima:
+
+- `contentProblems` roda sobre a lista inteira, e a suíte confere que **cada
+  quadro existe em disco** e que o molde existe.
+- A regra do primeiro passo (não mostrar o objeto pronto antes de começar)
+  vale para os dois sistemas: nos quadros próprios o primeiro é a linha a lápis.
+
+Ainda falta uma regra: nenhum teste impede que um `printable` seja de outra
+figura que não a dos quadros. Foi o defeito original da coruja e ele não
+voltou sozinho — voltou porque ninguém estava olhando.
+
 
 - **Geração:** MiniMax `image-01`, via MCP `mcp__minimax_media_text_to_image`.
   O MCP **não expõe `subject_reference`**, então gerar a mesma figura várias
@@ -143,9 +214,20 @@ região que não existe, ou o desenho muda ou o passo some — nunca os dois.
 1. Escolha a figura e escreva a intenção em uma frase.
 2. Gere **uma** arte, com prompt de figura para colorir: traço grosso, formas
    fechadas, sem hachura.
-3. Meça o fechamento. Abaixo de 2%, gere de novo.
-4. Marque as regiões, olhe o resultado, ajuste a classificação.
-5. Derive os quadros, com o traço por cima da tinta.
-6. Escreva os passos **a partir das regiões que existem**.
-7. Releia as dicas, os materiais e a descrição contra a arte nova.
-8. Confira folha impressa, primeiro quadro e último quadro: é a mesma figura?
+3. `python3 tools/check-closed.py arte.jpg` — abaixo de 2% do quadro, ou sem
+   nenhuma área do tamanho de um corpo, gere de novo.
+4. Imprima as regiões com centroide e tamanho. Escreva o spec a partir do
+   número, não do palpite.
+5. `python3 tools/derive-frames.py arte.jpg spec.json saida/` — ele aborta se
+   o contorno não fechar, então não dá para pintar errado sem perceber.
+6. **Olhe o quadro final.** Se uma parte visível ficou branca, ela está
+   fragmentada: widen a caixa dela.
+7. Escreva os passos **a partir das regiões que existem**.
+8. Recorte a figura pela tinta, monte o molde e confira o primeiro quadro, o
+   último e a folha impressa: é a mesma figura?
+
+## Como escolher a arte
+
+Gere três candidatos e meça os três antes de olhar qualquer um deles. A taxa de
+aprovação é de mais ou menos um em três: das seis figuras geradas para o Balão e
+o Gato, quatro não fecharam — duas voltaram sem tinta nenhuma.
