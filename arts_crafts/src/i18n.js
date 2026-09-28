@@ -99,7 +99,7 @@ const PT = {
   'dest.creative-challenges.soon': 'Em breve chegou o baú dos Desafios Criativos, com surpresas para você escolher.',
   'dest.creative-challenges.topic': 'desafios criativos',
 
-  'material.template': 'molde da coruja (ou papel comum)',
+  'material.template': 'molde impresso (ou papel comum)',
   'material.paint': 'tinta lavável',
   'material.brush': 'pincel',
   'material.water': 'água',
@@ -223,7 +223,7 @@ const EN = {
   'dest.creative-challenges.soon': 'Soon the Creative Challenges chest arrives, with surprises for you to pick.',
   'dest.creative-challenges.topic': 'creative challenges',
 
-  'material.template': 'owl template (or plain paper)',
+  'material.template': 'printed template (or plain paper)',
   'material.paint': 'washable paint',
   'material.brush': 'paintbrush',
   'material.water': 'water',
@@ -347,7 +347,7 @@ const ES = {
   'dest.creative-challenges.soon': 'Pronto llega el cofre de los Retos Creativos, con sorpresas para elegir.',
   'dest.creative-challenges.topic': 'retos creativos',
 
-  'material.template': 'plantilla del búho (o papel normal)',
+  'material.template': 'plantilla impresa (o papel normal)',
   'material.paint': 'pintura lavable',
   'material.brush': 'pincel',
   'material.water': 'agua',
