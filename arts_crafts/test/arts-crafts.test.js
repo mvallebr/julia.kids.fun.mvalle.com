@@ -4,7 +4,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join, resolve } from 'node:path';
 
@@ -257,6 +257,24 @@ test('todo caminho de asset existe', () => {
     if (tutorial.printable) {
       assert.ok(existsSync(join(APP_ROOT, tutorial.printable)), `falta ${tutorial.printable}`);
     }
+  }
+});
+
+// O teste anterior vai num sentido só: todo passo tem arquivo. Este vai no
+// outro: todo arquivo tem passo. Sem ele, um quadro de um spec antigo
+// continuava no disco — foi exatamente o que aconteceu com a Caçadora de
+// Demônios, que ficou com step-03-cabelo ao lado de step-03-rosto, e o app
+// servia os dois. Nenhum erro aparece: os dois nomes são válidos, o arquivo
+// existe, o validador passa. Só sobra lixo na pasta.
+test('nenhum quadro de passo sobrou sem ser usado por algum passo', () => {
+  for (const tutorial of TUTORIALS) {
+    if (!tutorial.framePattern) continue;
+    const dir = dirname(join(APP_ROOT, tutorial.framePattern.replace('%s', 'x')));
+    if (!existsSync(dir)) continue;
+    const usados = new Set(
+      tutorial.steps.filter((step) => step.image).map((step) => `step-${step.image}.webp`));
+    const sobrando = readdirSync(dir).filter((f) => /^step-.*\.webp$/.test(f) && !usados.has(f));
+    assert.deepEqual(sobrando, [], `${tutorial.id}: quadro na pasta que nenhum passo usa`);
   }
 });
 
