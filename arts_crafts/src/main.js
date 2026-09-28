@@ -240,9 +240,8 @@ function veilElement(tutorial, step, maskId) {
 }
 
 function stepImage(tutorial, step) {
-  // Passo com imagem propria: e o quadro pronto, e o app so o mostra. E o caminho
-  // que da coerencia sem mascara — cada quadro e o mesmo desenho com as partes
-  // certainas acesas, entao a coruja nao muda de forma entre passos.
+  // Passo com imagem própria: quadro completo daquele estágio, sem véu. Serve
+  // quando a pintura ou a montagem muda a imagem inteira entre passos.
   if (step.image) {
     if (tutorial.framePattern) return tutorial.framePattern.replace('%s', step.image);
     return step.image;

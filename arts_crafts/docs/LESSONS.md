@@ -269,61 +269,62 @@ O que entrou foram as **ideias** com personagens originais: bruxa, heroína
 guerreira, gato no espaço, peixe. É a mesma coisa que a criança gosta, e é
 legítimo.
 
-## 20. Montar é um terceiro padrão, e a mão é a professora
+## 20. Montagem é uma sequência de estados, não um véu
 
-O Robô de Papelão era o pior tutorial do app e o defeito não era o texto: era
-que ele nunca mostrava a construção. Uma foto só, o robô pronto, e sete passos
-que só acendiam partes dele. A criança era mandada "marcar a altura na caixa"
-diante de uma foto de robô — a caixa nunca aparecia.
+O T14 original usava uma única foto do robô pronto, e o véu só acendia regiões.
+Isso não mostrava a caixa do passo 1 nem como as peças apareciam.
 
-O que resolve mostra o que nenhuma foto de objeto mostra: **a mão, dentro do
-quadro, fazendo a ação**. O dedo apontando a borda, a mão com a cola em cima da
-junta. Nenhum texto diz *onde* e *como* do jeito que uma mão diz.
+Para este tutorial, a ordem de produto é: corpo, cabeça, braços, pés, botões,
+olhos/antenas e nome/trabalho. Cada quadro precisa mostrar o estado acumulado
+depois daquele passo. A mão é importante quando a ação é cortar, dobrar ou colar
+em um lugar preciso; para uma adição simples de peça, a mudança visível do
+objeto já ensina. Não invente uma ordem diferente da spec para acomodar a arte.
 
-São três padrões:
-
-| | como funciona | serve para |
+| padrão | como funciona | quando usar |
 |---|---|---|
-| véu | 1 foto revelada aos poucos | mostrar o resultado, e só isso |
-| quadros pintados | 1 desenho, pintado | a criança pinta |
-| **fotos por passo** | **1 foto por passo, mão no quadro** | **qualquer montagem** |
+| véu | revela partes de uma imagem pronta | mostrar o resultado, não a construção |
+| quadros pintados | a mesma figura ganha tinta por etapas | a criança pinta |
+| fotos por estágio | o objeto acumula uma peça por etapa | a criança monta |
 
-E vale o que as fotos de referência têm e o gerador não entrega de graça: o
-trabalho é **imperfeito**. Tinta uneven, cola aparecendo, nome torto. Isso diz
-"dá para fazer assim". Objeto perfeito e profissional assusta criança de 7 anos.
+## 21. Coerência vem da referência compartilhada e da máscara
 
-## 21. A folha de instruções resolve a coerência sem imagem de referência
+Sete chamadas independentes de `txt2img` deram robôs diferentes. Repetir prompt
+ou seed não trava identidade, proporção nem posição.
 
-Sete chamadas ao gerador dão sete robôs diferentes, porque o MCP não expõe
-`subject_reference`. Era o dilema: uma imagem mantém a coerência e não mostra
-a construção; sete imagens mostram a construção e perdem a coerência.
+O fluxo que funcionou para o T14:
 
-A saída é **gerar uma folha com os 8 painéis de uma vez e recortar**. É
-literalmente a mesma figura nas oito fotos, porque é a mesma imagem.
+1. Gere uma referência final que caiba inteira no quadro e confira as peças.
+2. Edite a imagem anterior, uma peça por vez, sempre com o mesmo canvas.
+3. Se o editor mudar outras áreas, use uma máscara para compor apenas a edição
+   autorizada sobre a etapa anterior.
+4. Salve em formato sem perdas e verifique que os pixels fora da máscara são
+   idênticos; revise também a emenda e o conteúdo dentro dela.
+5. Monte uma folha de contato e confira a ordem antes de escrever os passos.
 
-E é preciso **conferir a ordem antes de instalar**. De quatro folhas geradas,
-duas saíram com a ordem trocada: uma tinha o robô já com rosto no quarto quadro
-de oito, e duas das oito etapas pedidas nem apareciam. A boa só apareceu na
-segunda tentativa, e foi aí que a ordem fechou: papelão, marcar, cortar,
-recortar, olhos, fita e botões, montado, pronto.
+Na sequência local do robô, os sete quadros mantiveram o mesmo enquadramento e
+cada transição alterou pixels só na região da peça nova. Os botões ficaram um
+pouco brilhantes e as fotos não mostram uma mão em ação: coerência de imagem não
+substitui revisão didática.
 
-**Regra.** Recorte e olhe a sequência ANTES de escrever o texto. E escreva o
-texto pela ordem que saiu na imagem, não pela que você tinha planejado — foi o
-que aconteceu aqui, e o texto antigo descrevia etapas que as fotos não
-mostravam.
+## Proveniência da Corujinha Pintada
 
-## Onde a arte vem de
+*A seção abaixo registra o caminho usado para as artes de pintura; não é o
+pipeline do Robô de Papelão.*
 
-- **Geração:** MiniMax `image-01`, via MCP `mcp__minimax_media_text_to_image`.
-  O MCP **não expõe `subject_reference`**, então gerar a mesma figura várias
-  vezes não é confiável: cada chamada devolve uma coruja diferente. Por isso a
-  regra 1 — gerar **uma** vez e derivar.
-- **O que o MCP resolve:** a arte é gerada, não desenhada à mão, então as sete
-  cenas da mesma figura saem baratas e consistentes.
-- **O que ele não resolve:** a consistência entre si. Várias chamadas = várias
-  figuras. Derive de uma só.
+Geração inicial: MiniMax `image-01`, via MCP
+`mcp__minimax_media_text_to_image`. O MCP não expõe `subject_reference`; cada
+chamada devolve uma coruja diferente. Por isso, para a pintura, a regra continua
+sendo gerar uma figura e derivar dela os quadros.
 
-## Como refazer um tutorial
+## Proveniência do Robô de Papelão
+
+A referência do robô foi criada localmente com Forge/SDXL. As edições de
+referência usaram Qwen Image Edit 2511 local via ComfyUI-GGUF; as regiões
+aprovadas foram compostas sobre a imagem anterior. Nenhuma foto de entrada foi
+enviada a um serviço remoto. Os pesos ficam fora deste repositório.
+
+
+## Como refazer um tutorial de pintura
 
 1. Escolha a figura e escreva a intenção em uma frase.
 2. Gere **uma** arte, com prompt de figura para colorir: traço grosso, formas
@@ -340,19 +341,27 @@ mostravam.
 8. Recorte a figura pela tinta, monte o molde e confira o primeiro quadro, o
    último e a folha impressa: é a mesma figura?
 
-## Como escolher a arte
+## Como escolher arte para pintar
 
 Gere três candidatos e meça os três antes de olhar qualquer um deles. A taxa de
 aprovação é de mais ou menos um em três: das seis figuras geradas para o Balão e
 o Gato, quatro não fecharam — duas voltaram sem tinta nenhuma.
 
-## Quando a criança monta, não de Coleção
+## Quando a criança monta: uma referência, mudanças locais
 
-Este é outro caminho, e é o do Robô de Papelão, do Organizador de Mesa, do
-Labirinto: os 35 tutoriais em que a criança **monta** e não pinta.
+Este é o caminho para o Robô de Papelão e os outros tutoriais em que a criança
+monta partes.
 
-1. Gere **uma folha de 8 painéis** com a mão em cada quadro (regra 20).
-2. Recorte e **olhe a ordem** antes de instalar (regra 21).
-3. Escreva o texto pela ordem que saiu, não pela planejada.
-4. Ponha na lista de materiais o que aparece na foto: tesoura, caneta, fita.
-   A lista antiga falava em cola e não em tesoura, e a foto antiga também.
+1. Releia a ordem dos passos na spec; não invente passos para combinar com uma
+   imagem pronta.
+2. Crie e confira uma referência final com o objeto inteiro dentro do quadro.
+3. Edite uma peça por etapa, partindo da etapa anterior, com canvas e câmera
+   fixos. Não use sete chamadas independentes de `txt2img` como sequência.
+4. Quando o editor redesenhar o quadro inteiro, aplique só a máscara da peça
+   nova à etapa anterior e confira que o exterior ficou pixel a pixel igual.
+5. Use mãos e ferramentas quando a ação precisa ensinar onde cortar, dobrar ou
+   colar. Para adições simples de componentes, uma progressão clara do objeto
+   pode bastar; em qualquer caso, o texto e a imagem têm de descrever o mesmo
+   passo.
+6. Confira os sete quadros em uma folha de contato antes de instalar e remova os
+   assets antigos que nenhum passo usa.

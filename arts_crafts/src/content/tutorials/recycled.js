@@ -77,62 +77,62 @@ export default [
     difficulty: 2,
     estimatedMinutes: 40,
     requiresPrinting: false,
-    // A capa é o robô pronto: é para onde a criança está indo. E cada passo tem
-    // a SUA foto, com a mão fazendo a ação, porque montar não é pintar: uma
-    // única imagem revelada por véu mostra o resultado e não mostra a dobra.
-    // As sete fotos saíram de UMA folha de instruções de 8 painéis, recortada —
-    // gerar sete fotos soltas daria sete robôs diferentes, que é o defeito que
-    // a Corujinha Pintada teve até ser refeita.
+    // Os quadros são estágios do mesmo robô, não sete gerações independentes.
+    // Cada passo acrescenta uma peça; fora da máscara da peça, a foto-base fica
+    // idêntica. A ordem segue T14 da spec e a rotina está em docs/LESSONS.md.
     baseImage: 'assets/tutorials/cardboard-robot/base.webp',
     framePattern: 'assets/tutorials/cardboard-robot/step-%s.webp',
-    materials: ['material.cardboard', 'material.scissors', 'material.marker', 'material.tape', 'material.glue'],
+    materials: [
+      'material.box', 'material.cardboard', 'material.tube', 'material.paper',
+      'material.tape', 'material.glue', 'material.marker', 'material.scissors',
+    ],
     steps: [
-      { veil: 'none', image: '01-caixa' },
-      { veil: 'none', image: '02-marcar' },
-      { veil: 'none', image: '03-cortar' },
-      { veil: 'none', image: '04-recortar' },
-      { veil: 'none', image: '05-olhos' },
-      { veil: 'none', image: '06-botoes' },
-      { veil: 'none', image: '07-pronto' },
+      { veil: 'none', image: '01-corpo' },
+      { veil: 'none', image: '02-cabeca' },
+      { veil: 'none', image: '03-bracos' },
+      { veil: 'none', image: '04-pes' },
+      { veil: 'none', image: '05-botoes' },
+      { veil: 'none', image: '06-olhos-antenas' },
+      { veil: 'none', image: '07-nome-trabalho' },
     ],
     copy: {
       pt: {
         title: 'Robô de Papelão',
         description: 'Caixas e rolinhos viram um robô com botões e olhos.',
         steps: [
-          { instruction: 'Escolha a caixa de papelão.', tip: 'Um caixote de sapato fica baixo e firme. Um de cereal fica comprido.' },
-          { instruction: 'Marque com a caneta onde você vai cortar.', tip: 'Marque em volta da caixa, um dedo de dentro de cada borda. É por aí que sai o corpo.' },
-          { instruction: 'Corte com a tesoura, seguindo a marca.', tip: 'Corte devagar, com a tesoura fechada. Se a tesoura travar, vire a caixa e continue.' },
-          { instruction: 'Abra a caixa e acerte as abas.', tip: 'Dobre as abas para dentro até ela ficar em pé sozinha. Essa é a parte chata — é aqui que o robô ganha corpo.' },
-          { instruction: 'Desenhe os dois olhos com a caneta.', tip: 'Dois círculos grandes e iguais deixam qualquer caixa com cara de robô.' },
-          { instruction: 'Prenda a fita e cole os botões.', tip: 'Fita em cruz na junta segura sem cola. Os botões podem ser tampinhas ou círculos de papel.' },
-          { instruction: 'Dê um trabalho e um nome ao seu robô.', tip: 'Ele limpa a casa? Cuida de plantas? Falar dele como pessoa deixa o robô com cara de personagem.' },
+          { instruction: 'Escolha uma caixa para o corpo.', tip: 'Caixa de sapato fica baixa e firme; caixa de cereal fica alta.' },
+          { instruction: 'Coloque uma caixa menor em cima para fazer a cabeça.', tip: 'Centralize-a e prenda com fita ou cola.' },
+          { instruction: 'Faça dois braços com tubos de papelão.', tip: 'Use rolinhos ou enrole papel. Peça ajuda a um adulto para cortar papelão grosso.' },
+          { instruction: 'Prenda dois pezinhos de papelão na base.', tip: 'Uma caixinha em cada lado ajuda o robô a ficar em pé.' },
+          { instruction: 'Escolha e prenda os botões do robô.', tip: 'Use botões, tampinhas ou círculos de papel; organize as cores antes de colar.' },
+          { instruction: 'Desenhe os olhos e acrescente as antenas.', tip: 'Dois olhos grandes e antenas de papel dão personalidade.' },
+          { instruction: 'Dê um trabalho e um nome ao seu robô.', tip: 'Escreva na etiqueta e conte o que ele faz.' },
         ],
       },
       en: {
         title: 'Cardboard Robot',
         description: 'Boxes and tubes turn into a robot with buttons and eyes.',
         steps: [
-          { instruction: 'Pick the cardboard box.', tip: 'A shoebox is low and steady. A cereal box is tall.' },
-          { instruction: 'Mark with the pen where you will cut.', tip: 'Mark around the box, one finger in from every edge. That is where the body comes out.' },
-          { instruction: 'Cut with the scissors, following the mark.', tip: 'Cut slowly with the scissors closed. If they stick, turn the box over and carry on.' },
-          { instruction: 'Open the box and fix the flaps.', tip: 'Fold the flaps in until it stands on its own. This is the boring part — it is where the robot gets its body.' },
-          { instruction: 'Draw the two eyes with the pen.', tip: 'Two big equal circles make any box look like a robot.' },
-          { instruction: 'Fix the tape and glue the buttons on.', tip: 'Tape in a cross holds without glue. The buttons can be bottle caps or paper circles.' },
-          { instruction: 'Give your robot a job and a name.', tip: 'Does it clean the house? Water the plants? Talking about it like a person makes it feel like a character.' },
+          { instruction: 'Choose a box for the body.', tip: 'A shoebox is short and steady; a cereal box is tall.' },
+          { instruction: 'Place a smaller box on top for the head.', tip: 'Center it and secure it with tape or glue.' },
+          { instruction: 'Make two arms from cardboard tubes.', tip: 'Use cardboard rolls or roll paper. Ask an adult to cut thick cardboard.' },
+          { instruction: 'Attach two small cardboard feet at the bottom.', tip: 'A small box on each side helps the robot stand.' },
+          { instruction: 'Choose and attach the robot’s buttons.', tip: 'Use buttons, bottle caps, or paper circles; plan the colours before gluing.' },
+          { instruction: 'Draw the eyes and add antennae.', tip: 'Two big eyes and paper antennae give the robot a personality.' },
+          { instruction: 'Give your robot a job and a name.', tip: 'Write it on the tag and tell what the robot does.' },
         ],
       },
       es: {
         title: 'Robot de Cartón',
-        description: 'Cajas y tubos se vuelven un robot con botones y ojos.',
+        description: 'Cajas y tubos se convierten en un robot con botones y ojos.',
         steps: [
-          { instruction: 'Elige la caja de cartón.', tip: 'Una caja de zapatos queda baja y firme. Una de cereales queda larga.' },
-          { instruction: 'Marca con el rotulador dónde vas a cortar.', tip: 'Marca alrededor de la caja, un dedo por dentro de cada borde. Por ahí sale el cuerpo.' },
-          { instruction: 'Corta con las tijeras siguiendo la marca.', tip: 'Corta despacio, con las tijeras cerradas. Si se atascan, da la vuelta a la caja y sigue.' },
-          { instruction: 'Abre la caja y arregla las solapas.', tip: 'Dobla las solapas hacia dentro hasta que se sostenga sola. Esta es la parte aburrida — es aquí donde el robot gana cuerpo.' },
-          { instruction: 'Dibuja los dos ojos con el rotulador.', tip: 'Dos círculos grandes e iguales hacen que cualquier caja parezca un robot.' },
-          { instruction: 'Pega la cinta y los botones.', tip: 'La cinta en cruz aguanta sin pegamento. Los botones pueden ser tapas o círculos de papel.' },
-          { instruction: 'Dale un trabajo y un nombre a tu robot.', tip: '¿Limpia la casa? ¿Riega las plantas? Hablar de él como una persona hace que parezca un personaje.' },
+          { instruction: 'Elige una caja para el cuerpo.', tip: 'Una caja de zapatos queda baja y firme; una de cereales es alta.' },
+          { instruction: 'Coloca una caja más pequeña encima para hacer la cabeza.', tip: 'Céntrala y sujétala con cinta o pegamento.' },
+          { instruction: 'Haz dos brazos con tubos de cartón.', tip: 'Usa tubos o enrolla papel. Pide ayuda a un adulto para cortar cartón grueso.' },
+          { instruction: 'Pega dos pies pequeños de cartón en la base.', tip: 'Una cajita a cada lado ayuda a que el robot se mantenga de pie.' },
+          { instruction: 'Elige y pega los botones del robot.', tip: 'Usa botones, tapas o círculos de papel; ordena los colores antes de pegarlos.' },
+          { instruction: 'Dibuja los ojos y añade antenas.', tip: 'Dos ojos grandes y antenas de papel le dan personalidad.' },
+          { instruction: 'Dale un trabajo y un nombre a tu robot.', tip: 'Escríbelo en la etiqueta y cuenta qué hace el robot.' },
         ],
       },
     },
