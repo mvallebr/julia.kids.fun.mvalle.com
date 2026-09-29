@@ -117,7 +117,7 @@ const PT = {
   'material.caps': 'tampinhas',
   'material.felt': 'feltro',
   'material.beads': 'contas de papel',
-  'material.pipeCleaner': 'esponja para modelar',
+  'material.pipeCleaner': 'arame felpudo',
   'material.spinner': 'brinquedo de girar',
   'material.saltDough': 'massa de sal',
   'material.foil': 'papel alumínio',
@@ -125,6 +125,7 @@ const PT = {
   'material.cerealBox': 'caixa de cereal',
   'material.marker': 'canetas coloridas',
   'material.tape': 'fita adesiva',
+  'material.marble': 'bola de gude',
   'material.box': 'caixotes de papelão',
   'material.tube': 'rolo de papel higiênico',
 };
@@ -249,6 +250,7 @@ const EN = {
   'material.cerealBox': 'cereal box',
   'material.marker': 'markers',
   'material.tape': 'sticky tape',
+  'material.marble': 'marble',
   'material.box': 'cardboard boxes',
   'material.tube': 'cardboard tube',
 };
@@ -373,6 +375,7 @@ const ES = {
   'material.cerealBox': 'caja de cereales',
   'material.marker': 'marcadores',
   'material.tape': 'cinta adhesiva',
+  'material.marble': 'canica',
   'material.box': 'cajas de cartón',
   'material.tube': 'tubo de cartón',
 };

@@ -291,9 +291,9 @@ objeto já ensina. Não invente uma ordem diferente da spec para acomodar a arte
 Sete chamadas independentes de `txt2img` deram robôs diferentes. Repetir prompt
 ou seed não trava identidade, proporção nem posição.
 
-O fluxo que funcionou para o T14:
+O fluxo que funcionou para o T14 e o T13:
 
-1. Gere uma referência final que caiba inteira no quadro e confira as peças.
+1. Gere uma base coerente para a primeira etapa (ou escolha uma referência confiável), inteira no quadro e com as peças conferidas.
 2. Edite a imagem anterior, uma peça por vez, sempre com o mesmo canvas.
 3. Se o editor mudar outras áreas, use uma máscara para compor apenas a edição
    autorizada sobre a etapa anterior.
@@ -301,10 +301,64 @@ O fluxo que funcionou para o T14:
    idênticos; revise também a emenda e o conteúdo dentro dela.
 5. Monte uma folha de contato e confira a ordem antes de escrever os passos.
 
+No T13, tentar remover olhos, bico e asas de uma foto final não funcionou: o
+editor manteve as peças. Gerar o tubo simples dobrado como primeira etapa deu
+uma base consistente para acrescentar o restante. Não dependa de uma edição
+reversa quando o primeiro estado puder ser gerado diretamente.
+
+
 Na sequência local do robô, os sete quadros mantiveram o mesmo enquadramento e
 cada transição alterou pixels só na região da peça nova. Os botões ficaram um
 pouco brilhantes e as fotos não mostram uma mão em ação: coerência de imagem não
 substitui revisão didática.
+
+**ComfyUI/Qwen 2511.** O PNG final do T14 guarda o grafo que funcionou:
+`TextEncodeQwenImageEditPlus` para as duas condicionais (a negativa vazia também
+recebe a imagem-base), `VAEEncode` da mesma imagem como latent de entrada e
+KSampler com 20 passos, CFG 4, `euler`/`simple`, `denoise=1`. Não troque a
+imagem latente de entrada por um latent vazio: a edição pode deixar de seguir a
+etapa anterior. A máscara local continua sendo a autoridade para proteger o
+resto do quadro.
+
+## 22. Foto com mão é opcional, e compô-la é pior que refazer
+
+A spec pede "real hands may appear where they help explain an action" — pode,
+não precisa. No T16 eu argumentei que o passo do corte só se ensina com tesoura
+na mão, e gerei sete fotos de ação. São ótimas fotos e estão erradas para o
+app: cada uma tem caixa, tamanho e câmera próprios, porque a mão do editor não
+cabe no quadro anterior. Sete fotos bonitas de caixas diferentes violam a
+lição nº 1.
+
+As duas tentativas de unir as duas coisas falharam, e é o que vale guardar:
+
+1. **Máscara retangular.** A mão entra, mas o fundo do editor traz um retângulo
+   de parede mais clara. Com plumagem de 1,5 px a emenda aparece como um
+   quadrado; com 26 px aparece um halo branco. A emenda não se resolve: ela
+   aparece justamente onde a foto nova e a antiga discordam.
+2. **Máscara de pele.** Segmentar a pele e compor só a mão resultou em pedaços
+   de mão flutuando no meio do quadro, porque a mão da foto nova está em outra
+   posição. A máscara seleciona onde a pele *está*, não onde ela *precisa
+   estar*.
+
+A regra que saiu disso: **ou a foto inteira é coerente com a sequência, ou ela
+fica de fora.** A progressão do objeto (marcar → cortar → forrar → etiquetar →
+decorar → divisória → lápis) é o que o app mostra; a foto de mão é um material
+de apoio, não um quadro do passo.
+
+
+## 23. Forma geométrica se desenha, não se edita
+
+Bolinha de vidro, cronômetro e tampinhas de garrafa são círculos, retângulos e
+gradientes. Editar com o modelo deu resultados que mudavam de tamanho a cada
+tentativa; desenhar com PIL sobre a etapa anterior, com máscara e sombra de
+contato, deu o resultado exato no primeiro intento. A regra do ladrilho
+funciona: **o que a régua resolve, a régua resolve.**
+
+E o inverso apareceu no mesmo lote: parede de labirinto desenhada por código
+acima de uma edição que *já tinha* a parede resultou em duas paredes paralelas. Antes
+de desenhar por cima, confira o que a etapa anterior já trouxe.
+
+
 
 ## Proveniência da Corujinha Pintada
 
@@ -322,6 +376,18 @@ A referência do robô foi criada localmente com Forge/SDXL. As edições de
 referência usaram Qwen Image Edit 2511 local via ComfyUI-GGUF; as regiões
 aprovadas foram compostas sobre a imagem anterior. Nenhuma foto de entrada foi
 enviada a um serviço remoto. Os pesos ficam fora deste repositório.
+
+
+## Proveniência das artes de sucata (T15 a T18)
+
+Jardim de Flores, Organizador de Mesa, Mosaico de Tampinhas e Labirinto de
+Papelão seguem o mesmo caminho do Robô de Papelão: a primeira etapa é uma
+referência gerada na própria máquina com Qwen Image Edit 2511 via
+ComfyUI-GGUF, cada etapa seguinte é uma edição mascarada da anterior com o
+mesmo modelo, e as formas geométricas (tampinhas, bolinha, cronômetro, becos sem
+saída) foram desenhadas por código sobre a etapa anterior, dentro da máscara. As
+fotos de ação com mão foram geradas para apoio e não entraram no app; ver a
+lição nº 22. Nenhuma foto de entrada foi enviada a um serviço remoto.
 
 
 ## Como refazer um tutorial de pintura
@@ -359,9 +425,10 @@ monta partes.
    fixos. Não use sete chamadas independentes de `txt2img` como sequência.
 4. Quando o editor redesenhar o quadro inteiro, aplique só a máscara da peça
    nova à etapa anterior e confira que o exterior ficou pixel a pixel igual.
-5. Use mãos e ferramentas quando a ação precisa ensinar onde cortar, dobrar ou
-   colar. Para adições simples de componentes, uma progressão clara do objeto
-   pode bastar; em qualquer caso, o texto e a imagem têm de descrever o mesmo
-   passo.
+5. Foto com mão é opcional (a spec diz "may appear"). Se ela for gerada, use
+   apenas quando a foto inteira continuar coerente com a sequência: mão
+   recortada por máscara não fecha, porque a mão editada nasce em outra
+   posição e em outro enquadramento. Fora desse caso, a progressão clara do
+   objeto basta — desde que o texto e a imagem descrevam o mesmo passo.
 6. Confira os sete quadros em uma folha de contato antes de instalar e remova os
    assets antigos que nenhum passo usa.
