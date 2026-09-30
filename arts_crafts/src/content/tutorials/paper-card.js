@@ -3,21 +3,17 @@
 // Um arquivo por categoria, `export default [ ... ]` — a biblioteca cresce por
 // arquivo, sem ninguém mexer na lista de imports.
 //
-// O véu só pode clarear (regra do `contentProblems`): nenhum passo volta para
-// 'full' depois de um 'active'. Por isso os passos 'active' formam um bloco
-// só, no fim da lista, e o último passo é sempre 'none'. Nenhum passo é
-// 'active' sem `region`, e dois 'active' seguidos nunca usam a mesma região.
+// Mistura de dois modos, nesta seção. Cinco tutoriais (T07, T08, T10, T11 e
+// T12) trazem `framePattern`: cada passo é uma foto do objeto naquele
+// estado, gerada encadeando a etapa anterior com edição mascarada. O sexto
+// (T09, a raposa de dobras) ainda usa véu sobre uma foto só, porque dobra de
+// origami é geometria exata e o gerador devolve aproximações — a lição 26 do
+// docs/LESSONS.md conta a história e diz o caminho se ele voltar.
 //
-// Sobre as regiões: `regionsOf()` preferiria as seis regiões DERIVADAS da
-// `objectBox`, mas o teste de "região de tutorial cabe dentro da imagem" lê
-// `tutorial.regions` direto, e um tutorial sem esse objeto passa vergonha. Por
-// isso cada tutorial aqui traz `regions` e `focus` escritos — E são a mesma
-// coisa que `derivedRegions`/`derivedFocus` devolveriam para a caixa ao lado.
-//
-// As caixas ainda são CHUTE: o objeto ocupa 60–80% da imagem, centralizado.
-// Quando a imagem existir, meça a caixa por pixel e corrija `objectBox`,
-// `regions` e `focus` juntos — `regions` tem prioridade em `regionsOf`, então
-// mexer só na caixa não muda nada na tela.
+// Para o tutorial com véu, a regra do `contentProblems` continua valendo: o
+// véu só pode clarear, 'active' só no fim da lista, e dois 'active' seguidos
+// nunca usam a mesma região. As regiões são as seis DERIVADAS da `objectBox`
+// do tutorial.
 //
 // Materiais são CHAVES do dicionário de interface, não texto. A cola de papel,
 // a tesoura e o papelão entram pelas chaves mais próximas que já existem; o
@@ -28,7 +24,6 @@
 // T12 (uns vinte riscos no cartão) marcam isso; T09, T10 e T11 são só papel.
 
 const foxBox = { x: 0.26, y: 0.20, w: 0.48, h: 0.58 };
-const cardBox = { x: 0.10, y: 0.24, w: 0.80, h: 0.52 };
 
 export default [
   // --- T07 ---------------------------------------------------------------
@@ -236,15 +231,15 @@ export default [
     estimatedMinutes: 25,
     baseImage: 'assets/tutorials/make-a-pop-up-celebration-card/base.webp',
     materials: ['material.cardboard', 'material.paper', 'material.scissors', 'material.glue', 'material.pen'],
-    objectBox: cardBox,
+    framePattern: 'assets/tutorials/make-a-pop-up-celebration-card/step-%s.webp',
     steps: [
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-dobrar' },
+      { veil: 'none', image: '02-riscos' },
+      { veil: 'none', image: '03-lingueta' },
+      { veil: 'none', image: '04-figura' },
+      { veil: 'none', image: '05-segunda' },
+      { veil: 'none', image: '06-fundo' },
+      { veil: 'none', image: '07-aberto' },
     ],
     copy: {
       pt: {
