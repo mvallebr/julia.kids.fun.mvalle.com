@@ -392,6 +392,29 @@ aceite um quadro de montagem sem abrir e olhar: foi o que fez as torres
 sumirem três vezes antes de aparecerem.
 
 
+## 25. A base precisa de mesa vazia ao redor do trabalho
+
+No T08 a caixa de giz encostava na folha do molde, e a máscara precisava cortar
+a folha sem cortar a caixa. Todo recorte deixava um resto: uma lasca branca de
+2 cm, uma coluna listrada, um retângulo claro. E "consertar" o resto na mesa foi
+pior que o resto — três tentativas de remendo produziram um quadrado mais
+evidente, um pedaço de coruja colado na mesa e uma segunda coruja fantasma.
+
+Regra que resolveu, na base seguinte: **ferramenta na borda do quadro, trabalho
+no meio.** Caixa de giz e bastão de cola meio fora de quadro, folha do molde
+com 30 cm de madeira livre em volta, máscara em retângulo simples. Nenhum resto,
+nenhum remendo.
+
+E o modelo inventa apoio: quando a única coisa nova é um objeto em pé, ele
+coloca uma folha branca atrás "para o objeto ficar". No T08 a coruja terminou
+sobre um retângulo de papel com borda dura. Pedir "sem folha nenhuma" na segunda
+tentativa deu folha de novo, em outra posição. O que fica é o quadro com a
+folha: ela parece uma folha de papel em cima da mesa, e o passo ainda ensina
+correto. Recusar é gastar meia hora para trocar um artefato menor.
+
+
+
+
 
 ## Proveniência da Corujinha Pintada
 

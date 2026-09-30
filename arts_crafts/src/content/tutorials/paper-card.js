@@ -27,7 +27,6 @@
 // pequena e metálica. T07 (todas as peças do castelo), T08 (pregos de papel) e
 // T12 (uns vinte riscos no cartão) marcam isso; T09, T10 e T11 são só papel.
 
-const puppetBox = { x: 0.26, y: 0.12, w: 0.48, h: 0.76 };
 const foxBox = { x: 0.26, y: 0.20, w: 0.48, h: 0.58 };
 const cardBox = { x: 0.10, y: 0.24, w: 0.80, h: 0.52 };
 const bouquetBox = { x: 0.24, y: 0.10, w: 0.52, h: 0.80 };
@@ -115,15 +114,15 @@ export default [
     baseImage: 'assets/tutorials/make-an-owl-paper-puppet/base.webp',
     printable: 'assets/tutorials/make-an-owl-paper-puppet/owl-pieces.svg',
     materials: ['material.template', 'material.cardboard', 'material.scissors', 'material.glue', 'material.crayons'],
-    objectBox: puppetBox,
+    framePattern: 'assets/tutorials/make-an-owl-paper-puppet/step-%s.webp',
     steps: [
-      { veil: 'full', printable: true },
-      { veil: 'full', swatches: true },
-      { veil: 'full' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'left' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-molde', printable: true },
+      { veil: 'none', image: '02-colorir', swatches: true },
+      { veil: 'none', image: '03-recortar' },
+      { veil: 'none', image: '04-olhos' },
+      { veil: 'none', image: '05-asas' },
+      { veil: 'none', image: '06-bico-pes' },
+      { veil: 'none', image: '07-voar' },
     ],
     copy: {
       pt: {
