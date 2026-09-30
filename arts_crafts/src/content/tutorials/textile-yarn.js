@@ -1,17 +1,12 @@
 // Lã e tecidos: T23 a T26.
 //
-// Mesma regra da massa: nada de coordenadas escritas. T23 (pulseira) e T24
-// (bichinho de lã) trazem `framePattern` — cada passo é uma foto do trabalho
-// naquele estado, gerada encadeando a etapa anterior com edição mascarada — e
-// por isso não usam `objectBox` nem véu. Os outros dois ainda usam véu sobre
-// uma foto só: a `objectBox` gera as seis regiões e cada passo só escolhe o
-// nome, 'top' para o nó no alto, 'bottom' para a parte de baixo, 'centre' para
-// a cara do bichinho, 'all' quando o trabalho é no objeto inteiro.
+// Mesma regra da massa: nada de coordenadas escritas. Os quatro tutoriais
+// desta seção (T23 a T26) trazem `framePattern` — cada passo é uma foto do
+// trabalho naquele estado, gerada encadeando a etapa anterior com edição
+// mascarada, e por isso não usam `objectBox` nem véu. No T26 as contas de papel
+// são desenhadas por código: o modelo transformava a conta de papel em pompom
+// felpudo e perdia a ordem das cores no fim.
 //
-// Nos tutoriais com véu, o objeto muda de escala ao longo do tutorial: o
-// trabalho começa pequeno e só vira peça completa no fim. Por isso o primeiro
-// passo e o penúltimo quase sempre são 'full' (só o contorno fantasma) e o que
-// a criança realmente vê acontecendo é sempre 'active'.
 
 export default [
   {
@@ -229,16 +224,16 @@ export default [
     estimatedMinutes: 35,
     requiresPrinting: false,
     baseImage: 'assets/tutorials/paper-bead-bracelet/base.webp',
-    objectBox: { x: 0.18, y: 0.22, w: 0.64, h: 0.56 },
     materials: ['material.paper', 'material.glue', 'material.pencils', 'material.string'],
+    framePattern: 'assets/tutorials/paper-bead-bracelet/step-%s.webp',
     steps: [
-      { veil: 'full' },
-      { veil: 'active', region: 'left' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-triangulos' },
+      { veil: 'none', image: '02-enrolar' },
+      { veil: 'none', image: '03-cola' },
+      { veil: 'none', image: '04-pronta' },
+      { veil: 'none', image: '05-cores' },
+      { veil: 'none', image: '06-elastico' },
+      { veil: 'none', image: '07-no' },
     ],
     copy: {
       pt: {
