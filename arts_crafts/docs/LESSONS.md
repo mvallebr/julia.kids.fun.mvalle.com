@@ -437,6 +437,39 @@ inteira em ilustração vetorial, num estilo que não finja ser foto, e aí as s
 etapas saem com a régua.
 
 
+## 27. Biblioteca publicada é a que tem quadro próprio, e só ela
+
+Depois de sair o T26, a biblioteca tinha 42 tutoriais: 22 com os sete quadros da
+construção e 20 com a foto do objeto pronto e véu por região. Deixar os dois
+lados misturados no ar é pior do que qualquer um deles sozinho — a criança
+passa de um tutorial que mostra a montagem para outro que só mostra o
+resultado, e o segundo parece o primeiro errado.
+
+Então os 20 que ainda não têm quadro saíram da biblioteca, e saíram por marca,
+não por delete: `draft: true` no tutorial e uma lista derivada,
+`LIVE_TUTORIALS`, que é o que o app usa em todo lugar — contagem da home,
+procura, chips de categoria, destaque, rota do passo, tela de parabéns e a
+superfície de QA. O tutorial continua no repositório, continua passando por
+todos os testes (chaves nos três idiomas, assets no disco, sem quadro órfão) e
+volta à biblioteca quando os quadros existirem: é apagar uma linha.
+
+Duas coisas que só apareceram depois de tirar:
+
+1. **O link direto de um rascunho.** `#/t/clay-pinch-pot/0` agora cai na lista
+   em vez de abrir o tutorial. Não é erro de verdadeiro — não existe tutorial
+   com esse slug — e é o comportamento certo.
+2. **Chip de categoria vazia.** "Massa e Modelagem", "Spin Art", "Design 2D" e
+   "Modelagem 3D" passaram a ser botões que só levavam à tela de "nada
+   encontrado". Agora o chip só aparece se existe tutorial publicado na
+   categoria.
+
+O teste que amarra a decisão está na seção 4 do `arts-crafts.test.js`:
+**todo tutorial publicado tem `framePattern` e todos os passos têm `image`.**
+Publicar com quadro único agora quebra o build, não só a conversa.
+
+
+
+
 
 ## Proveniência da Corujinha Pintada
 

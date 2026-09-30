@@ -35,4 +35,11 @@ export const TUTORIALS = [
   ...threeD,
 ];
 
+// O que a criança vê. Um tutorial marcado `draft` continua no repositório e
+// continua passando pelos testes, mas não entra na biblioteca publicada: ele
+// ainda mostra só a foto do objeto pronto, e a regra da lição nº 1 do
+// docs/LESSONS.md é que tutorial sem quadro próprio não vai ao ar. Tirar a
+// marca devolve o tutorial à biblioteca.
+export const LIVE_TUTORIALS = TUTORIALS.filter((tutorial) => !tutorial.draft);
+
 export * from './shared.js';

@@ -22,6 +22,12 @@
 // Adulto no passo = cortar muito, cortar papelão grosso ou usar uma peça
 // pequena e metálica. T07 (todas as peças do castelo), T08 (pregos de papel) e
 // T12 (uns vinte riscos no cartão) marcam isso; T09, T10 e T11 são só papel.
+//
+// RASCUNHOS: os tutoriais marcados `draft: true` abaixo ficam fora da
+// biblioteca publicada (ver `LIVE_TUTORIALS` em ../index.js). Eles ainda
+// mostram so a foto do objeto pronto, e tutorial sem quadro proprio nao vai
+// ao ar. Tirar a marca devolve o tutorial.
+
 
 const foxBox = { x: 0.26, y: 0.20, w: 0.48, h: 0.58 };
 
@@ -163,6 +169,8 @@ export default [
   // --- T09 ---------------------------------------------------------------
   {
     id: 't09',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'fold-an-origami-fox-face',
     category: 'paper-card',
     difficulty: 1,

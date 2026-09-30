@@ -8,7 +8,7 @@ import { CSS } from './styles.js';
 import { DICTIONARIES, translate } from './i18n.js';
 import {
   CATEGORIES, DESTINATIONS, SEASONS, SEASON_PALETTE, DEST_LAYOUT, SEASON_BACKDROP,
-  HOME_ART, FEATURED_ID, TUTORIALS, QUICK_MINUTES,
+  HOME_ART, FEATURED_ID, TUTORIALS, LIVE_TUTORIALS, QUICK_MINUTES,
   LANGUAGES, isQuick, assetUrl, regionsOf, focusOf, tutorialById, tutorialBySlug, contentProblems,
 } from './content/index.js';
 import {
@@ -76,14 +76,14 @@ function renderHome() {
   ]);
 
   const last = readLastTutorial();
-  const resume = last ? tutorialById(TUTORIALS, last) : null;
+  const resume = last ? tutorialById(LIVE_TUTORIALS, last) : null;
   const progress = resume ? readProgressFor(resume.id) : null;
 
   return [
     topbar(),
     el('img', { class: 'hero', src: assetUrl(HOME_ART), alt: '', width: '1280', height: '720' }),
     el('h1', { text: t('app.title') }),
-    el('p', { class: 'sub', text: t('tutorials.count', { count: TUTORIALS.length }) }),
+    el('p', { class: 'sub', text: t('tutorials.count', { count: LIVE_TUTORIALS.length }) }),
     resume && progress && !progress.completed
       ? el('button', {
           class: 'btn', type: 'button', onclick: () => { location.hash = `#/t/${resume.slug}/${progress.stepIndex}`; },
@@ -103,7 +103,7 @@ const filters = { search: '', category: null, printable: false, quick: false };
 
 function visibleTutorials() {
   const needle = filters.search.trim().toLowerCase();
-  return TUTORIALS.filter((tutorial) => {
+  return LIVE_TUTORIALS.filter((tutorial) => {
     if (filters.category && tutorial.category !== filters.category) return false;
     if (filters.printable && !tutorial.requiresPrinting) return false;
     if (filters.quick && !isQuick(tutorial)) return false;
@@ -146,15 +146,19 @@ function renderTutorials() {
     class: 'chip', type: 'button', 'aria-pressed': String(active), onclick: onClick,
   }, [label]);
 
+  // Categoria sem nenhum tutorial publicado não vira chip: seria um botão que
+  // só leva à tela de "nada encontrado".
+  const liveCategories = new Set(LIVE_TUTORIALS.map((tutorial) => tutorial.category));
   const categoryChips = [chip(t('tutorials.all'), () => { filters.category = null; rerender(); }, !filters.category)];
   for (const category of CATEGORIES) {
+    if (!liveCategories.has(category)) continue;
     categoryChips.push(chip(t(`category.${category}`), () => { filters.category = category; rerender(); }, filters.category === category));
   }
   categoryChips.push(chip(t('tutorials.printable'), () => { filters.printable = !filters.printable; rerender(); }, filters.printable));
   categoryChips.push(chip(t('tutorials.quick'), () => { filters.quick = !filters.quick; rerender(); }, filters.quick));
 
   const list = visibleTutorials();
-  const featured = filters.search || filters.category || filters.printable || filters.quick ? null : tutorialById(TUTORIALS, FEATURED_ID);
+  const featured = filters.search || filters.category || filters.printable || filters.quick ? null : tutorialById(LIVE_TUTORIALS, FEATURED_ID);
 
   return [
     topbar(),
@@ -290,7 +294,7 @@ function printTemplate(url) {
 }
 
 function renderTutorial(slug, stepIndex) {
-  const tutorial = tutorialBySlug(TUTORIALS, slug);
+  const tutorial = tutorialBySlug(LIVE_TUTORIALS, slug);
   if (!tutorial) return renderTutorials();
 
   const total = tutorial.steps.length;
@@ -342,7 +346,7 @@ function renderTutorial(slug, stepIndex) {
 }
 
 function renderCelebration(slug) {
-  const tutorial = tutorialBySlug(TUTORIALS, slug);
+  const tutorial = tutorialBySlug(LIVE_TUTORIALS, slug);
   const lastIndex = tutorial ? tutorial.steps.length - 1 : -1;
   return [
     topbar(),
@@ -483,7 +487,7 @@ globalThis.__artsCrafts = {
   context,
   route: currentRoute,
   render: rerender,
-  tutorials: () => TUTORIALS,
+  tutorials: () => LIVE_TUTORIALS,
   regionsOf: (tutorialId) => { const item = tutorialById(TUTORIALS, tutorialId); return item ? regionsOf(item) : null; },
   setFilter(next) { Object.assign(filters, next); rerender(); },
   goToStep(slug, step) { location.hash = `#/t/${slug}/${step}`; },

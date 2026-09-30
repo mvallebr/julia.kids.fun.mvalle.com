@@ -10,7 +10,7 @@ import { dirname, join, resolve } from 'node:path';
 
 import { DICTIONARIES, LANGUAGES as UI_LANGUAGES, interpolate, isLanguage, translate } from '../src/i18n.js';
 import {
-  CATEGORIES, DESTINATIONS, SEASONS, TUTORIALS, QUICK_MINUTES, LANGUAGES, isQuick,
+  CATEGORIES, DESTINATIONS, SEASONS, TUTORIALS, LIVE_TUTORIALS, QUICK_MINUTES, LANGUAGES, isQuick,
   contentProblems, tutorialById, tutorialBySlug, regionsOf, focusOf, derivedRegions,
 } from '../src/content/index.js';
 import { readPlayerContext, readSeason, writeSeason, KEYS } from '../src/state.js';
@@ -230,14 +230,41 @@ test('lookup por id e por slug encontra o mesmo tutorial', () => {
   assert.equal(tutorialBySlug(TUTORIALS, 'nao-existe'), null);
 });
 
-// --- 4. filtro de crafts rápidos ---
+// --- 4. o que vai ao ar ---
+
+// Um tutorial só sai da biblioteca publicada com os quadros próprios. A regra
+// é da lição nº 1 do docs/LESSONS.md: foto do objeto pronto com véu por região
+// mostra o resultado, não a construção, e a criança aprende a foto errada.
+test('toda biblioteca publicada mostra a construção, quadro a quadro', () => {
+  assert.ok(LIVE_TUTORIALS.length > 0, 'a biblioteca publicada ficou vazia');
+  for (const tutorial of LIVE_TUTORIALS) {
+    assert.equal(tutorial.draft, undefined, `${tutorial.id}: está na biblioteca e marcado como rascunho`);
+    assert.ok(tutorial.framePattern, `${tutorial.id}: publicado sem quadro próprio`);
+    for (const step of tutorial.steps) {
+      assert.ok(step.image, `${tutorial.id}: passo sem quadro`);
+    }
+  }
+});
+
+test('a marca de rascunho é o que segura o tutorial fora da biblioteca', () => {
+  const published = new Set(LIVE_TUTORIALS.map((tutorial) => tutorial.id));
+  for (const tutorial of TUTORIALS) {
+    if (tutorial.draft) {
+      assert.ok(!published.has(tutorial.id), `${tutorial.id}: rascunho publicado`);
+    } else {
+      assert.ok(published.has(tutorial.id), `${tutorial.id}: sem rascunho e fora da biblioteca`);
+    }
+  }
+});
+
+// --- 5. filtro de crafts rápidos ---
 
 test('craft rápido é o que cabe no tempo definido em um lugar só', () => {
   assert.equal(isQuick({ estimatedMinutes: QUICK_MINUTES }), true);
   assert.equal(isQuick({ estimatedMinutes: QUICK_MINUTES + 1 }), false);
 });
 
-// --- 5. caminhos de asset existem no disco ---
+// --- 6. caminhos de asset existem no disco ---
 
 test('todo quadro de passo existe no disco', () => {
   for (const tutorial of TUTORIALS) {
@@ -290,7 +317,7 @@ test('o launcher aponta para a pasta do app', () => {
   assert.ok(launcher.includes(`${APP_DIRNAME}/index.html`), 'o botão do launcher não aponta para arts_crafts/');
 });
 
-// --- 6. mundo criativo ---
+// --- 7. mundo criativo ---
 
 test('as seis áreas da spec estão no mapa', () => {
   assert.equal(DESTINATIONS.length, 6);
@@ -310,7 +337,7 @@ test('as nove categorias da spec existem', () => {
   assert.equal(CATEGORIES.length, 9);
 });
 
-// --- 7. estado local ---
+// --- 8. estado local ---
 
 test('a estação escolhida sobrevive a um relançamento', () => {
   withStorage(() => {

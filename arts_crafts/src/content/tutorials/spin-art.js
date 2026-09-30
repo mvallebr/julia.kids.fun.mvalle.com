@@ -13,10 +13,18 @@
 //
 // Nenhuma região aqui é 'left' ou 'right': spin art é radial, não tem lado
 // esquerdo. O que entra pelo meio é 'centre', o que o giro abre é 'all'.
+//
+// RASCUNHOS: os tutoriais marcados `draft: true` abaixo ficam fora da
+// biblioteca publicada (ver `LIVE_TUTORIALS` em ../index.js). Eles ainda
+// mostram so a foto do objeto pronto, e tutorial sem quadro proprio nao vai
+// ao ar. Tirar a marca devolve o tutorial.
+
 
 export default [
   {
     id: 't27',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'first-spin-art-painting',
     category: 'spin-art',
     difficulty: 1,
@@ -78,6 +86,8 @@ export default [
   },
   {
     id: 't28',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'rainbow-rings-spin-art',
     category: 'spin-art',
     difficulty: 1,
@@ -139,6 +149,8 @@ export default [
   },
   {
     id: 't29',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'spin-art-planet',
     category: 'spin-art',
     difficulty: 2,
@@ -203,6 +215,8 @@ export default [
   },
   {
     id: 't30',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'two-stage-spin-art-flower',
     category: 'spin-art',
     difficulty: 2,

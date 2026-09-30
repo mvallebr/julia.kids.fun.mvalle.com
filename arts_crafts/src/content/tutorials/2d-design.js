@@ -11,10 +11,18 @@
 // 'none', os três primeiros ficam no fantasma do contorno (escolher forma,
 // escolher cor, montar o desenho ainda em branco) e os três últimos abrem a
 // cor em três recortes diferentes.
+//
+// RASCUNHOS: os tutoriais marcados `draft: true` abaixo ficam fora da
+// biblioteca publicada (ver `LIVE_TUTORIALS` em ../index.js). Eles ainda
+// mostram so a foto do objeto pronto, e tutorial sem quadro proprio nao vai
+// ao ar. Tirar a marca devolve o tutorial.
+
 
 export default [
   {
     id: 't31',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'design-a-personal-badge',
     category: '2d-design',
     difficulty: 1,
@@ -77,6 +85,8 @@ export default [
   },
   {
     id: 't32',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'make-a-repeating-pattern',
     category: '2d-design',
     difficulty: 2,
@@ -142,6 +152,8 @@ export default [
   },
   {
     id: 't33',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'pixel-art-creature',
     category: '2d-design',
     difficulty: 2,

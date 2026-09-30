@@ -16,10 +16,18 @@
 // Os `objectBox` abaixo são ESTIMATIVAS a olho. A arte final recalcula a caixa
 // por pixel e troca estes cinco números: o formato e o fato de o objeto caber
 // dentro de 0..1 é que não podem mudar.
+//
+// RASCUNHOS: os tutoriais marcados `draft: true` abaixo ficam fora da
+// biblioteca publicada (ver `LIVE_TUTORIALS` em ../index.js). Eles ainda
+// mostram so a foto do objeto pronto, e tutorial sem quadro proprio nao vai
+// ao ar. Tirar a marca devolve o tutorial.
+
 
 export default [
   {
     id: 't02',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'watercolour-galaxy',
     category: 'drawing-painting',
     difficulty: 1,
@@ -81,6 +89,8 @@ export default [
   },
   {
     id: 't03',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'symmetry-butterfly',
     category: 'drawing-painting',
     difficulty: 1,
@@ -143,6 +153,8 @@ export default [
   },
   {
     id: 't04',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'sunset-silhouette',
     category: 'drawing-painting',
     difficulty: 1,
@@ -204,6 +216,8 @@ export default [
   },
   {
     id: 't05',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'fingerprint-flower-garden',
     category: 'drawing-painting',
     difficulty: 1,
@@ -265,6 +279,8 @@ export default [
   },
   {
     id: 't06',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'create-a-comic-character',
     category: 'drawing-painting',
     difficulty: 2,

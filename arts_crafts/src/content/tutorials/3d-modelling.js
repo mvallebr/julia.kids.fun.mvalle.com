@@ -12,10 +12,18 @@
 // fantasma. O boneco de verdade aparece a partir do empilhamento.
 //
 // Os materiais são só o caderno de rascunho: o modelo em si é feito na tela.
+//
+// RASCUNHOS: os tutoriais marcados `draft: true` abaixo ficam fora da
+// biblioteca publicada (ver `LIVE_TUTORIALS` em ../index.js). Eles ainda
+// mostram so a foto do objeto pronto, e tutorial sem quadro proprio nao vai
+// ao ar. Tirar a marca devolve o tutorial.
+
 
 export default [
   {
     id: 't34',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'build-a-3d-snowman',
     category: '3d-modelling',
     difficulty: 1,
@@ -76,6 +84,8 @@ export default [
   },
   {
     id: 't35',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'build-a-simple-3d-owl',
     category: '3d-modelling',
     difficulty: 2,
@@ -136,6 +146,8 @@ export default [
   },
   {
     id: 't36',
+    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
+    draft: true,
     slug: 'build-a-3d-rocket',
     category: '3d-modelling',
     difficulty: 2,
