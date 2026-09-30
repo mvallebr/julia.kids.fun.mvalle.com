@@ -29,7 +29,6 @@
 
 const foxBox = { x: 0.26, y: 0.20, w: 0.48, h: 0.58 };
 const cardBox = { x: 0.10, y: 0.24, w: 0.80, h: 0.52 };
-const bouquetBox = { x: 0.24, y: 0.10, w: 0.52, h: 0.80 };
 const weaveBox = { x: 0.20, y: 0.14, w: 0.60, h: 0.72 };
 
 export default [
@@ -300,15 +299,15 @@ export default [
     estimatedMinutes: 25,
     baseImage: 'assets/tutorials/paper-flower-bouquet/base.webp',
     materials: ['material.paper', 'material.scissors', 'material.glue'],
-    objectBox: bouquetBox,
+    framePattern: 'assets/tutorials/paper-flower-bouquet/step-%s.webp',
     steps: [
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'top' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-petalas' },
+      { veil: 'none', image: '02-recortar' },
+      { veil: 'none', image: '03-circulo' },
+      { veil: 'none', image: '04-miolo' },
+      { veil: 'none', image: '05-caule' },
+      { veil: 'none', image: '06-folhas' },
+      { veil: 'none', image: '07-buque' },
     ],
     copy: {
       pt: {

@@ -413,6 +413,28 @@ folha: ela parece uma folha de papel em cima da mesa, e o passo ainda ensina
 correto. Recusar é gastar meia hora para trocar um artefato menor.
 
 
+## 26. Dobradura é geometria exata: o modelo não acerta, e não vale forçar
+
+O T09 é uma sequência de triângulos: quadrado, dobra na diagonal, ponta para
+cima, duas orelhas, vira, rosto. Cada passo é um polígono com vértice
+exatamente no lugar, e o modelo devolve aproximações: o triângulo virou
+trapézio (duas vezes, em duas sementes), as orelhas viraram dois retângulos
+com um entalhe, e o "vire do outro lado" virou outra coisa só. O rosto, esse
+sim, saiu certo — porque rosto é o que o modelo sabe fazer.
+
+A saída lógica seria desenhar a dobradura por código, como os telhados e as
+bandeirinhas do castelo. O obstáculo não é o polígono, é o fundo: cada dobra
+descobre uma parte da mesa que estava coberta por papel, e a mesa da foto tem
+gradiente de luz, veio e brilho. Tentei reconstruir a mesa a partir das faixas
+limpas do mesmo quadro: saiu uma parede de madeira com emenda no meio, e
+remendar por cima já tinha custado três tentativas no T08.
+
+Decisão: **o T09 fica com o quadro único por enquanto**, e o registro fica
+escrito. Entregar um trapézio onde o texto diz triângulo, para a criança
+aprender a olhar errado, é pior que a foto só do resultado. Se a dobradura
+voltar a entrar no app, o caminho não é insistir no prompt: é gerar a sequência
+inteira em ilustração vetorial, num estilo que não finja ser foto, e aí as sete
+etapas saem com a régua.
 
 
 
