@@ -1,17 +1,18 @@
 // Lã e tecidos: T23 a T26.
 //
-// Mesma regra da massa: nada de coordenadas escritas. A caixa do objeto
-// (`objectBox`) gera as seis regiões e cada passo só escolhe o nome — 'top' para
+// Mesma regra da massa: nada de coordenadas escritas. O T23 (pulseira) traz
+// `framePattern` — cada passo é uma foto do trabalho naquele estado, gerada
+// encadeando a etapa anterior com edição mascarada — e por isso não usa
+// `objectBox` nem véu. Os outros três ainda usam véu sobre uma foto só: a
+// `objectBox` gera as seis regiões e cada passo só escolhe o nome, 'top' para
 // o nó no alto, 'bottom' para a parte de baixo, 'centre' para a cara do
 // bichinho, 'all' quando o trabalho é no objeto inteiro.
 //
 // Aqui o objeto muda de escala ao longo do tutorial: a pulseira começa como um
-// nó com três fios pendurados e só vira arco no fim. Por isso o primeiro passo
-// e o penúltimo quase sempre são 'full' (só o contorno fantasma) e o trabalho
-// que a criança realmente vê acontecendo é sempre 'active'.
-//
-// Os `objectBox` abaixo são ESTIMATIVAS a olho; a arte final recalcula a caixa
-// por pixel. O formato e o objeto cabendo dentro de 0..1 é que não muda.
+// nó com três fios pendurados e só vira arco no fim. Por isso, nos tutoriais
+// com véu, o primeiro passo e o penúltimo quase sempre são 'full' (só o
+// contorno fantasma) e o trabalho que a criança realmente vê acontecendo é
+// sempre 'active'.
 
 export default [
   {
@@ -22,16 +23,16 @@ export default [
     estimatedMinutes: 30,
     requiresPrinting: false,
     baseImage: 'assets/tutorials/easy-friendship-bracelet/base.webp',
-    objectBox: { x: 0.18, y: 0.20, w: 0.64, h: 0.60 },
+    framePattern: 'assets/tutorials/easy-friendship-bracelet/step-%s.webp',
     materials: ['material.yarn', 'material.string'],
     steps: [
-      { veil: 'full', swatches: true },
-      { veil: 'full' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-cores', swatches: true },
+      { veil: 'none', image: '02-cortar' },
+      { veil: 'none', image: '03-no' },
+      { veil: 'none', image: '04-fita' },
+      { veil: 'none', image: '05-tranca' },
+      { veil: 'none', image: '06-pulso' },
+      { veil: 'none', image: '07-fechar' },
     ],
     copy: {
       pt: {
