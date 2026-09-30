@@ -1,18 +1,17 @@
 // Lã e tecidos: T23 a T26.
 //
-// Mesma regra da massa: nada de coordenadas escritas. O T23 (pulseira) traz
-// `framePattern` — cada passo é uma foto do trabalho naquele estado, gerada
-// encadeando a etapa anterior com edição mascarada — e por isso não usa
-// `objectBox` nem véu. Os outros três ainda usam véu sobre uma foto só: a
-// `objectBox` gera as seis regiões e cada passo só escolhe o nome, 'top' para
-// o nó no alto, 'bottom' para a parte de baixo, 'centre' para a cara do
-// bichinho, 'all' quando o trabalho é no objeto inteiro.
+// Mesma regra da massa: nada de coordenadas escritas. T23 (pulseira) e T24
+// (bichinho de lã) trazem `framePattern` — cada passo é uma foto do trabalho
+// naquele estado, gerada encadeando a etapa anterior com edição mascarada — e
+// por isso não usam `objectBox` nem véu. Os outros dois ainda usam véu sobre
+// uma foto só: a `objectBox` gera as seis regiões e cada passo só escolhe o
+// nome, 'top' para o nó no alto, 'bottom' para a parte de baixo, 'centre' para
+// a cara do bichinho, 'all' quando o trabalho é no objeto inteiro.
 //
-// Aqui o objeto muda de escala ao longo do tutorial: a pulseira começa como um
-// nó com três fios pendurados e só vira arco no fim. Por isso, nos tutoriais
-// com véu, o primeiro passo e o penúltimo quase sempre são 'full' (só o
-// contorno fantasma) e o trabalho que a criança realmente vê acontecendo é
-// sempre 'active'.
+// Nos tutoriais com véu, o objeto muda de escala ao longo do tutorial: o
+// trabalho começa pequeno e só vira peça completa no fim. Por isso o primeiro
+// passo e o penúltimo quase sempre são 'full' (só o contorno fantasma) e o que
+// a criança realmente vê acontecendo é sempre 'active'.
 
 export default [
   {
@@ -96,16 +95,16 @@ export default [
     estimatedMinutes: 20,
     requiresPrinting: false,
     baseImage: 'assets/tutorials/yarn-tassel-creature/base.webp',
-    objectBox: { x: 0.26, y: 0.12, w: 0.48, h: 0.74 },
+    framePattern: 'assets/tutorials/yarn-tassel-creature/step-%s.webp',
     materials: ['material.yarn', 'material.paper', 'material.scissors', 'material.glue'],
     steps: [
-      { veil: 'full' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-enrolar' },
+      { veil: 'none', image: '02-nos' },
+      { veil: 'none', image: '03-cortar' },
+      { veil: 'none', image: '04-penteado' },
+      { veil: 'none', image: '05-olhos' },
+      { veil: 'none', image: '06-orelhas' },
+      { veil: 'none', image: '07-nome' },
     ],
     copy: {
       pt: {
