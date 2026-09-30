@@ -29,7 +29,6 @@
 
 const foxBox = { x: 0.26, y: 0.20, w: 0.48, h: 0.58 };
 const cardBox = { x: 0.10, y: 0.24, w: 0.80, h: 0.52 };
-const weaveBox = { x: 0.20, y: 0.14, w: 0.60, h: 0.72 };
 
 export default [
   // --- T07 ---------------------------------------------------------------
@@ -362,15 +361,15 @@ export default [
     requiresAdultHelp: true,
     baseImage: 'assets/tutorials/paper-weaving-rainbow/base.webp',
     materials: ['material.cardboard', 'material.paper', 'material.scissors', 'material.glue'],
-    objectBox: weaveBox,
+    framePattern: 'assets/tutorials/paper-weaving-rainbow/step-%s.webp',
     steps: [
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-cartao' },
+      { veil: 'none', image: '02-dobras' },
+      { veil: 'none', image: '03-cortar' },
+      { veil: 'none', image: '04-abrir' },
+      { veil: 'none', image: '05-primeira' },
+      { veil: 'none', image: '06-segunda' },
+      { veil: 'none', image: '07-cheio' },
     ],
     copy: {
       pt: {
