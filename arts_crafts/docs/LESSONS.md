@@ -358,6 +358,39 @@ E o inverso apareceu no mesmo lote: parede de labirinto desenhada por código
 acima de uma edição que *já tinha* a parede resultou em duas paredes paralelas. Antes
 de desenhar por cima, confira o que a etapa anterior já trouxe.
 
+## 24. O editor não levanta peça: ele redesenha a região
+
+No T07 o passo "cole as torres" e o passo "junte os muros e o portão" são a
+mesma operação com difficulty diferente, e o modelo trata as duas igual: ele
+reimagina a região mascarada. Some quem não está no prompt.
+
+O que foi observado, em quatro tentativas no mesmo par:
+
+1. Máscara grande pedindo as duas coisas de uma vez: o pátio sai bom e as
+   torres **somem**.
+2. Máscara grande pedindo só as torres, com texto que enumera o que continua
+   deitado: as torres aparecem e o resto do desenho é reescrito.
+3. Máscara em faixa, só na metade de baixo, pedindo o muro em pé: o editor
+   redesenha a peça **deitada**, porque peça deitada é o que a faixa contém.
+4. Desenhar o muro em pé por código: sai geometricamente certo e
+   fotograficamente falso, com ameias que parecem blocos soltos.
+
+Duas técnicas resolveram o que o prompt não resolveu:
+
+- **Recolocar por cópia.** A torre é uma região fotográfica pronta do quadro
+  anterior, e a câmera não se moveu: basta colar de volta aquele retângulo com
+  a borda suavizada. Não é redesenho, é pixels verdadeiros, e a emenda
+  desaparece porque a cena ao redor é a mesma.
+- **Voltar um passo apagando o que o passo acrescentou.** Bandeirinha é
+  geometria pura; para obter o quadro anterior ao das bandeiras, o caminho foi
+  NÃO pedir remoção ao modelo (remoção é ainda mais frágil que acréscimo) e
+  sim partir do quadro limpo e redesenhar só a bandeirinha.
+
+A regra que vale para o bloco inteiro: **peça deitada, mostra o modelo
+montando; peça em pé, monta por código ou copia do quadro anterior.** E nunca
+aceite um quadro de montagem sem abrir e olhar: foi o que fez as torres
+sumirem três vezes antes de aparecerem.
+
 
 
 ## Proveniência da Corujinha Pintada

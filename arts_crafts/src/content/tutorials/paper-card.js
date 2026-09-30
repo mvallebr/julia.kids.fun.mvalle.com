@@ -27,7 +27,6 @@
 // pequena e metálica. T07 (todas as peças do castelo), T08 (pregos de papel) e
 // T12 (uns vinte riscos no cartão) marcam isso; T09, T10 e T11 são só papel.
 
-const castleBox = { x: 0.16, y: 0.18, w: 0.68, h: 0.68 };
 const puppetBox = { x: 0.26, y: 0.12, w: 0.48, h: 0.76 };
 const foxBox = { x: 0.26, y: 0.20, w: 0.48, h: 0.58 };
 const cardBox = { x: 0.10, y: 0.24, w: 0.80, h: 0.52 };
@@ -47,16 +46,16 @@ export default [
     baseImage: 'assets/tutorials/build-a-paper-castle/base.webp',
     printable: 'assets/tutorials/build-a-paper-castle/castle-pieces.svg',
     materials: ['material.template', 'material.cardboard', 'material.scissors', 'material.glue', 'material.pen'],
-    objectBox: castleBox,
+    framePattern: 'assets/tutorials/build-a-paper-castle/step-%s.webp',
     steps: [
-      { veil: 'full', printable: true },
-      { veil: 'full', swatches: true },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'active', region: 'top' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-molde', printable: true },
+      { veil: 'none', image: '02-colorir', swatches: true },
+      { veil: 'none', image: '03-recortar' },
+      { veil: 'none', image: '04-dobrar' },
+      { veil: 'none', image: '05-torres' },
+      { veil: 'none', image: '06-muros' },
+      { veil: 'none', image: '07-bandeiras' },
+      { veil: 'none', image: '08-pronto' },
     ],
     copy: {
       pt: {
