@@ -84,24 +84,22 @@ export default [
   },
   {
     id: 't28',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'rainbow-rings-spin-art',
     category: 'spin-art',
     difficulty: 1,
     estimatedMinutes: 15,
     requiresAdultHelp: true,
     baseImage: 'assets/tutorials/rainbow-rings-spin-art/base.webp',
-    objectBox: { x: 0.20, y: 0.27, w: 0.60, h: 0.45 },
+    framePattern: 'assets/tutorials/rainbow-rings-spin-art/step-%s.webp',
     materials: ['material.spinner', 'material.cardboard', 'material.paper', 'material.paint'],
     steps: [
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-centro' },
+      { veil: 'none', image: '02-segunda' },
+      { veil: 'none', image: '03-terceira' },
+      { veil: 'none', image: '04-velocidade' },
+      { veil: 'none', image: '05-contar' },
+      { veil: 'none', image: '06-diferente' },
+      { veil: 'none', image: '07-secar' },
     ],
     copy: {
       pt: {
