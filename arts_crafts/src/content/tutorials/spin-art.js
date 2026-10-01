@@ -206,26 +206,21 @@ export default [
   },
   {
     id: 't30',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'two-stage-spin-art-flower',
     category: 'spin-art',
     difficulty: 2,
     estimatedMinutes: 20,
     baseImage: 'assets/tutorials/two-stage-spin-art-flower/base.webp',
-    // Aqui o objeto é o disco inteiro: a base girada é a parte mais larga da
-    // obra, e a flor nasce em cima dela. Por isso 'all' entra no passo das
-    // pétalas — é o passo em que o desenho inteiro muda de cara.
-    objectBox: { x: 0.17, y: 0.24, w: 0.66, h: 0.50 },
+    framePattern: 'assets/tutorials/two-stage-spin-art-flower/step-%s.webp',
     materials: ['material.spinner', 'material.cardboard', 'material.paint', 'material.pen'],
     steps: [
-      { veil: 'full', swatches: true },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-base', swatches: true },
+      { veil: 'none', image: '02-secar' },
+      { veil: 'none', image: '03-miolo' },
+      { veil: 'none', image: '04-petalas' },
+      { veil: 'none', image: '05-caule' },
+      { veil: 'none', image: '06-folhas' },
+      { veil: 'none', image: '07-fundo' },
     ],
     copy: {
       pt: {
