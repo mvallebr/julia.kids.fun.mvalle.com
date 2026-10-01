@@ -149,27 +149,22 @@ export default [
   },
   {
     id: 't29',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'spin-art-planet',
     category: 'spin-art',
     difficulty: 2,
     estimatedMinutes: 25,
     requiresAdultHelp: true,
     baseImage: 'assets/tutorials/spin-art-planet/base.webp',
-    // O objeto final é o planeta com o anel, colado no papel escuro: a caixa
-    // cobre a composição toda, e o anel é achatado, então a altura é menor
-    // que a largura de um círculo cheio.
-    objectBox: { x: 0.14, y: 0.20, w: 0.72, h: 0.56 },
+    framePattern: 'assets/tutorials/spin-art-planet/step-%s.webp',
     materials: ['material.spinner', 'material.cardboard', 'material.paper', 'material.paint', 'material.scissors', 'material.glue', 'material.pen'],
     steps: [
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-circulo' },
+      { veil: 'none', image: '02-secar' },
+      { veil: 'none', image: '03-estrelas' },
+      { veil: 'none', image: '04-recortar' },
+      { veil: 'none', image: '05-colar' },
+      { veil: 'none', image: '06-anel' },
+      { veil: 'none', image: '07-nome' },
     ],
     copy: {
       pt: {
