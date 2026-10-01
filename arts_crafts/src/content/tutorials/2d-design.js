@@ -145,8 +145,6 @@ export default [
   },
   {
     id: 't33',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'pixel-art-creature',
     category: '2d-design',
     difficulty: 2,
@@ -154,19 +152,16 @@ export default [
     requiresPrinting: true,
     baseImage: 'assets/tutorials/pixel-art-creature/base.webp',
     printable: 'assets/tutorials/pixel-art-creature/grid-16x16.svg',
-    // A grade é 16x16 e o bicho sai mais alto do que largo, então a caixa é
-    // estreita de propósito: é a silhueta do bicho que tem que caber, não a
-    // folha inteira.
-    objectBox: { x: 0.24, y: 0.14, w: 0.52, h: 0.64 },
+    framePattern: 'assets/tutorials/pixel-art-creature/step-%s.webp',
     materials: ['material.paper', 'material.pencils', 'material.crayons'],
     steps: [
-      { veil: 'full', printable: true },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-grade', printable: true },
+      { veil: 'none', image: '02-corpo' },
+      { veil: 'none', image: '03-olhos' },
+      { veil: 'none', image: '04-partes' },
+      { veil: 'none', image: '05-cor' },
+      { veil: 'none', image: '06-brilho' },
+      { veil: 'none', image: '07-nome' },
     ],
     copy: {
       pt: {
