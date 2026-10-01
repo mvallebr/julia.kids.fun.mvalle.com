@@ -495,6 +495,31 @@ E quando o passo é só *tirar* uma peça, o caminho curto não é pedir a remo�
 é **colar a peça que sobrou** a partir do quadro anterior, que tem o objeto já
 certo e na posição certa.
 
+## 29. Pipeline sem validação falha em silêncio, e é caro
+
+O gerador de sequência é um arquivo JSON por tutorial: base, seis prompts e as
+máscaras. Vinte tutoriais saíram de dezesseis especificações escritas à mão no
+mesmo formato. Quatro delas — os quatro de massinha — tinham as chaves de
+máscara como `02`, `03`, `04`, em vez de `02-corpo`, `03-olhos`.
+
+O resultado foi o pior dos defeitos: **não quebrou o prompt, quebrou a fila às
+13h40 da noite**. O processo morreu no segundo quadro do primeiro tutorial com um
+`FileNotFoundError: mask-02-corpo.png`, e as outras quinze especificações nunca
+chegaram a ser vistas. Durante uma hora e meia eu acreditei que a GPU estava
+lenta — o grafo estava em 94% de uso, renderizando o T33 sozinho, porque era o
+único processo que ainda existia.
+
+Duas mudanças, e as duas são de prevention, não de correção:
+
+1. O gerador agora confere, antes de renderizar, que **toda chave de máscara
+   corresponde a um id de passo e que não sobra nenhuma**. Uma linha, e a falha
+   vira mensagem com o nome da spec em vez de FileNotFoundError na terceira hora.
+2. Toda vez que um processo em lote termina, olhar o log e contar o que foi
+   gerado — `grep -c` de quantas saídas tem, não só se o processo terminou.
+
+A regra geral: **automatização sem verificação é uma aposta com a ficha
+coberta**. O prompt falhar é barulho; a automação falhar é silêncio.
+
 ## Proveniência da Corujinha Pintada
 
 *A seção abaixo registra o caminho usado para as artes de pintura; não é o
