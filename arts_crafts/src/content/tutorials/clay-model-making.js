@@ -207,24 +207,22 @@ export default [
   },
   {
     id: 't22',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'salt-dough-stars',
     category: 'clay-model-making',
     difficulty: 2,
     estimatedMinutes: 30,
     requiresPrinting: false,
     baseImage: 'assets/tutorials/salt-dough-stars/base.webp',
-    objectBox: { x: 0.16, y: 0.16, w: 0.68, h: 0.68 },
+    framePattern: 'assets/tutorials/salt-dough-stars/step-%s.webp',
     materials: ['material.clay', 'material.water', 'material.scissors', 'material.paint', 'material.string'],
     steps: [
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-massa' },
+      { veil: 'none', image: '02-rolar' },
+      { veil: 'none', image: '03-estrelas' },
+      { veil: 'none', image: '04-furos' },
+      { veil: 'none', image: '05-assar' },
+      { veil: 'none', image: '06-pintar' },
+      { veil: 'none', image: '07-cordao' },
     ],
     copy: {
       pt: {
