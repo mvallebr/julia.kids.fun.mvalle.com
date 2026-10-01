@@ -22,23 +22,22 @@
 export default [
   {
     id: 't34',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'build-a-3d-snowman',
     category: '3d-modelling',
     difficulty: 1,
     estimatedMinutes: 20,
     baseImage: 'assets/tutorials/build-a-3d-snowman/base.webp',
-    objectBox: { x: 0.24, y: 0.10, w: 0.52, h: 0.78 },
+    materials: ['material.paper', 'material.pencils'],
+    framePattern: 'assets/tutorials/build-a-3d-snowman/step-%s.webp',
     materials: ['material.paper', 'material.pencils'],
     steps: [
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-esfera' },
+      { veil: 'none', image: '02-duplicar' },
+      { veil: 'none', image: '03-tamanhos' },
+      { veil: 'none', image: '04-empilhar' },
+      { veil: 'none', image: '05-olhos' },
+      { veil: 'none', image: '06-bico' },
+      { veil: 'none', image: '07-chapeu' },
     ],
     copy: {
       pt: {
@@ -84,23 +83,22 @@ export default [
   },
   {
     id: 't35',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'build-a-simple-3d-owl',
     category: '3d-modelling',
     difficulty: 2,
     estimatedMinutes: 30,
     baseImage: 'assets/tutorials/build-a-simple-3d-owl/base.webp',
-    objectBox: { x: 0.24, y: 0.12, w: 0.52, h: 0.72 },
+    materials: ['material.paper', 'material.pencils'],
+    framePattern: 'assets/tutorials/build-a-simple-3d-owl/step-%s.webp',
     materials: ['material.paper', 'material.pencils'],
     steps: [
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-corpo' },
+      { veil: 'none', image: '02-olhos' },
+      { veil: 'none', image: '03-bico' },
+      { veil: 'none', image: '04-asas' },
+      { veil: 'none', image: '05-pes' },
+      { veil: 'none', image: '06-espelhar' },
+      { veil: 'none', image: '07-cores' },
     ],
     copy: {
       pt: {
@@ -146,25 +144,22 @@ export default [
   },
   {
     id: 't36',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'build-a-3d-rocket',
     category: '3d-modelling',
     difficulty: 2,
     estimatedMinutes: 30,
     baseImage: 'assets/tutorials/build-a-3d-rocket/base.webp',
-    // A caixa cobre o foguete E a plataforma: o último passo só faz sentido
-    // com o modelo pousado nela, e é por isso que ela entra na medida.
-    objectBox: { x: 0.20, y: 0.08, w: 0.60, h: 0.84 },
+    materials: ['material.paper', 'material.pencils'],
+    framePattern: 'assets/tutorials/build-a-3d-rocket/step-%s.webp',
     materials: ['material.paper', 'material.pencils'],
     steps: [
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'active', region: 'all' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-cilindro' },
+      { veil: 'none', image: '02-cone' },
+      { veil: 'none', image: '03-aletas' },
+      { veil: 'none', image: '04-janelas' },
+      { veil: 'none', image: '05-motor' },
+      { veil: 'none', image: '06-cores' },
+      { veil: 'none', image: '07-plataforma' },
     ],
     copy: {
       pt: {
