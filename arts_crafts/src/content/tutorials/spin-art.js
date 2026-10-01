@@ -23,24 +23,22 @@
 export default [
   {
     id: 't27',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'first-spin-art-painting',
     category: 'spin-art',
     difficulty: 1,
     estimatedMinutes: 15,
     requiresAdultHelp: true,
     baseImage: 'assets/tutorials/first-spin-art-painting/base.webp',
-    objectBox: { x: 0.20, y: 0.27, w: 0.60, h: 0.45 },
+    framePattern: 'assets/tutorials/first-spin-art-painting/step-%s.webp',
     materials: ['material.spinner', 'material.cardboard', 'material.paper', 'material.paint'],
     steps: [
-      { veil: 'full' },
-      { veil: 'full', swatches: true },
-      { veil: 'full' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-papel' },
+      { veil: 'none', image: '02-cores', swatches: true },
+      { veil: 'none', image: '03-gotas' },
+      { veil: 'none', image: '04-girando' },
+      { veil: 'none', image: '05-mais' },
+      { veil: 'none', image: '06-rapido' },
+      { veil: 'none', image: '07-secar' },
     ],
     copy: {
       pt: {
