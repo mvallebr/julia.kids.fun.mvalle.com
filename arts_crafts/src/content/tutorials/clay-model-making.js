@@ -24,24 +24,22 @@
 export default [
   {
     id: 't19',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'air-dry-clay-monster',
     category: 'clay-model-making',
     difficulty: 1,
     estimatedMinutes: 30,
     requiresPrinting: false,
     baseImage: 'assets/tutorials/air-dry-clay-monster/base.webp',
-    objectBox: { x: 0.22, y: 0.14, w: 0.56, h: 0.72 },
+    framePattern: 'assets/tutorials/air-dry-clay-monster/step-%s.webp',
     materials: ['material.clay', 'material.pencils', 'material.paint'],
     steps: [
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-bola' },
+      { veil: 'none', image: '02-corpo' },
+      { veil: 'none', image: '03-olhos' },
+      { veil: 'none', image: '04-partes' },
+      { veil: 'none', image: '05-texturas' },
+      { veil: 'none', image: '06-secar' },
+      { veil: 'none', image: '06b-pintar' },
     ],
     copy: {
       pt: {
@@ -87,24 +85,22 @@ export default [
   },
   {
     id: 't20',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'clay-pinch-pot',
     category: 'clay-model-making',
     difficulty: 1,
     estimatedMinutes: 25,
     requiresPrinting: false,
     baseImage: 'assets/tutorials/clay-pinch-pot/base.webp',
-    objectBox: { x: 0.26, y: 0.18, w: 0.48, h: 0.62 },
+    framePattern: 'assets/tutorials/clay-pinch-pot/step-%s.webp',
     materials: ['material.clay', 'material.water'],
     steps: [
-      { veil: 'full' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'all' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-bola' },
+      { veil: 'none', image: '02-buraco' },
+      { veil: 'none', image: '03-paredes' },
+      { veil: 'none', image: '04-rachaduras' },
+      { veil: 'none', image: '05-borda' },
+      { veil: 'none', image: '06-carimbo' },
+      { veil: 'none', image: '07-pintar' },
     ],
     copy: {
       pt: {
@@ -150,24 +146,22 @@ export default [
   },
   {
     id: 't21',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'tiny-clay-owl',
     category: 'clay-model-making',
     difficulty: 2,
     estimatedMinutes: 30,
     requiresPrinting: false,
     baseImage: 'assets/tutorials/tiny-clay-owl/base.webp',
-    objectBox: { x: 0.22, y: 0.16, w: 0.56, h: 0.66 },
+    framePattern: 'assets/tutorials/tiny-clay-owl/step-%s.webp',
     materials: ['material.clay', 'material.pencils', 'material.paint'],
     steps: [
-      { veil: 'full' },
-      { veil: 'active', region: 'top' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'all' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-corpo' },
+      { veil: 'none', image: '02-orelhas' },
+      { veil: 'none', image: '03-olhos' },
+      { veil: 'none', image: '04-bico' },
+      { veil: 'none', image: '05-penas' },
+      { veil: 'none', image: '06-pes' },
+      { veil: 'none', image: '07-pintar' },
     ],
     copy: {
       pt: {
