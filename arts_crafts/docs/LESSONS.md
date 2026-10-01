@@ -471,6 +471,30 @@ Publicar com quadro único agora quebra o build, não só a conversa.
 
 
 
+## 28. O modelo troca uma coisa e perde outras três
+
+No T31 (Distintivo Pessoal) o passo 6 é "faça uma segunda versão com outras
+cores". Duas gerações, dois defeitos, nenhum deles no prompt:
+
+1. Pedindo "uma segunda versão ao lado da primeira" com a primeira descrita só
+   como "a que já está", o modelo desenhou **duas corais**. A azul — que era a
+   primeira, a que existia no quadro anterior — sumiu. Repetir o prompt com
+   "esquerda é a azul, direita é a coral" resolveu.
+2. No passo 7, pedindo "a escolhida sozinha, um pouco maior", o modelo redesenhou
+   o distintivo **sem a borda de pontinhos, sem o anel amarelo e sem as faixas de
+   nome**. Dois anos de_quadro para um "um pouco maior".
+
+O padrão é o da lição 24 com outro nome: **o modelo redesenha a região, e o que
+não está no texto do prompt não sobrevive.** Daí a regra prática que saiu daqui:
+quando um passo adiciona uma peça e não mexe em nenhuma outra, o prompt tem que
+**enumerar o que fica**, não só o que muda. "Mantém o anel amarelo, a fileira de
+pontinhos, a estrela e as duas faixas em branco" custa uma frase e segura o
+quadro.
+
+E quando o passo é só *tirar* uma peça, o caminho curto não é pedir a remoção:
+é **colar a peça que sobrou** a partir do quadro anterior, que tem o objeto já
+certo e na posição certa.
+
 ## Proveniência da Corujinha Pintada
 
 *A seção abaixo registra o caminho usado para as artes de pintura; não é o

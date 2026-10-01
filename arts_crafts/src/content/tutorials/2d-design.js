@@ -21,8 +21,6 @@
 export default [
   {
     id: 't31',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'design-a-personal-badge',
     category: '2d-design',
     difficulty: 1,
@@ -30,16 +28,16 @@ export default [
     requiresPrinting: true,
     baseImage: 'assets/tutorials/design-a-personal-badge/base.webp',
     printable: 'assets/tutorials/design-a-personal-badge/badge-shapes.svg',
-    objectBox: { x: 0.20, y: 0.15, w: 0.60, h: 0.64 },
+    framePattern: 'assets/tutorials/design-a-personal-badge/step-%s.webp',
     materials: ['material.paper', 'material.crayons', 'material.pencils'],
     steps: [
-      { veil: 'full', printable: true },
-      { veil: 'full' },
-      { veil: 'full' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-forma', printable: true },
+      { veil: 'none', image: '02-cores' },
+      { veil: 'none', image: '03-simbolo' },
+      { veil: 'none', image: '04-iniciais' },
+      { veil: 'none', image: '05-borda' },
+      { veil: 'none', image: '06-versao' },
+      { veil: 'none', image: '07-escolha' },
     ],
     copy: {
       pt: {
@@ -85,8 +83,6 @@ export default [
   },
   {
     id: 't32',
-    // Fora da biblioteca por enquanto: o quadro único não mostra a construção.
-    draft: true,
     slug: 'make-a-repeating-pattern',
     category: '2d-design',
     difficulty: 2,
@@ -94,19 +90,16 @@ export default [
     requiresPrinting: true,
     baseImage: 'assets/tutorials/make-a-repeating-pattern/base.webp',
     printable: 'assets/tutorials/make-a-repeating-pattern/pattern-grid.svg',
-    // O objeto é o painel de padrão inteiro, não o blocinho: o blocinho é
-    // pequeno demais para ser uma região útil e é justamente a repetição dele
-    // que forma a obra.
-    objectBox: { x: 0.14, y: 0.16, w: 0.72, h: 0.68 },
+    framePattern: 'assets/tutorials/make-a-repeating-pattern/step-%s.webp',
     materials: ['material.paper', 'material.crayons', 'material.pencils'],
     steps: [
-      { veil: 'full' },
-      { veil: 'full', printable: true },
-      { veil: 'full' },
-      { veil: 'active', region: 'bottom' },
-      { veil: 'active', region: 'all' },
-      { veil: 'active', region: 'centre' },
-      { veil: 'none' },
+      { veil: 'none', image: '01-formas' },
+      { veil: 'none', image: '02-bloco', printable: true },
+      { veil: 'none', image: '03-direita' },
+      { veil: 'none', image: '04-fileira' },
+      { veil: 'none', image: '05-cor' },
+      { veil: 'none', image: '06-padrao' },
+      { veil: 'none', image: '07-presente' },
     ],
     copy: {
       pt: {
