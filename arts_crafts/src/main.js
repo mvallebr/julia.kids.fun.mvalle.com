@@ -7,14 +7,28 @@
 import { CSS } from './styles.js';
 import { DICTIONARIES, translate } from './i18n.js';
 import {
-  CATEGORIES, DESTINATIONS, SEASONS, SEASON_PALETTE, DEST_LAYOUT, SEASON_BACKDROP,
+  CATEGORIES, DESTINATIONS, SEASONS, SEASON_PALETTE, SEASON_DRESSING, DEST_LAYOUT,
+  MAP_ART, MAP_ART_SIZE, MAP_CANOPIES, MAP_ROOFS, MAP_GROUND, FOLIAGE, GROUND_RAMP, ROOF_SNOW,
   HOME_ART, FEATURED_ID, TUTORIALS, LIVE_TUTORIALS, QUICK_MINUTES,
-  LANGUAGES, isQuick, assetUrl, regionsOf, focusOf, tutorialById, tutorialBySlug, contentProblems,
+  LANGUAGES, WEATHER_COUNT, weatherParticles, coverRect, leaderPoints,
+  isQuick, assetUrl, regionsOf, focusOf, tutorialById, tutorialBySlug, contentProblems,
 } from './content/index.js';
 import {
   readPlayerContext, readSeason, writeSeason, readProgressFor, writeProgressFor,
-  readCompleted, readLastTutorial,
+  readCompleted, readLastTutorial, readCreations, writeCreation, readSoundOn, writeSoundOn,
 } from './state.js';
+import { createSpinArt, paintRecord } from './games/spin-art.js';
+import { decodeRecord, resolveDabs } from './games/spin-art-geometry.js';
+
+// As strings do jogo, por idioma. Ficam fora do dicionário geral porque são um
+// bloco só do jogo: traduzir o jogo é mexer num lugar, e não folhear o arquivo
+// inteiro atrás de `spin.`.
+const SPIN_STRINGS = Object.fromEntries(
+  LANGUAGES.map((language) => [language, Object.fromEntries(
+    Object.keys(DICTIONARIES.pt).filter((key) => key.startsWith('spin.'))
+      .map((key) => [key, DICTIONARIES[language][key]]),
+  )]),
+);
 
 const context = readPlayerContext();
 const dictionary = DICTIONARIES[context.language];
@@ -28,6 +42,14 @@ const titleOf = (tutorial) => copyOf(tutorial).title || '';
 const stepText = (tutorial, index) => copyOf(tutorial).steps[index] || {};
 
 const root = document.getElementById('app');
+
+// A arte do mapa troca junto com o bundle, mas o NOME do arquivo não muda.
+// Sem a versão na URL, quem já tinha `village.webp` em cache continua vendo a
+// arte antiga com os marcadores da vila errada em cima — que é o defeito que
+// esta arte veio resolver. A versão é a mesma do `?v=` do bundle, então os
+// dois artefatos trocam juntos.
+const bundleTag = document.querySelector('script[src*="lib/bundle.js"]');
+const bundleVersion = new URL(bundleTag?.src || location.href, document.baseURI).searchParams.get('v') || '';
 
 // O CSS entra pelo bundle em vez de um arquivo a parte: um artefato para
 // versionar, e nenhum pedido extra antes da primeira pintura.
@@ -373,34 +395,331 @@ function renderCelebration(slug) {
 
 /* ----------------------------------------------------------------- games --- */
 
+// O mapa é a MESMA arte nas quatro estações; só o vestuário muda. É por isso
+// que a âncora pode ser medida uma vez na arte e valer para sempre: não há
+// segunda imagem para a casa ter fugido.
+function renderWeather(season, dressing) {
+  // Estação sem clima não cria elemento nenhum: um <svg> vazio ainda ocupa
+  // um nó, um seletor e uma camada de composição à toa.
+  if (dressing.weather === 'none') return null;
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  // A classed não é decoração: é o que seleciona a COR da partícula. Sem ela
+  // nenhuma regra `.weather.<estação> .flake` casa e todo floco sai com o
+  // preto padrão do SVG — que foi o que aconteceu quando o atributo sumiu.
+  svg.setAttribute('class', `weather ${dressing.weather}`);
+  // O clima vive no espaço da ARTE, e não num quadrado 0 0 100 100. Com
+  // preserveAspectRatio `none`, um viewBox quadrado estica a largura e a
+  // altura em taxas diferentes, e o círculo de neve saía elipse, o dobro de
+  // largura. Como a arte e a caixa são 16/9, o espaço da arte escala por igual
+  // nos dois eixos e a partícula continua redonda.
+  svg.setAttribute('viewBox', `0 0 ${MAP_ART_SIZE.w} ${MAP_ART_SIZE.h}`);
+  svg.setAttribute('preserveAspectRatio', 'none');
+  svg.setAttribute('aria-hidden', 'true');
+
+  for (let index = 0; index < WEATHER_COUNT; index += 1) {
+    const particle = weatherParticles(season, index);
+    const node = document.createElementNS(SVG_NS, 'circle');
+    // Posição e raio saem da unidade de porcentagem para pixel de arte.
+    node.setAttribute('cx', (particle.cx / 100 * MAP_ART_SIZE.w).toFixed(1));
+    node.setAttribute('cy', (particle.cy / 100 * MAP_ART_SIZE.h).toFixed(1));
+    node.setAttribute('r', (particle.r / 100 * MAP_ART_SIZE.w).toFixed(1));
+    node.setAttribute('class', 'flake');
+    node.style.setProperty('--drift', `${particle.drift || 0}px`);
+    node.style.setProperty('--delay', `${(-index * 0.63).toFixed(2)}s`);
+    node.style.setProperty('--dur', `${(5.5 + (index % 5) * 1.3).toFixed(2)}s`);
+    svg.appendChild(node);
+  }
+  return svg;
+}
+
+// A arte de estação é uma CÓPIA da mesma imagem, filtrada e recortada por
+// máscara — não um adesivo desenhado por cima. A diferença aparece na beira:
+// com um retângulo de cor colado na copa, a cerejeira ganha um halo e morre o
+// desenho da folha; com o filtro aplicado aos pixels que já estavam lá, o
+// volume, a luz e a sombra continuam intactos (lição nº 22, a emenda).
+function renderSeasonArt(artHref, season) {
+  const svg = document.createElementNS(SVG_NS, 'svg');
+  svg.setAttribute('class', 'season-art');
+  svg.setAttribute('viewBox', `0 0 ${MAP_ART_SIZE.w} ${MAP_ART_SIZE.h}`);
+  svg.setAttribute('aria-hidden', 'true');
+
+  const defs = document.createElementNS(SVG_NS, 'defs');
+
+  // Uma borda que some. A elipse cheia deixava um disco de borda dura: no
+  // outono, um círculo laranja assentado no grama ao lado da árvore; no inverno,
+  // um disco claro no céu. A máscara é pintada com um gradiente radial — branco
+  // no meio, preto na ponta — então a repintagem entra e sai junto com a
+  // silhueta, em vez de mostrar onde ela termina.
+  const feather = document.createElementNS(SVG_NS, 'radialGradient');
+  feather.setAttribute('id', 'feather');
+  // A borda macia só no último terço: com a curva espalhada por metade do raio a
+  // copa saía fofa, com um halo que comia o contorno da folha. Perto do fim, a
+  // repintagem segue a silhueta da copa e some nela.
+  for (const [offset, colour] of [['0', '#fff'], ['0.72', '#fff'], ['1', '#000']]) {
+    const stop = document.createElementNS(SVG_NS, 'stop');
+    stop.setAttribute('offset', offset);
+    stop.setAttribute('stop-color', colour);
+    feather.appendChild(stop);
+  }
+  defs.appendChild(feather);
+
+  const maskOf = (id, shapes) => {
+    const mask = document.createElementNS(SVG_NS, 'mask');
+    mask.setAttribute('id', id);
+    for (const [cx, cy, rx, ry] of shapes) {
+      const node = document.createElementNS(SVG_NS, 'ellipse');
+      node.setAttribute('cx', cx);
+      node.setAttribute('cy', cy);
+      node.setAttribute('rx', rx);
+      node.setAttribute('ry', ry);
+      // Em máscara SVG vale o BRILHO, e o preto — padrão sem este atributo —
+      // esconde. O gradiente é o que dá a borda macia.
+      node.setAttribute('fill', 'url(#feather)');
+      mask.appendChild(node);
+    }
+    return mask;
+  };
+
+  // O chão não é elipse: é a orla da ilha, um polígono de pontos medidos.
+  // Aqui NÃO entra o gradiente macio das copas: ele é radial e a ilha não é
+  // um disco, então o gradiente apagaria o meio do chão e deixaria a borda do
+  // polígono dura. O polígono JÁ é a borda do chão, e seguir a orla da arte
+  // com dois ou três pixels de diferença não aparece na tela.
+  const groundMask = document.createElementNS(SVG_NS, 'mask');
+  groundMask.setAttribute('id', 'mask-ground');
+  const groundShape = document.createElementNS(SVG_NS, 'polygon');
+  groundShape.setAttribute('points', MAP_GROUND.map(([x, y]) => `${x},${y}`).join(' '));
+  groundShape.setAttribute('fill', '#fff');
+  groundMask.appendChild(groundShape);
+  defs.appendChild(groundMask);
+
+  defs.appendChild(maskOf('mask-canopy', MAP_CANOPIES.map(([x, y, r]) => [x, y, r, r])));
+  defs.appendChild(maskOf('mask-roof', MAP_ROOFS));
+
+
+  // Rampa de duas cores: primeiro o brilho, depois cada canal remapeado para a
+  // cor da estação. `color-interpolation-filters` em sRGB é obrigatório — no
+  // padrão (linearRGB) a mesma tabela sai outra cor, e o verão apareceria azul.
+  //
+  // O mesmo filtro serve para a copa e para o chão: a diferença é só a máscara
+  // e a tabela. Fazer dois filtros quase iguais seria o caminho curto para os
+  // dois divergirem na segunda edição.
+  const addRampFilter = (id, ramp) => {
+    const filter = document.createElementNS(SVG_NS, 'filter');
+    filter.setAttribute('id', id);
+    filter.setAttribute('color-interpolation-filters', 'sRGB');
+
+    const grey = document.createElementNS(SVG_NS, 'feColorMatrix');
+    grey.setAttribute('type', 'saturate');
+    grey.setAttribute('values', '0');
+    filter.appendChild(grey);
+
+    const transfer = document.createElementNS(SVG_NS, 'feComponentTransfer');
+    for (const [channel, values] of Object.entries(ramp)) {
+      const fn = document.createElementNS(SVG_NS, `feFunc${channel.toUpperCase()}`);
+      fn.setAttribute('type', 'table');
+      fn.setAttribute('tableValues', values);
+      transfer.appendChild(fn);
+    }
+    filter.appendChild(transfer);
+    defs.appendChild(filter);
+  };
+
+  // Uma cópia da arte, filtrada pela rampa e recortada pela máscara. O traço
+  // continua sendo o que estava lá embaixo — que é o que separa neve de véu.
+  const remapped = (href, maskId, filterId) => {
+    const image = document.createElementNS(SVG_NS, 'image');
+    image.setAttribute('href', href);
+    image.setAttribute('x', '0');
+    image.setAttribute('y', '0');
+    image.setAttribute('width', String(MAP_ART_SIZE.w));
+    image.setAttribute('height', String(MAP_ART_SIZE.h));
+    image.setAttribute('preserveAspectRatio', 'none');
+    image.setAttribute('mask', `url(#${maskId})`);
+    image.setAttribute('filter', `url(#${filterId})`);
+    return image;
+  };
+
+  const ramp = FOLIAGE[season];
+  if (ramp) addRampFilter('filter-foliage', ramp);
+
+  const groundRamp = GROUND_RAMP[season];
+  if (groundRamp) addRampFilter('filter-ground', groundRamp);
+
+  svg.appendChild(defs);
+
+  // Camada 1: a copa repintada com os pixels reais da copa.
+  if (ramp) svg.appendChild(remapped(artHref, 'mask-canopy', 'filter-foliage'));
+
+  // Camada 2: a neve do chão. É a MESMA técnica da copa — o filtro remapeia os
+  // pixels que já estavam no chão, e a máscara é a orla da ilha. Pôr um
+  // retângulo branco por cima (o que dava neblina) apagava o desenho do gramado.
+  if (groundRamp) {
+    svg.appendChild(remapped(artHref, 'mask-ground', 'filter-ground'));
+  }
+
+  // Camada 3: a capa de neve no telhado, por cima do chão.
+  if (ROOF_SNOW[season]) {
+    const rect = document.createElementNS(SVG_NS, 'rect');
+    rect.setAttribute('x', '0');
+    rect.setAttribute('y', '0');
+    rect.setAttribute('width', String(MAP_ART_SIZE.w));
+    rect.setAttribute('height', String(MAP_ART_SIZE.h));
+    rect.setAttribute('fill', '#fff');
+    rect.setAttribute('mask', 'url(#mask-roof)');
+    rect.setAttribute('opacity', String(ROOF_SNOW[season]));
+    svg.appendChild(rect);
+  }
+
+  return svg;
+}
+
 function renderGames() {
   const season = readSeason();
   const palette = SEASON_PALETTE[season] || SEASON_PALETTE.spring;
-  const backdrop = SEASON_BACKDROP[season];
+  const dressing = SEASON_DRESSING[season] || SEASON_DRESSING.spring;
 
-  const map = el('div', { class: 'map', style: `--map-sky:${palette.sky};--map-horizon:${palette.horizon};--map-ground:${palette.ground};--map-path:${palette.path};--map-accent:${palette.accent}` });
+  const map = el('div', {
+    class: 'map',
+    style: `--map-sky:${palette.sky};--map-horizon:${palette.horizon};--map-ground:${palette.ground};--map-path:${palette.path};--map-accent:${palette.accent};--map-veil:${dressing.veil};--map-snow:${dressing.snow}`,
+  });
 
-  // A arte do mapa entra por cima do chão pintado. Enquanto o arquivo não
-  // existe, o `error` leva a imagem embora e sobra o procedural — e a estação
-  // continua mudando, porque quem muda é a paleta, não a foto.
-  const ground = el('img', { class: 'ground', src: assetUrl(backdrop), alt: '' });
-  ground.addEventListener('error', () => ground.remove(), { once: true });
+  const artHref = assetUrl(bundleVersion ? `${MAP_ART}?v=${bundleVersion}` : MAP_ART);
+  const ground = el('img', { class: 'ground', src: artHref, alt: '', width: '1280', height: '720' });
+  // Sem `error` que remova a arte: ela é a vila inteira e os destinos apontam
+  // para construções dentro dela. Se faltar, o usuário tem de ver o buraco.
+  ground.style.filter = dressing.filter;
   map.appendChild(ground);
 
-  const dests = el('div', { class: 'dests' }, DESTINATIONS.map((id) => {
-    const layout = DEST_LAYOUT[id];
-    return el('button', {
+  // A arte de estação entra logo depois, no MESMO lugar e com o MESMO `cover`,
+  // para que a copa repintada caia exatamente sobre a copa que está embaixo.
+  map.appendChild(renderSeasonArt(artHref, season));
+
+  // Camada do tamanho EXATO da arte, com o corte do `cover` compensado. Tudo
+  // que se posiciona por porcentagem vive aqui dentro, e assim a porcentagem é
+  // sempre a da arte — na tela de 360px como na de 940px.
+  const layer = el('div', { class: 'map-layer' });
+  map.appendChild(layer);
+
+  // O que o `layout()` tem de medir a cada mudança de tamanho: cada linha e a
+  // caixa de nome que ela liga. Declarado aqui porque o `layout()` é chamado
+  // depois do laço.
+  const labels = [];
+
+  // As linhas de ligação e a névea dos telhados vão num SVG só: um elemento
+  // por rótulo taparia os outros, e o `cover` do céu precisa vir por cima de
+  // tudo, não atrás de cada casa.
+  const overlay = document.createElementNS(SVG_NS, 'svg');
+  overlay.setAttribute('class', 'map-overlay');
+  overlay.setAttribute('viewBox', `0 0 ${MAP_ART_SIZE.w} ${MAP_ART_SIZE.h}`);
+  overlay.setAttribute('aria-hidden', 'true');
+  layer.appendChild(overlay);
+
+  const dests = el('div', { class: 'dests' });
+  layer.appendChild(dests);
+
+  for (const id of DESTINATIONS) {
+    const place = DEST_LAYOUT[id];
+    if (!place) continue;
+    const [x, y] = place.at;
+    const [lx, ly] = place.label;
+
+    const line = document.createElementNS(SVG_NS, 'line');
+    line.setAttribute('class', 'leader');
+    line.dataset.dest = id;
+    overlay.appendChild(line);
+
+    // O botão e o rótulo são IRMÃOS, e os dois se posicionam contra a camada da
+    // arte. Se o rótulo fosse filho do botão, a porcentagem dele resolveria
+    // contra os 74px do botão em vez de contra a vila — e foi o que aconteceu:
+    // as linhas nasciam a y=52 quando o rótulo está a y=660 na arte.
+    //
+    // O rótulo é pointer-events:none, então sair de dentro do botão não custa
+    // nada para o clique nem para o teclado: o alvo continua sendo a casa.
+    const pin = el('button', {
       class: 'dest', type: 'button',
-      style: `left:${layout.x}%;top:${layout.y}%`,
+      style: `left:${(x / MAP_ART_SIZE.w * 100).toFixed(3)}%;top:${(y / MAP_ART_SIZE.h * 100).toFixed(3)}%`,
+      'aria-label': t(`dest.${id}`),
       onclick: () => openComingSoon(id),
+    });
+    const label = el('span', {
+      class: 'dest-label',
+      style: `left:${(lx / MAP_ART_SIZE.w * 100).toFixed(3)}%;top:${(ly / MAP_ART_SIZE.h * 100).toFixed(3)}%`,
     }, [t(`dest.${id}`)]);
-  }));
-  map.appendChild(dests);
+
+    // O par casa/linha/rótulo acende junto. Com o rótulo irmão do botão, o
+    // seletor `+` não pega mais, e uma regra por id em CSS seriam seis linhas
+    // de estilo que o conteúdo passaria a ditar. Acender em JS é uma classed, e
+    // o destino continua sendo dono do visual dele.
+    const light = (on) => {
+      pin.classList.toggle('lit', on);
+      line.classList.toggle('lit', on);
+      label.classList.toggle('lit', on);
+    };
+    pin.addEventListener('pointerenter', () => light(true));
+    pin.addEventListener('pointerleave', () => light(false));
+    pin.addEventListener('focus', () => light(true));
+    pin.addEventListener('blur', () => light(false));
+
+    dests.appendChild(pin);
+    dests.appendChild(label);
+
+    // A caixa de nome só tem largura depois que o navegador a mede. A medição
+    // acontece no mesmo `layout()` que posiciona a camada, e não num
+    // `requestAnimationFrame`: aba em segundo plano deixa o rAF sem disparar e
+    // as seis linhas ficavam com atributo vazio — invisíveis, sem erro nenhum.
+    // O registro fica na lista para o layout() percorrer.
+    labels.push({ line, label, to: [x, y] });
+  }
+
+  const layout = () => {
+    const box = map.getBoundingClientRect();
+    if (!box.width) return;
+    const rect = coverRect(box.width, box.height);
+    layer.style.left = `${rect.left}px`;
+    layer.style.top = `${rect.top}px`;
+    layer.style.width = `${rect.width}px`;
+    layer.style.height = `${rect.height}px`;
+
+    // Escala da arte dentro da camada: converte pixel medido do rótulo no
+    // espaço da arte, que é o mesmo espaço do viewBox do <line>.
+    const scale = rect.width / MAP_ART_SIZE.w;
+    for (const entry of labels) {
+      const centre = [
+        entry.label.offsetLeft + entry.label.offsetWidth / 2,
+        entry.label.offsetTop + entry.label.offsetHeight / 2,
+      ];
+      const edge = leaderPoints(
+        [centre[0] / scale, centre[1] / scale, entry.label.offsetWidth / scale, entry.label.offsetHeight / scale],
+        entry.to,
+      );
+      entry.line.setAttribute('x1', edge.x1.toFixed(1));
+      entry.line.setAttribute('y1', edge.y1.toFixed(1));
+      entry.line.setAttribute('x2', edge.x2.toFixed(1));
+      entry.line.setAttribute('y2', edge.y2.toFixed(1));
+    }
+  };
+
+  // A capa de neve do telhado foi substituída pela máscara do `season-art`;
+  // o que fica aqui é só o clima, e ele pode não existir.
+  const weather = renderWeather(season, dressing);
+  if (weather) layer.appendChild(weather);
 
   const seasons = el('div', { class: 'seasons' }, SEASONS.map((id) => el('button', {
     class: 'chip', type: 'button', 'aria-pressed': String(id === season),
     onclick: () => { writeSeason(id); rerender(); },
   }, [t(`season.${id}`)])));
+
+  // Redimensionar reposiciona a camada e refaz as linhas: sem isto, girar o
+  // celular deixa as âncoras onde a janela anterior as deixou.
+  if (typeof ResizeObserver === 'function') {
+    const observer = new ResizeObserver(layout);
+    observer.observe(map);
+    map.addEventListener('detach-map', () => observer.disconnect(), { once: true });
+  } else {
+    window.addEventListener('resize', layout);
+  }
+  layout();
 
   return [
     topbar(),
@@ -408,10 +727,26 @@ function renderGames() {
     el('p', { class: 'sub', text: t('games.pick') }),
     seasons,
     map,
+    // No celular a vila fica com 187px de altura: seis nomes deitado em volta
+    // das casas saíam da borda ("...ive Challenges") e dois deles se sobrepunham.
+    // A lista assume o papel do rótulo quando a tela é estreita, e some na
+    // tela larga, onde o mapa tem espaço de sobra. Um destino, um caminho.
+    el('div', { class: 'dest-list' }, DESTINATIONS.map((id) => el('button', {
+      class: 'dest-item', type: 'button',
+      onclick: () => openComingSoon(id),
+    }, [t(`dest.${id}`)]))),
   ];
 }
 
 function openComingSoon(destination) {
+  // O primeiro destino que virou jogo de verdade. Os outros continuam no modal
+  // "em breve" — e é o certo: um modal que promete é melhor do que um botão
+  // que não faz nada.
+  if (destination === 'spin-art-lab') {
+    location.hash = '#/g/spin-art';
+    return;
+  }
+
   const close = () => { backdrop.remove(); document.removeEventListener('keydown', onKey); };
   const onKey = (event) => { if (event.key === 'Escape') close(); };
 
@@ -435,15 +770,52 @@ function openComingSoon(destination) {
 
 /* --------------------------------------------------------------- gallery --- */
 
+// A galeria era a tela vazia que prometia "quando os jogos criativos chegarem".
+// O que chega é a LISTA DE TRAÇOS de cada criação — não a imagem — e cada
+// miniatura é redesenhada na hora que a galeria abre, a partir da receita.
 function renderGallery() {
+  const creations = readCreations();
+
+  if (!creations.length) {
+    return [
+      topbar(),
+      el('h1', { text: t('gallery.heading') }),
+      el('div', { class: 'empty' }, [
+        el('p', { style: 'font-size:44px;margin:0 0 6px', 'aria-hidden': 'true', text: '🖼️' }),
+        el('h2', { text: t('gallery.emptyTitle') }),
+        el('p', { text: t('spin.empty') }),
+        el('button', {
+          class: 'btn primary', type: 'button',
+          onclick: () => { location.hash = '#/g/spin-art'; },
+        }, [t('spin.heading')]),
+      ]),
+    ];
+  }
+
+  const grid = el('div', { class: 'gallery-grid' }, creations.map((creation) => {
+    const canvas = el('canvas', { class: 'gallery-thumb', width: '320', height: '320', 'aria-hidden': 'true' });
+    const parsed = decodeRecord(creation.record);
+    if (parsed) {
+      paintRecord(canvas, resolveDabs(parsed).map((dab) => ({ ...dab, symmetry: creation.symmetry })), creation.paper);
+    }
+    return el('figure', { class: 'gallery-item' }, [
+      canvas,
+      el('figcaption', {}, [
+        el('span', { text: t('spin.dabs', { count: parsed?.dabs.length ?? 0 }) }),
+      ]),
+    ]);
+  }));
+
   return [
     topbar(),
     el('h1', { text: t('gallery.heading') }),
-    el('div', { class: 'empty' }, [
-      el('p', { style: 'font-size:44px;margin:0 0 6px', 'aria-hidden': 'true', text: '🖼️' }),
-      el('h2', { text: t('gallery.emptyTitle') }),
-      el('p', { text: t('gallery.emptyText') }),
-      el('button', { class: 'btn primary', type: 'button', onclick: () => { location.hash = '#/tutorials'; } }, [t('gallery.explore')]),
+    el('p', { class: 'sub', text: t('gallery.count', { count: creations.length }) }),
+    grid,
+    el('div', { class: 'nav-row' }, [
+      el('button', {
+        class: 'btn primary', type: 'button',
+        onclick: () => { location.hash = '#/g/spin-art'; },
+      }, [t('spin.heading')]),
     ]),
   ];
 }
@@ -457,15 +829,60 @@ function currentRoute() {
   if (parts[0] === 'tutorials') return { name: 'tutorials' };
   if (parts[0] === 'games') return { name: 'games' };
   if (parts[0] === 'gallery') return { name: 'gallery' };
+  if (parts[0] === 'g' && parts[1]) return { name: 'game', id: parts[1] };
   if (parts[0] === 't' && parts[1]) return { name: 'tutorial', slug: parts[1], step: Number.parseInt(parts[2] || '0', 10) };
   if (parts[0] === 'done' && parts[1]) return { name: 'done', slug: parts[1] };
   return { name: 'home' };
+}
+
+// O jogo tem vida própria — laço de animação, áudio e ponteiros. Ele precisa
+// ser destruído ANTES da próxima tela, senão o `requestAnimationFrame` continua
+// carimbando tinta num canvas que ninguém vê, e o som continua zunindo depois
+// de a criança sair.
+let spinArt = null;
+
+function closeGame() {
+  if (spinArt) {
+    spinArt.destroy();
+    spinArt = null;
+  }
+}
+
+function renderGame(id) {
+  if (id !== 'spin-art') return renderGames();
+  const mount = el('div', { class: 'game-mount' });
+  const head = [
+    topbar(),
+    el('h1', { text: t('spin.heading') }),
+    el('p', { class: 'sub', text: t('spin.hint') }),
+  ];
+  return [...head, mount];
+}
+
+function renderGameMounted(mount, id) {
+  if (id !== 'spin-art') return;
+  spinArt = createSpinArt({
+    container: mount,
+    lang: context.language,
+    soundOn: readSoundOn(),
+    strings: SPIN_STRINGS[context.language] || SPIN_STRINGS.pt,
+    onSoundToggle: (on) => writeSoundOn(on),
+    onSave: (record) => {
+      writeCreation({
+        id: `spin-${Date.now().toString(36)}`,
+        record,
+        paper: spinArt?.getState().paper,
+        symmetry: spinArt?.getState().symmetry,
+      });
+    },
+  });
 }
 
 function rerender() {
   const route = currentRoute();
   const problems = contentProblems(TUTORIALS);
   if (problems.length) console.warn('artsCrafts: conteúdo inválido', problems);
+  closeGame();
   const view = {
     home: renderHome,
     tutorials: renderTutorials,
@@ -473,8 +890,14 @@ function rerender() {
     done: () => renderCelebration(route.slug),
     games: renderGames,
     gallery: renderGallery,
+    game: () => renderGame(route.id),
   }[route.name] || renderHome;
-  root.replaceChildren(...view());
+  const nodes = view();
+  root.replaceChildren(...nodes);
+  if (route.name === 'game') {
+    const mount = root.querySelector('.game-mount');
+    if (mount) renderGameMounted(mount, route.id);
+  }
   document.title = `${t('app.title')} — ${t('app.title')}`;
 }
 
@@ -490,6 +913,7 @@ globalThis.__artsCrafts = {
   tutorials: () => LIVE_TUTORIALS,
   regionsOf: (tutorialId) => { const item = tutorialById(TUTORIALS, tutorialId); return item ? regionsOf(item) : null; },
   setFilter(next) { Object.assign(filters, next); rerender(); },
+  spin: () => (spinArt ? spinArt.getState() : null),
   goToStep(slug, step) { location.hash = `#/t/${slug}/${step}`; },
   QUICK_MINUTES,
 };

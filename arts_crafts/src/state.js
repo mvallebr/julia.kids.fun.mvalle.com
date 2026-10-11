@@ -18,7 +18,46 @@ export const KEYS = {
   progress: `${PREFIX}tutorialProgress`,
   completed: `${PREFIX}completedTutorials`,
   lastTutorial: `${PREFIX}lastTutorial`,
+  creations: `${PREFIX}creations`,
+  sound: `${PREFIX}soundOn`,
 };
+
+// Teto de criações guardadas. A lista de traços é pequena (da ordem de 12 KB por
+// desenho), mas o `localStorage` é um todo de 5 MB para o site inteiro, e este
+// app convive com outros do mesmo domínio. Esquecer a mais antiga é melhor do
+// que a escrita falhar no meio de um "guardar" e a criança achar que perdeu o
+// desenho.
+export const MAX_CREATIONS = 24;
+
+export function readCreations() {
+  const list = readJSON(KEYS.creations, []);
+  return Array.isArray(list) ? list.filter((item) => item && typeof item.record === 'string') : [];
+}
+
+// Devolve a lista nova já podada. Quem chama precisa usar o retorno: a gravação
+// é aqui dentro, e devolver sem usar é o jeito mais fácil de perder a criação.
+export function writeCreation(creation) {
+  const list = readCreations();
+  list.unshift({ ...creation, at: Date.now() });
+  const kept = list.slice(0, MAX_CREATIONS);
+  writeJSON(KEYS.creations, kept);
+  return kept;
+}
+
+export function deleteCreation(id) {
+  const kept = readCreations().filter((item) => item.id !== id);
+  writeJSON(KEYS.creations, kept);
+  return kept;
+}
+
+export function readSoundOn(fallback = true) {
+  const value = readString(KEYS.sound);
+  return value === null ? fallback : value === '1';
+}
+
+export function writeSoundOn(on) {
+  writeString(KEYS.sound, on ? '1' : '0');
+}
 
 function readJSON(key, fallback) {
   try {

@@ -520,6 +520,200 @@ Duas mudanças, e as duas são de prevention, não de correção:
 A regra geral: **automatização sem verificação é uma aposta com a ficha
 coberta**. O prompt falhar é barulho; a automação falhar é silêncio.
 
+## 30. A mesma vila em quatro estações é uma arte, não quatro
+
+O mapa tinha quatro imagens e elas eram **quatro vilas diferentes**: 6/6/5/5
+construções, quatro câmeras, quatro traçados de trilha. Por cima de tudo havia
+uma `DEST_LAYOUT` única e arbitrária — um hexágono com o centro livre —, então
+o botão "Art Studio" caía num telhado em abril e noutro prédio em janeiro. O
+comentário no código justificava a escolha com honestidade: *"a arte é cenário,
+os botões são interface"*. A interface não tinha por que estar em cima de uma
+casa específica, e a criança não tinha por que esperar que a vila se parecesse
+com a última vez que ela abriu o mapa.
+
+O primeiro impulso é pedir ao gerador a mesma vila quatro vezes, com a mesma
+semente. Isso não funciona, e é a lição nº 21 e nº 24 com outro nome: o modelo
+redesenha a cena, e o que não está no prompt não sobrevive. Pedir "a mesma vila
+em verão" devolve outra vila em summer, com os prédios em outros lugares.
+
+**Regra.** Quando a variação tem de ser **a mesma cena**, ela não é arte: é
+parâmetro. Virou `SEASON_DRESSING` — `filter` na arte, véu por cima, e o
+clima que cai. Três imagens a menos, e agora é impossível a casa ir para outro
+lugar: é o mesmo arquivo de pixels. A tabela abaixo é o antes e o depois.
+
+| | antes | depois |
+|---|---|---|
+| imagens do mapa | 4 (uma por estação) | 1 (`assets/map/village.webp`) |
+| construções | 6 / 6 / 5 / 5 | 6, sempre |
+| posição do destino | hexágono arbitrário | pixel medido na arte |
+| estação | imagem | `filter` + véu + clima |
+| teste que pegaria | nenhum | 10 |
+
+## 31. Âncora medida na arte morre no `object-fit: cover`
+
+Com uma arte só e as casas medidas, apareceu o bug que já estava lá e ninguém
+viu: `.map` tinha `aspect-ratio: 16/10` e `object-fit: cover`, e a arte é
+16/9. Cover numa caixa mais alta **come 12% de cada lado**. Medido: uma âncora
+no `x=1280` caía em 105.6% da largura — fora da tela. E o `min-height: 320px`
+do celular refazia o corte em outra proporção, então a âncora que acertava no
+desktop erraria no telefone.
+
+Três correções, e a ordem importa:
+
+1. A caixa passa a ter a proporção **da arte**. Sem corte, `coverRect` vira a
+   identidade, e a casa da ponta (que caía em x=-2) aparece.
+2. A âncora vive numa camada do **tamanho exato da arte**, com `left`/`top`
+   negativos compensando qualquer corte que sobrar. Assim a porcentagem dentro
+   da camada é sempre a porcentagem da arte.
+3. O `layout()` refaz tudo no `ResizeObserver`, não só no primeiro render.
+
+**Regra.** Meça a âncora na arte e teste a âncora na caixa. `coverRect` é o que
+faz a tradução, e ele precisa de teste com caixas de verdade — inclusive uma de
+celular e uma alta e estreita. É a mesma lição do `check-closed.py` (nº 10): o
+medidor é o que transforma "refazer sem parar" em "um segundo por candidato".
+
+## 32. Três bugs que nenhum teste pegou, porque só a tela pega
+
+Os três apareceram ao rodar o mapa no navegador, com os testes passando:
+
+1. **O CSS inteiro tinha colapsado.** Usei `//` para comentar dentro do texto
+   do `styles.js`, que é CSS, não JS: `//` não é comentário em CSS e o parser
+   descarta a regra silenciosamente. O mapa ficou com altura 0 e a folha toda
+   virou uma regra só. `document.styleSheets[0].cssRules.length` acusou na hora;
+   `npm test` não acusou nada.
+2. **A linha de ligação nascia em `y=52` quando o rótulo está em `y=660`.** O
+   rótulo era filho do botão, e `position: absolute` resolve a porcentagem
+   contra o pai: a casa da tampa. Passou a ser irmão, os dois na camada da arte.
+3. **A caixa de nome nascia no meio do rótulo.** `Math.abs(ux) || Infinity`
+   inverte a conta quando `ux` é 0: `0 || Infinity` dá `Infinity`, dividir dá
+   `0`, e a linha nascia do centro. O teste do canto reto pegou.
+
+Soma a isso o `requestAnimationFrame`: em aba de segundo plano ele não dispara,
+então as seis linhas ficaram com atributo vazio — invisíveis, sem erro no
+console. A medição foi para dentro do `layout()`, que roda no `ResizeObserver`.
+
+**Regra.** Coerência de layout se verifica **no navegador**, e o
+`cssRules.length` é o teste mais barato que existe: stylesheet com uma regra
+só é stylesheet quebrada. E nunca confie em `rAF` para medição que precisa
+acontecer.
+
+## 33. No celular o nome sai da arte e vira lista
+
+Com a vila em 187px de altura no telefone, seis rótulos deitados em volta das
+casas saíram para fora: "Creative Challenges" era cortado em "...ive Challenges" e
+"Spin Art Lab" ficava por cima dele. Nenhum aviso, nenhum erro — só um nome
+ilegível.
+
+**Regra.** Rótulo sobre imagem tem um limite de tamanho, e ele é o espaço que
+sobra depois que a arte encolheu. Passou de um limite, o nome sai do mapa e vira
+lista embaixo, e os dois nunca aparecem juntos (`display`, e não `visibility`,
+para o destino não ser anunciado duas vezes). As casas continuam nos mesmos
+pixels medidos: o que muda é onde o nome está, nunca onde a casa está.
+
+## 34. O MCP de imagem estava quebrado, e o sintoma era "não tenho gerador"
+
+Duas chamadas de geração de imagem falharam com "ferramenta não montada", e a
+conclusão escrita aqui foi "este ambiente não tem gerador de imagem". Era
+verdade e não era verdade ao mesmo tempo: o servidor estava configurado, com
+chave e com `text_to_image` dentro — e não carregava.
+
+O log dizia tudo: `MCP tool load failed ... path=mcp:minimax-media ... error=
+Failed to parse JSONL`. A causa era uma linha da config: `command` apontava para
+`~/.local/bin/uvx`, que não existe nesta máquina — o `uvx` está em `/usr/bin/uvx`.
+Servidor que não inicia responde "comando não encontrado", e isso quebra o
+handshake do JSON-RPC.
+
+**Regra.** Antes de concluir que uma ferramenta não existe, leia o log de carga
+dela. "Não está na minha lista de ferramentas" e "está quebrada" produzem o
+mismo erro na tela e respostas opostas no trabalho.
+
+## 35. `text_to_image` não tem imagem de referência — e isso decide o mapa
+
+O `text_to_image` do MiniMax MCP aceita exatamente seis parâmetros: `model`,
+`prompt`, `aspect_ratio`, `n`, `prompt_optimizer` e `output_directory`. Não há
+`subject_reference`, não há `image`, não há edição. Confirmar o schema é o que
+fecha a discussão: **quatro estações com a mesma vila são impossíveis de gerar**,
+porque cada chamada devolve uma vila diferente — que é a lição nº 21 dita de
+outro jeito.
+
+Por isso a divisão que ficou:
+
+| | quem faz | por quê |
+|---|---|---|
+| a vila | MiniMax `text_to_image` | arte nova, gerada de verdade |
+| a estação | código, sobre a vila | só assim as casas ficam no mesmo lugar |
+
+## 36. Medir por cor vale mais que medir a olho
+
+As âncoras das casas foram medidas numa imagem e quase todas erraram: a arte
+trocou no meio do caminho e as medidas ficaram 30–50px fora, o que punha os
+marcadores no gramado. As copas foram pelo mesmo caminho — medidas a olho num
+zoom — e erraram do mesmo jeito.
+
+O que resolveu foi **detectar por cor e depois conferir desenhando**: as
+cerejeiras foram segmentadas por limiar em RGB, blobs pequenos foram fundidos com
+os vizinhos, o lago e o cavalete foram excluídos por região, e o resultado foi
+desenhado sobre a arte antes de virar dado. O primeiro limiar falhou de um jeito
+instruente: o telhado terracota satisfazia "R muito maior que G" e entrava como
+cerejeira, porque laranja tem R−G enorme e B baixo. A regra de desempate foi
+exigir B alto — o que separa rosa de laranja.
+
+**Regra.** Contorno em imagem pintada se mede por cor, não por olho; e nada de
+cor vira dado antes de ser desenhado de volta por cima da arte para conferir.
+A mesma disciplina do `check-closed.py` (nº 10), agora para geometria.
+
+## 37. Nem toda forma se recupera por cor — a ilha provou
+
+O chão da ilha foi a única peça que a cor não resolveu. A elipse manchava mar,
+céu e lago. O preenchimento por inundação também não resolveu, e a causa é
+específica desta arte: **no topo, o céu tem exatamente o mesmo ciano do mar**.
+Não é uma diferença de tom que um limiar ajusta — é a mesma cor, então nenhum
+limiar separa uma coisa da outra, e a água vazava da ilha para cima.
+
+A marcha por raios a partir do centroide também falhou: o centroide cai dentro de
+uma parede branca e da praça de pedra, e os raios morriam a dez pixels do
+começo. Com buracos no meio — o lago, as construções — a estrela de radiação
+saía serrilhada e inútil.
+
+Sobrou a forma que é trivial e a que ninguém tentou primeiro: **ler a orla
+ponto a ponto e conferir desenhando**. São 22 coordenadas, e o teste é uma
+imagem com o polígono por cima. Levou cinco minutos; a elipse e a inundação
+levaram meia hora cada uma para não funcionar.
+
+Duas decisões vieram junto e valem mais que o polígono:
+
+- A borda macia das copas é um gradiente **radial**, que só faz sentido numa
+  copa redonda. No chão da ilha o mesmo gradiente apagaria o meio e deixaria a
+  borda do polígono dura. Chão é polígono com preenchimento sólido.
+- As casas levam branco junto, porque o chão passa por trás delas. Com 0.52 de
+  opacidade a vila sumia; a 0.40 ela continua reconhecível **e** nevada. Neve que
+  esconde a construção contradiz a lição nº 1.
+
+**Regra.** Antes de detectar a forma de uma região, pergunte se a cor separa
+dentro dela o que é região do que é fundo. Se céu e mar são a mesma cor, não há
+limiar que salve — e a resposta é medir, não detectar.
+
+## Proveniência da vila do mapa
+
+`assets/map/village.webp` foi gerada em 2026-10-05 pelo MiniMax via MCP
+`minimax-media` / `text_to_image`, a partir de um prompt que descrevia uma vila
+de seis construções em anel em torno de uma praça circular. É a arte canônica
+do mapa: as três imagens de estação antigas foram removidas porque não eram a
+mesma vila em outra estação.
+
+A estação é pintada por código sobre essa única imagem — filtro, véu e
+partículas, mais a copa e o telhado repintados por máscara SVG a partir dos
+pixels que já estavam lá. Nenhum pixel de construção vem de fora da imagem, e por
+isso a casa é a mesma nas quatro estações. Nenhuma imagem de entrada foi enviada
+a um serviço remoto para este ajuste.
+
+**Trocar a arte exige trocar a versão na URL.** A arte não tem nome versionado e
+o `?v=` do bundle não a alcança: quem já tinha `village.webp` em cache continuaria
+vendo a arte antiga com os marcadores da vila errada. Por isso a arte é pedida
+com o mesmo `?v=` do bundle.
+
+
+
 ## Proveniência da Corujinha Pintada
 
 *A seção abaixo registra o caminho usado para as artes de pintura; não é o
@@ -592,3 +786,58 @@ monta partes.
    objeto basta — desde que o texto e a imagem descrevam o mesmo passo.
 6. Confira os sete quadros em uma folha de contato antes de instalar e remova os
    assets antigos que nenhum passo usa.
+
+## 38. Spin Art: o pincel é o raio, e o raio é o modo
+
+A mecânica é antiga e conhecida — folha girando, tinta enquanto o dedo está
+nela. O que a app precisava era do que ela não tinha: o gesto de **desenhar de
+verdade** com o movimento da mão, e não só pintar um disco. A folha gira sob o
+ponteiro, e o traço nasce da distância do pincel ao centro.
+
+O que mudou em relação ao jogo da BBC é o **modo do cursor**: lá o pincel fica
+num raio e você pinta. Aqui o raio se move sozinho — fixo, ondulante, espiral,
+órbita, saltitante, gêmeo — e o dedo só liga e desliga. Isso transforma um
+brinquedo em jogo: a criança para de esperar a tinta e passa a escolher *como*
+o pincel anda. E a **simetria** (×2 a ×12) é o que multiplica o traço em
+mandala num instante, que é o momento "uau" que segura uma criança de 10 anos.
+
+**Regra.** O botão mais forte do spin art é a simetria, e o segundo é inverter
+o giro. Um é beleza, o outro é surpresa. Nenhum dos dois é difícil de fazer e
+os dois transformam o mesmo código.
+
+## 39. A lista de traços é a receita — e a receita tem limite
+
+Guardar a **lista de traços** em vez da imagem foi a decisão que resolveu o
+armazenamento sem IndexedDB: um desenho de 570 traços ocupa ~11 KB como texto,
+contra 300 KB em PNG. E como a receita é determinística (o ângulo é delta, não
+tempo), a galeria redesenha a miniatura na hora de abrir, sem nada guardado de
+redundante.
+
+O custo é o teto: mesmo com 11 KB por criação, o `localStorage` é ~5 MB e este
+site mora com outros no mesmo domínio. Por isso há um teto de 24 criações e a
+mais antiga sai. A gravação é feita dentro de `writeCreation` e devolve a lista
+já podada — quem chama tem de usar o retorno, senão a poda não chega ao disco.
+
+**Regra.** Onde uma coisa é reprodutível de um parâmetro pequeno, guarde o
+parâmetro. O `localStorage` guarda uma imagem ou uma receita, e a receita é
+200× menor, compartilável e não depende de bitmap.
+
+## 40. Cor não separa céu de mar nesta arte
+
+A ilha flutuante que virou a vila tem céu e mar **do mesmo ciano**. Nenhum
+limiar de cor separa um do outro, e a água de inundação que recortava a ilha
+vazava para o céu. A forma da ilha só se recupera **medindo**: o contorno foi
+lido ponto a ponto e conferido desenhando por cima. São 22 coordenadas — e
+cinco minutos, contra meia hora perdida com elipse e inundação, nenhuma das
+duas funcionando.
+
+Isso casa com a lição nº 36: contorno em imagem pintada se mede, não se
+detecta, e o que se mede precisa ser conferido com o traço na tela.
+
+## Proveniência do Spin Art Lab
+
+Os seis papéis (amassado, kraft, listras, bolinhas, quadriculado, estrelas) e
+todo o desenho do jogo são feitos **por código**, no canvas. Nenhum arquivo de
+imagem, nenhum serviço remoto. As cores de tinta são oito valores no código, e a
+receita guarda o **índice** da cor, não o hex — mudar a paleta não estraga o que
+a criança já salvou.
